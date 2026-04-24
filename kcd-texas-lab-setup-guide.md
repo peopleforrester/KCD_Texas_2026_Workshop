@@ -11,12 +11,12 @@
 
 Each student gets their own pre-provisioned EKS cluster. Students use Claude Code (an AI coding tool) on their laptops to build a complete Internal Developer Platform on top of their cluster during the workshop — ArgoCD, Kyverno, Prometheus, Grafana, Backstage, the works. Students have full admin access inside their clusters. They should be able to do anything they want in Kubernetes.
 
-AWS-side, students are restricted to only the services needed to operate their EKS cluster. An SCP on a Workshop OU allowlists EKS and supporting services. Everything else (ML, storage, serverless, etc.) is blocked by omission — no explicit denies needed.
+AWS-side, students are restricted to only the services needed to operate their EKS cluster. A **permissions boundary** attached to each student IAM user allowlists EKS and supporting services. Everything else (ML, storage, serverless, etc.) is blocked by omission — no explicit denies needed. All students share a single AWS account.
 
 **What you're building:**
 - 63 EKS clusters (60 students + 3 spares), pre-provisioned and ready before students arrive
 - 1 presenter cluster (for Michael)
-- Temporary IAM users with access scoped via SCP to EKS-related services only
+- Temporary IAM users with access scoped via permissions boundary to EKS-related services only
 - Base cluster setup: namespaces created, images pre-pulled, ready for immediate use
 
 **Cluster Spec (per student):**
@@ -34,7 +34,7 @@ AWS-side, students are restricted to only the services needed to operate their E
 | When | What |
 |------|------|
 | **By April 24** | Submit AWS service limit increases (takes up to 5 business days) |
-| **By April 24** | Create Workshop OU and attach SCP |
+| **By April 24** | Create permissions boundary policy (run `scripts/create-permissions-boundary.sh`) |
 | **By May 1** | Test: provision 1 cluster, create 1 IAM user, verify student can connect with full admin |
 | **By May 8** | Test: batch provision 3 clusters, validate student access end-to-end, destroy |
 | **May 14 evening or May 15 morning** | Provision all 64 clusters + create IAM users |
@@ -59,21 +59,19 @@ If any request is denied or delayed, escalate through AWS support. Without these
 
 ---
 
-## 2. AWS Organizations and SCP Setup
+## 2. Permissions Boundary Setup
 
-### Create the Workshop OU
+All 60 student IAM users live in a single shared AWS account. A **permissions boundary** (an IAM managed policy) is attached to every student user at creation time. It allowlists only the AWS services students need to operate their EKS clusters. Everything not on the list is denied by default.
 
+### Create the Permissions Boundary
+
+Run the script once:
+
+```bash
+./scripts/create-permissions-boundary.sh
 ```
-Organization Root
-└── Workshop OU  ← SCP attached here
-    └── (workshop account or accounts)
-```
 
-All student IAM users live in accounts under this OU. The SCP is the security boundary — it allowlists only the AWS services students need to operate their EKS clusters. Everything not on the list is denied by default.
-
-### Service Control Policy
-
-This is an **allowlist**. Only the services listed here are available to accounts in the Workshop OU. No explicit denies — anything not listed is automatically blocked.
+This creates the `kcd-texas-student-boundary` managed policy with the following allowlist:
 
 ```json
 {
@@ -215,22 +213,7 @@ This is an **allowlist**. Only the services listed here are available to account
 - IAM user/role/policy creation (no privilege escalation)
 - Organizations, billing, account management
 
-### Alternative: Permissions Boundary (Single Account)
-
-If you're running all students in one shared account instead of separate accounts per student, apply the same policy as an IAM **permissions boundary** instead of an SCP:
-
-```bash
-aws iam create-policy \
-  --policy-name kcd-texas-student-boundary \
-  --policy-document file://scp-policy.json
-
-# Attach to each student user at creation time:
-aws iam create-user \
-  --user-name kcd-texas-student-NN \
-  --permissions-boundary arn:aws:iam::ACCOUNT_ID:policy/kcd-texas-student-boundary
-```
-
-One managed policy, attached as a boundary to all student users. Same effect as the SCP.
+The boundary is a single managed policy, attached to all student users at creation time. The `create-student-users.sh` script handles this automatically.
 
 ---
 
@@ -278,7 +261,7 @@ The SCP (or boundary) is the ceiling. Each student also needs an IAM policy that
 }
 ```
 
-Students can only do what both the SCP **and** their IAM policy allow. The SCP sets the outer boundary for the whole OU. The IAM policy scopes each student to their own cluster.
+Students can only do what both the **permissions boundary** and their IAM policy allow. The boundary sets the outer ceiling for every student user. The inline IAM policy scopes each student to their own cluster.
 
 ### Kubernetes Access: system:masters
 
@@ -380,10 +363,10 @@ Creates 64 clusters in parallel via Terraform workspaces, runs post-provision se
 
 **Create student IAM users — after clusters are up:**
 ```bash
-./create-student-iam-users.sh 64 us-east-2
+./scripts/create-student-users.sh 64 us-east-2
 ```
 
-For each student: creates IAM user, attaches scoped policy, creates access key, patches aws-auth ConfigMap with `system:masters`, writes connection card to `attendee-configs/`.
+For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, patches aws-auth ConfigMap with `system:masters`, writes connection card to `attendee-configs/`.
 
 **Presenter cluster:**
 ```bash
@@ -428,24 +411,13 @@ All 64 clusters should show 3 Ready nodes and 6 workshop namespaces.
 ./teardown.sh kcd-texas-presenter us-east-2
 ```
 
-### Delete IAM Users
+### Delete IAM Users and Permissions Boundary
 
 ```bash
-for i in $(seq -w 1 64); do
-  USER="kcd-texas-student-$i"
-  for KEY in $(aws iam list-access-keys --user-name $USER --query 'AccessKeyMetadata[*].AccessKeyId' --output text 2>/dev/null); do
-    aws iam delete-access-key --user-name $USER --access-key-id $KEY
-  done
-  for POLICY in $(aws iam list-user-policies --user-name $USER --query 'PolicyNames[*]' --output text 2>/dev/null); do
-    aws iam delete-user-policy --user-name $USER --policy-name $POLICY
-  done
-  aws iam delete-user --user-name $USER 2>/dev/null
-done
+./scripts/delete-student-users.sh 64 --delete-boundary
 ```
 
-### Clean Up OU
-
-If using the multi-account model, close the student accounts and delete the Workshop OU. If using a single shared account, remove the permissions boundary policy after deleting all student users.
+Deletes all student access keys, inline policies, IAM users, and the permissions boundary policy in one pass.
 
 ### Verify Nothing Is Left Running
 
