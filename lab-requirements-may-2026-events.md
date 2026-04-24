@@ -1,0 +1,140 @@
+# Lab & Environment Requirements: May 2026 Speaking Engagements
+
+**Prepared by:** Michael Forrester
+**Last Updated:** April 14, 2026
+
+---
+
+## Event Summary
+
+| Event | Date | Format | Duration | Lab Required? |
+|---|---|---|---|---|
+| SREday Austin | May 12, 2026 | Talk | 30 min | No |
+| LLMday Austin | May 13, 2026 | Talk | 30 min | No |
+| KCD Texas | May 15, 2026 | Workshop | 90 min (2 hr lab window) | Yes |
+
+---
+
+## SREday Austin — "The Day an AI Agent Deleted My Cluster"
+
+**Format:** Presentation (no audience labs)
+
+**Speaker requirements:**
+- HDMI/USB-C projector connection
+- Presenter laptop with slide deck and pre-recorded terminal sessions
+- No internet dependency (all demos are pre-recorded incident footage)
+
+**No lab environment needed.** This is a narrative talk walking through a real incident with the Eight Guardrails Framework as the resolution. All technical content is shown via slides and recordings.
+
+---
+
+## LLMday Austin — "Your MLOps Pipeline is your Agentic AI Guardrail"
+
+**Format:** Presentation (no audience labs)
+
+**Speaker requirements:**
+- HDMI/USB-C projector connection
+- Presenter laptop with slide deck
+- Optional: pre-recorded terminal session showing guardrail hooks firing against a live agent session
+
+**No lab environment needed.** This talk covers the same incident as SREday but reframed for an AI/ML audience with SDLC guardrail focus. Slide-driven with optional recorded demo segments.
+
+---
+
+## KCD Texas — "The 90-Minute IDP" Workshop
+
+**Format:** Hands-on workshop with live audience participation
+**Scheduled Duration:** 90 minutes
+**Required Lab Window:** Minimum 2 hours (attendees need buffer for setup and continued exploration after session ends)
+
+### Cluster Environment (Per Attendee)
+
+Each participant needs access to a pre-provisioned Kubernetes lab environment.
+
+| Resource | Specification |
+|---|---|
+| Kubernetes version | 1.35 (or latest stable) |
+| Cluster type | k3s or equivalent lightweight distribution |
+| Node count | 3 nodes (1 control plane, 2 workers) |
+| Node sizing | Minimum 4 vCPU, 8 GB RAM per node |
+| kubectl | Pre-installed and configured |
+| Helm | v3.x pre-installed |
+| Git | Pre-installed |
+| Internet access | Required (Helm chart pulls, container image pulls) |
+| Session duration | Minimum 2 hours from first login |
+| Terminal access | Web-based terminal or SSH |
+
+### Technologies Deployed During Workshop
+
+These are installed live during the session by Claude Code. They do not need to be pre-installed, but the cluster must have enough resources to run all of them simultaneously.
+
+| Technology | Category | Approximate Resource Footprint |
+|---|---|---|
+| ArgoCD | GitOps delivery | ~500 MB RAM |
+| Kyverno | Policy enforcement | ~256 MB RAM |
+| Prometheus (kube-prometheus-stack) | Metrics | ~1 GB RAM |
+| Grafana | Dashboards | ~256 MB RAM |
+| Backstage | Developer portal | ~1 GB RAM |
+| Sample application | Demo workload | ~128 MB RAM |
+
+**Total estimated footprint:** ~3.2 GB RAM across the stack, plus Kubernetes system components. The 8 GB per node spec (24 GB total) provides adequate headroom.
+
+### Attendee Prerequisites
+
+Attendees should arrive with:
+- A laptop with a modern web browser (for accessing the lab environment)
+- Familiarity with basic Kubernetes concepts (pods, deployments, services, namespaces)
+- Optional but recommended: Claude Code installed and authenticated on their local machine (not required to follow along; they can observe the presenter's live build)
+
+### Speaker/Presenter Environment
+
+The presenter runs a separate, identical lab environment with:
+- Claude Code installed with `--dangerously-skip-permissions` flag enabled
+- Pre-cloned workshop Git repository containing CLAUDE.md and BUILD-SPEC.md
+- Two visible terminal windows (one for Claude Code, one for kubectl/port-forwards)
+- Browser tabs pre-opened for ArgoCD (port 8080), Grafana (port 3000), Backstage (port 7007)
+- Pre-recorded backup of a complete successful build run (contingency if live demo fails or playground goes down)
+
+### Workshop Git Repository
+
+A public Git repository will be provided containing:
+- CLAUDE.md (agent instruction file)
+- BUILD-SPEC.md (phased build specification with TDD gates)
+- Scorecard template for attendees to evaluate their own builds
+- Backup manifests for each phase (applied if Claude Code gets stuck during live session)
+- Post-workshop links to the full 10-hour production build spec
+
+### Lab Platform Notes
+
+This workshop has been designed and tested against KodeKloud playground environments. Any Kubernetes lab platform that meets the specifications above will work. The key requirements are:
+
+1. **Session persistence** for at least 2 hours (attendees need time beyond the 90-minute session)
+2. **Internet egress** for pulling Helm charts and container images from public registries
+3. **Sufficient memory** to run the full CNCF stack simultaneously (~3.2 GB application workload + Kubernetes overhead)
+4. **Web-accessible terminal** so attendees don't need to install local tools beyond a browser
+
+### Timing Breakdown
+
+| Segment | Duration | Lab Activity |
+|---|---|---|
+| Welcome + Framing | 8 min | None (slides) |
+| Lab Setup | 7 min | Attendees log in, clone repo, extend timer |
+| The Spec | 3 min | Show CLAUDE.md structure (slides/screen share) |
+| Phase 1: ArgoCD Build | 17 min | Claude Code building live; attendees follow along |
+| Phase 1: Scoring + Discussion | 10 min | Attendees evaluate their own scorecard |
+| Phase 2: Kyverno Build | 15 min | Live build continues |
+| Phase 3: Observability Build | 12 min | Live build continues |
+| Phase 4: Backstage Build | 10 min | Live build continues |
+| Scoring + Discussion | 12 min | Full scorecard review, audience comparison |
+| What Replaces Implementation | 7 min | Discussion (no lab) |
+| Close + Repo + QR Codes | 5 min | Attendees get takeaway links |
+
+**Post-session:** Attendees retain lab access for remaining timer duration to continue building independently.
+
+---
+
+## Contact
+
+For questions about lab provisioning or environment requirements:
+Michael Forrester
+github.com/peopleforester
