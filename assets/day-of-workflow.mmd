@@ -1,0 +1,44 @@
+%%| ABOUTME: Mermaid source for the day-of operations timeline.
+%%| ABOUTME: Shows pre-event, day-of, and post-event phases with numbered steps.
+
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#326CE5",
+    "primaryTextColor": "#FFFFFF",
+    "primaryBorderColor": "#1A4D8F",
+    "secondaryColor": "#E8F0FE",
+    "tertiaryColor": "#F5F5F5",
+    "lineColor": "#555555",
+    "fontFamily": "Inter, Arial, sans-serif",
+    "fontSize": "14px"
+  }
+}}%%
+
+graph TD
+    subgraph PRE["Pre-Event · May 14 evening or May 15 morning"]
+        P1["1 · Batch provision 64 EKS clusters<br/><i>batch-provision.sh</i>"]:::action
+        P2["2 · Create 64 IAM users + connection cards<br/><i>create-student-users.sh</i>"]:::action
+        P3["3 · Validate all clusters<br/><i>3 nodes + 6 namespaces each</i>"]:::ok
+    end
+
+    subgraph DAY["Day-Of · May 15"]
+        D1["4 · Distribute connection cards"]:::action
+        D2["5 · Students run aws configure + kubectl"]:::action
+        D3["6 · Workshop runs · 90 min"]:::k8s
+    end
+
+    subgraph POST["Post-Event · After Michael's all-clear"]
+        T1["7 · Destroy all clusters<br/><i>batch-teardown.sh</i>"]:::danger
+        T2["8 · Delete IAM users + boundary<br/><i>delete-student-users.sh --delete-boundary</i>"]:::danger
+        T3["9 · Verify zero resources remain"]:::ok
+    end
+
+    P1 --> P2 --> P3
+    P3 --> D1 --> D2 --> D3
+    D3 --> T1 --> T2 --> T3
+
+    classDef action fill:#FF9900,stroke:#CC7A00,color:#FFF
+    classDef k8s fill:#326CE5,stroke:#1A4D8F,color:#FFF,font-weight:bold
+    classDef danger fill:#D13438,stroke:#A02025,color:#FFF
+    classDef ok fill:#1B9E3E,stroke:#147A2F,color:#FFF

@@ -1,0 +1,43 @@
+%%| ABOUTME: Mermaid source for the student access model diagram.
+%%| ABOUTME: Shows IAM user through permissions boundary to system:masters in K8s.
+
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#326CE5",
+    "primaryTextColor": "#FFFFFF",
+    "primaryBorderColor": "#1A4D8F",
+    "secondaryColor": "#E8F0FE",
+    "tertiaryColor": "#F5F5F5",
+    "lineColor": "#555555",
+    "fontFamily": "Inter, Arial, sans-serif",
+    "fontSize": "14px"
+  }
+}}%%
+
+graph LR
+    Student(["Student Laptop"]):::user
+
+    subgraph AWS["AWS IAM"]
+        IAM["IAM User<br/><i>kcd-texas-student-NN</i>"]:::aws
+        Boundary["Permissions Boundary<br/><i>allowlist ceiling</i>"]:::guard
+        Policy["Inline Policy<br/><i>scoped to own cluster</i>"]:::aws
+    end
+
+    subgraph K8S["Kubernetes"]
+        EKS["EKS API Server"]:::aws
+        Auth["aws-auth ConfigMap"]:::k8s
+        Masters["system:masters<br/><i>full cluster admin</i>"]:::k8s
+    end
+
+    Student -- "aws configure<br/>access key + secret" --> IAM
+    IAM -- "bounded by" --> Boundary
+    IAM -- "granted by" --> Policy
+    Policy -- "aws eks update-kubeconfig" --> EKS
+    EKS -- "IAM identity mapped via" --> Auth
+    Auth -- "resolves to" --> Masters
+
+    classDef user fill:#F5F5F5,stroke:#555,color:#232F3E,font-weight:bold
+    classDef aws fill:#FF9900,stroke:#CC7A00,color:#FFF
+    classDef k8s fill:#326CE5,stroke:#1A4D8F,color:#FFF
+    classDef guard fill:#D13438,stroke:#A02025,color:#FFF

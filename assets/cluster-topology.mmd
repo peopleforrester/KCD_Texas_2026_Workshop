@@ -1,0 +1,48 @@
+%%| ABOUTME: Mermaid source for per-student cluster topology diagram.
+%%| ABOUTME: Shows what each student gets: EKS cluster, 3 nodes, 6 namespaces.
+
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#326CE5",
+    "primaryTextColor": "#FFFFFF",
+    "primaryBorderColor": "#1A4D8F",
+    "secondaryColor": "#E8F0FE",
+    "tertiaryColor": "#F5F5F5",
+    "lineColor": "#555555",
+    "fontFamily": "Inter, Arial, sans-serif",
+    "fontSize": "14px"
+  }
+}}%%
+
+graph LR
+    EKS["EKS Control Plane<br/><i>kcd-texas-student-NN</i>"]:::aws
+
+    subgraph VPC["VPC — us-east-2"]
+        subgraph Nodes["3× t3.xlarge Worker Nodes"]
+            N1["Node 1<br/>4 vCPU · 16 GB"]:::k8s
+            N2["Node 2<br/>4 vCPU · 16 GB"]:::k8s
+            N3["Node 3<br/>4 vCPU · 16 GB"]:::k8s
+        end
+    end
+
+    EKS -- "manages" --> N1
+    EKS -- "manages" --> N2
+    EKS -- "manages" --> N3
+
+    subgraph NS["Pre-Created Namespaces"]
+        NS1["argocd"]:::ns
+        NS2["kyverno"]:::ns
+        NS3["monitoring"]:::ns
+        NS4["backstage"]:::ns
+        NS5["apps"]:::ns
+        NS6["sample-app"]:::ns
+    end
+
+    N1 -.- NS
+    N2 -.- NS
+    N3 -.- NS
+
+    classDef aws fill:#FF9900,stroke:#CC7A00,color:#FFF,font-weight:bold
+    classDef k8s fill:#326CE5,stroke:#1A4D8F,color:#FFF
+    classDef ns fill:#E8F0FE,stroke:#326CE5,color:#1A4D8F

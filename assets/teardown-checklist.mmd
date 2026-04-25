@@ -1,0 +1,50 @@
+%%| ABOUTME: Mermaid source for the teardown verification checklist.
+%%| ABOUTME: Simplified linear flow — check each resource type, remediate if found.
+
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#326CE5",
+    "primaryTextColor": "#FFFFFF",
+    "primaryBorderColor": "#1A4D8F",
+    "secondaryColor": "#E8F0FE",
+    "tertiaryColor": "#F5F5F5",
+    "lineColor": "#555555",
+    "fontFamily": "Inter, Arial, sans-serif",
+    "fontSize": "14px"
+  }
+}}%%
+
+graph TD
+    Start(["Teardown Complete — Begin Verification"]):::aws
+
+    C1{"EKS clusters<br/>with kcd-texas prefix?"}:::check
+    C2{"Running EC2 instances<br/>tagged kcd-texas-*?"}:::check
+    C3{"NAT Gateways<br/>still available?"}:::check
+    C4{"Orphaned<br/>Elastic IPs?"}:::check
+    C5{"IAM users with<br/>kcd-texas-student prefix?"}:::check
+
+    F1["Delete remaining clusters"]:::danger
+    F2["Terminate instances"]:::danger
+    F3["Delete NAT Gateways"]:::danger
+    F4["Release Elastic IPs"]:::danger
+    F5["Re-run delete-student-users.sh"]:::danger
+
+    Done(["All clear — zero workshop resources"]):::ok
+
+    Start --> C1
+    C1 -- "none" --> C2
+    C1 -- "found" --> F1 --> C2
+    C2 -- "none" --> C3
+    C2 -- "found" --> F2 --> C3
+    C3 -- "none" --> C4
+    C3 -- "found" --> F3 --> C4
+    C4 -- "none" --> C5
+    C4 -- "found" --> F4 --> C5
+    C5 -- "none" --> Done
+    C5 -- "found" --> F5 --> Done
+
+    classDef aws fill:#FF9900,stroke:#CC7A00,color:#FFF,font-weight:bold
+    classDef check fill:#E8F0FE,stroke:#326CE5,color:#1A4D8F
+    classDef danger fill:#D13438,stroke:#A02025,color:#FFF
+    classDef ok fill:#1B9E3E,stroke:#147A2F,color:#FFF,font-weight:bold
