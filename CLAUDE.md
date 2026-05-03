@@ -7,14 +7,9 @@ This repository holds the workshop materials and provisioning automation for **"
 - `kcd-texas-lab-setup-guide.md` — engineer-facing provisioning guide (the canonical "how it all works" doc)
 - `kcd-texas-provisioning-README.md` — cluster-provisioning detail (Terraform + EKS)
 - `lab-requirements-may-2026-events.md` — lab requirements for May 2026 events
-- `scripts/` — shell scripts: IAM permissions boundary + student-user create/delete
+- `scripts/` — student IAM lifecycle scripts at the repo root: `create-permissions-boundary.sh`, `create-student-users.sh`, `delete-student-users.sh`
 - `assets/` — Mermaid sources (`.mmd`) and rendered SVGs for the four core diagrams
-- `kcd-texas-provisioning-package.zip` — see "Quirks" below
-
-## Quirks
-
-- **The zip is not a duplicate.** `kcd-texas-provisioning-package.zip` contains 11 source files (5 Terraform files: `main.tf`, `vpc.tf`, `eks.tf`, `variables.tf`, `outputs.tf`; 4 shell scripts: `batch-provision.sh`, `batch-teardown.sh`, `post-provision-setup.sh`, `teardown.sh`; an IAM policy JSON; and an inner `README.md`). These files are **only** in the zip — they are not separately tracked in the repo tree. Editing them requires extracting, modifying, and re-zipping. This is a known smell; the long-term fix is to extract `kcd-texas-provisioning/` into the tree and treat the zip as a build artifact.
-- The `scripts/` directory at the repo root contains *different* scripts (student IAM lifecycle: `create-permissions-boundary.sh`, `create-student-users.sh`, `delete-student-users.sh`) — not the same files as those inside the zip.
+- `kcd-texas-provisioning/` — cluster-provisioning sources: Terraform modules under `terraform/` (`main.tf`, `vpc.tf`, `eks.tf`, `variables.tf`, `outputs.tf`), batch provisioning/teardown scripts (`batch-provision.sh`, `batch-teardown.sh`, `post-provision-setup.sh`, `teardown.sh`), and `iam-policy-workshop-provisioner.json`. These are **different** scripts from those in the root `scripts/` directory — root `scripts/` handles student IAM, `kcd-texas-provisioning/` handles cluster creation.
 
 ## Branch Workflow
 

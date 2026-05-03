@@ -13,7 +13,7 @@ Each of ~60 attendees gets their own pre-provisioned Amazon EKS cluster. Attende
 | [`lab-requirements-may-2026-events.md`](lab-requirements-may-2026-events.md) | Lab requirements for the May 2026 events |
 | [`assets/`](assets/) | Mermaid sources and rendered SVG diagrams (access model, cluster topology, day-of workflow, teardown checklist) |
 | [`scripts/`](scripts/) | Shell scripts for the IAM permissions boundary and student-user lifecycle |
-| `kcd-texas-provisioning-package.zip` | Distribution archive containing Terraform modules and additional provisioning scripts |
+| [`kcd-texas-provisioning/`](kcd-texas-provisioning/) | Terraform modules and provisioning scripts that create the per-attendee EKS clusters |
 
 ## Repo Layout
 
@@ -21,10 +21,16 @@ Each of ~60 attendees gets their own pre-provisioned Amazon EKS cluster. Attende
 .
 ├── assets/                                # Diagrams (.mmd sources + .svg renders)
 ├── scripts/                               # Student IAM provisioning scripts
+├── kcd-texas-provisioning/                # Terraform + provisioning scripts
+│   ├── terraform/                         # main.tf, vpc.tf, eks.tf, variables.tf, outputs.tf
+│   ├── batch-provision.sh
+│   ├── batch-teardown.sh
+│   ├── post-provision-setup.sh
+│   ├── teardown.sh
+│   └── iam-policy-workshop-provisioner.json
 ├── kcd-texas-lab-setup-guide.md           # Engineer-facing setup guide
 ├── kcd-texas-provisioning-README.md       # Cluster provisioning detail
-├── lab-requirements-may-2026-events.md
-└── kcd-texas-provisioning-package.zip     # Terraform + provisioning scripts (archive)
+└── lab-requirements-may-2026-events.md
 ```
 
 ## Workflow
