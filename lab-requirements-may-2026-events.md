@@ -54,7 +54,7 @@ Each participant needs access to a pre-provisioned Kubernetes lab environment.
 | Resource | Specification |
 |---|---|
 | Kubernetes version | 1.35 (or latest stable) |
-| Cluster type | k3s or equivalent lightweight distribution |
+| Cluster type | Managed Kubernetes (EKS, GKE, AKS, or equivalent) |
 | Node count | 3 nodes (1 control plane, 2 workers) |
 | Node sizing | Minimum 4 vCPU, 8 GB RAM per node |
 | kubectl | Pre-installed and configured |
@@ -106,7 +106,7 @@ A public Git repository will be provided containing:
 
 ### Lab Platform Notes
 
-This workshop has been designed and tested against KodeKloud playground environments. Any Kubernetes lab platform that meets the specifications above will work. The key requirements are:
+This workshop has been designed for pre-provisioned managed Kubernetes clusters. Any Kubernetes lab platform that meets the specifications above will work. The key requirements are:
 
 1. **Session persistence** for at least 2 hours (attendees need time beyond the 90-minute session)
 2. **Internet egress** for pulling Helm charts and container images from public registries
