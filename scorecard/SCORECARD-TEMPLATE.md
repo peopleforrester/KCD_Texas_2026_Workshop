@@ -23,23 +23,29 @@ You can leave any of these blank. Submission is opt-in.
 
 Fill one row at the end of each phase. The four columns map 1:1 to the scorecard slot at the bottom of each phase in the playbook.
 
-| Phase | AI time (min) | Correction cycles | Toil reduced (1–10) | Notes (optional, 1 line) |
-|---|---:|---:|---:|---|
-| 1 — ArgoCD / GitOps | | | | |
-| 2 — Kyverno policies | | | | |
-| 3 — Prometheus + Grafana | | | | |
-| 4 — Backstage | | | | |
-| **Totals / Average** | | | (avg) | |
+| Phase | AI time (min) | Correction cycles | Toil reduced (1–10) | Integration (1–10) | Tour / DIY | Notes (optional, 1 line) |
+|---|---:|---:|---:|---:|:---:|---|
+| 1 — ArgoCD / GitOps | | | | | | |
+| 2 — Kyverno policies | | | | | | |
+| 3 — Prometheus + Grafana | | | | | | |
+| 4 — Backstage | | | | | | |
+| **Totals / Average** | | | (avg) | (avg) | — | |
 
 ### How to fill each column
 
 - **AI time (min):** Wall-clock minutes from when you pasted the phase prompt to when the verification command passed. Round to the nearest minute; if unsure, round down. Don't count time you stepped away from the keyboard (bathroom, refilling water, side conversations).
 - **Correction cycles:** Count the number of **distinct corrective prompts** you sent to Claude — not the number of issues addressed in a single prompt. Initial prompt + zero corrections = `0`. Initial prompt → "fix-the-labels-and-limits-and-probes" (one corrective prompt addressing three issues) → success = `1`. Initial prompt → fix-1 → fix-2 → success = `2`.
-- **Toil reduced (1–10):** Your honest estimate of how much manual work AI eliminated for you in this phase.
+- **Toil reduced (1–10):** Your honest estimate of how much manual *install* work AI eliminated for you in this phase.
   - `10` = AI did in minutes what would have taken me hours by hand, with no rework.
   - `5` = AI got me roughly half-way; I corrected significantly.
   - `1` = It would have been faster to do this myself from scratch.
   - Don't optimize for high scores — accurate scores are what's useful.
+- **Integration (1–10):** A *separate* dimension from installation. AI can install a component cleanly and still produce something that doesn't actually work end-to-end. Score whether the component does the thing it's supposed to do, in concert with everything around it. Per-phase examples:
+  - Phase 1: did the four child Applications auto-discover from your bootstrap and start installing without intervention?
+  - Phase 2: did Kyverno actually reject a non-compliant pod *and* allow a compliant one? (Not "did it install" — did the policy fire correctly at admission time?)
+  - Phase 3: are Grafana's default dashboards actually populated with cluster metrics, or empty? Is Prometheus scraping ArgoCD's metrics endpoint?
+  - Phase 4: did Backstage start, show a populated catalog, and stay up under poking? (With the community image, you won't have working software templates — that's a known limitation, not a 0/10.)
+- **Tour / DIY:** Mark whether you took the default Tour path for this phase or the optional DIY ("I built this") path.
 - **Notes:** One line if anything stood out (a clever Claude move, a specific failure mode, a moment you almost gave up). Blank is fine.
 
 ---
