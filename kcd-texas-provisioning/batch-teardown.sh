@@ -25,8 +25,8 @@ DESTROYED=0
 FAILED=0
 
 for i in $(seq -w 1 "${ATTENDEE_COUNT}"); do
-  CLUSTER_NAME="kcd-texas-attendee-${i}"
-  WORKSPACE="attendee-${i}"
+  CLUSTER_NAME="kcd-texas-student-${i}"
+  WORKSPACE="student-${i}"
   
   echo ""
   echo "--- Destroying cluster ${i}/${ATTENDEE_COUNT}: ${CLUSTER_NAME} ---"

@@ -91,10 +91,10 @@ This workshop is hands-on for every attendee, not observe-the-presenter. Attende
 
 The presenter runs a separate, identical lab environment with:
 - Claude Code installed with `--dangerously-skip-permissions` flag enabled
-- Pre-cloned workshop Git repository containing CLAUDE.md and BUILD-SPEC.md
+- Pre-cloned workshop Git repository (this repo) containing the student playbook, the GitOps source under `gitops/`, and the scorecard template
 - Two visible terminal windows (one for Claude Code, one for kubectl/port-forwards)
 - Browser tabs pre-opened for ArgoCD (port 8080), Grafana (port 3000), Backstage (port 7007)
-- Pre-recorded backup of a complete successful build run (contingency if live demo fails or playground goes down)
+- Pre-recorded backup of a complete successful build run (contingency if the live demo fails or a cluster issue blocks the room)
 
 ### Workshop Git Repository
 

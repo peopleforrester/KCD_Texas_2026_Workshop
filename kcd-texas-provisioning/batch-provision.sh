@@ -38,8 +38,8 @@ FAILURES=0
 FAILED_CLUSTERS=""
 
 for i in $(seq -w 1 "${ATTENDEE_COUNT}"); do
-  CLUSTER_NAME="kcd-texas-attendee-${i}"
-  WORKSPACE="attendee-${i}"
+  CLUSTER_NAME="kcd-texas-student-${i}"
+  WORKSPACE="student-${i}"
   
   echo ""
   echo "--- Provisioning cluster ${i}/${ATTENDEE_COUNT}: ${CLUSTER_NAME} ---"
@@ -62,23 +62,27 @@ for i in $(seq -w 1 "${ATTENDEE_COUNT}"); do
       # Generate attendee connection card
       ENDPOINT=$(cd "${TERRAFORM_DIR}" && terraform output -raw cluster_endpoint 2>/dev/null)
       cat > "${OUTPUT_DIR}/${CLUSTER_NAME}-connection.txt" <<CARD
-KCD Texas 2026 Workshop
-========================
-Your Cluster: ${CLUSTER_NAME}
-Region: ${REGION}
-Endpoint: ${ENDPOINT}
+================================================================
+KCD Texas 2026 -- "The 90-Minute IDP" -- Connection Card
+
+Cluster:        ${CLUSTER_NAME}
+Region:         ${REGION}
+Endpoint:       ${ENDPOINT}
 
 Connect:
   aws eks update-kubeconfig --region ${REGION} --name ${CLUSTER_NAME}
   kubectl get nodes
 
-Workshop Repo:
-  git clone <REPO_URL>
-  cd kcd-texas-workshop
+Workshop repo:  https://github.com/peopleforrester/KCD_Texas_2026_Workshop
+  git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git ~/kcd-texas-workshop
+  cd ~/kcd-texas-workshop
 
-Start Building:
-  claude --dangerously-skip-permissions -p "Read CLAUDE.md and BUILD-SPEC.md. Build all phases sequentially."
+Start the workshop:
+  claude
+  # Then follow kcd-texas-student-playbook.md, starting at "Before You Start".
 
+If you get stuck, raise your hand.  TAs are circulating.
+================================================================
 CARD
       
       SUCCESSES=$((SUCCESSES + 1))
