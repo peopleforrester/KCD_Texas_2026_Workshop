@@ -61,8 +61,8 @@ Each participant needs access to a pre-provisioned Kubernetes lab environment.
 | Helm | v3.x pre-installed |
 | Git | Pre-installed |
 | Internet access | Required (Helm chart pulls, container image pulls) |
-| Session duration | Minimum 2 hours from first login |
-| Terminal access | Web-based terminal or SSH |
+| Cluster lifetime | 2-hour live workshop window; up to 15 attendees retain access for ~1 additional hour after the session |
+| Attendee tooling | Claude Code + kubectl + AWS CLI installed on attendee's own laptop (no web terminal) |
 
 ### Technologies Deployed During Workshop
 
@@ -81,10 +81,11 @@ These are installed live during the session by Claude Code. They do not need to 
 
 ### Attendee Prerequisites
 
-Attendees should arrive with:
-- A laptop with a modern web browser (for accessing the lab environment)
+This workshop is hands-on for every attendee, not observe-the-presenter. Attendees should arrive with:
+
+- A laptop with terminal access, kubectl, and the AWS CLI installed
+- **Claude Code installed and authenticated** on the laptop (each attendee runs Claude Code against their own pre-provisioned EKS cluster — required, not optional)
 - Familiarity with basic Kubernetes concepts (pods, deployments, services, namespaces)
-- Optional but recommended: Claude Code installed and authenticated on their local machine (not required to follow along; they can observe the presenter's live build)
 
 ### Speaker/Presenter Environment
 
@@ -97,12 +98,12 @@ The presenter runs a separate, identical lab environment with:
 
 ### Workshop Git Repository
 
-A public Git repository will be provided containing:
-- CLAUDE.md (agent instruction file)
-- BUILD-SPEC.md (phased build specification with TDD gates)
-- Scorecard template for attendees to evaluate their own builds
-- Backup manifests for each phase (applied if Claude Code gets stuck during live session)
-- Post-workshop links to the full 10-hour production build spec
+The workshop's public Git repository (this repository) contains:
+- `README.md` and `CLAUDE.md` — repo overview and project context
+- `kcd-texas-student-playbook.md` — the 90-minute student walkthrough (4 phases, copy-paste prompts, verification commands)
+- `scorecard/SCORECARD-TEMPLATE.md` — scorecard each student fills in during the workshop
+- `assets/` — Mermaid sources and rendered SVG diagrams (cluster topology, GitOps flow, access model, teardown checklist)
+- Post-workshop links to the full 10-hour production build spec at [github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day)
 
 ### Lab Platform Notes
 
@@ -129,7 +130,7 @@ This workshop has been designed for pre-provisioned managed Kubernetes clusters.
 | What Replaces Implementation | 7 min | Discussion (no lab) |
 | Close + Repo + QR Codes | 5 min | Attendees get takeaway links |
 
-**Post-session:** Attendees retain lab access for remaining timer duration to continue building independently.
+**Post-session:** Up to 15 attendees retain cluster access for approximately 1 additional hour to continue building independently. The remaining clusters are torn down at session end.
 
 ---
 
