@@ -4,6 +4,7 @@ This repository holds the workshop materials and provisioning automation for **"
 
 ## Layout
 
+- `kcd-texas-student-playbook.md` — student-facing 90-minute walkthrough (4 phases, prompts, verification commands, scorecard). Modeled on `kubeauto-ai-day/spec/BUILD-SPEC.md` but condensed for workshop pacing per `assets/kubeauto-reference-analysis.md`.
 - `kcd-texas-lab-setup-guide.md` — engineer-facing provisioning guide (the canonical "how it all works" doc)
 - `kcd-texas-provisioning-README.md` — cluster-provisioning detail (Terraform + EKS)
 - `lab-requirements-may-2026-events.md` — lab requirements for May 2026 events
