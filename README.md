@@ -10,6 +10,7 @@ Each of ~60 attendees gets their own pre-provisioned Amazon EKS cluster. Attende
 |---|---|
 | [`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md) | Student-facing 90-minute walkthrough — what to paste into Claude Code, how to verify each phase, and the per-phase scorecard slot |
 | [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Blank scorecard each student fills in during the workshop (4-row phase table + wrap-up reflection). Submission is opt-in. |
+| [`gitops/`](gitops/) | The GitOps source for the workshop. ArgoCD on every student cluster points at this directory; child Applications under `gitops/apps/` install Kyverno, Prometheus + Grafana, and Backstage. |
 | [`kcd-texas-lab-setup-guide.md`](kcd-texas-lab-setup-guide.md) | Engineer-facing setup guide — how the labs are provisioned end-to-end |
 | [`kcd-texas-provisioning-README.md`](kcd-texas-provisioning-README.md) | Detailed cluster-provisioning guide (Terraform + EKS, cost breakdown) |
 | [`lab-requirements-may-2026-events.md`](lab-requirements-may-2026-events.md) | Lab requirements for the May 2026 events |
@@ -22,6 +23,11 @@ Each of ~60 attendees gets their own pre-provisioned Amazon EKS cluster. Attende
 ```
 .
 ├── assets/                                # Diagrams (.mmd sources + .svg renders)
+├── gitops/                                # GitOps source: ArgoCD on each cluster watches this tree
+│   ├── bootstrap/
+│   │   └── app-of-apps.yaml               # Root Application that watches gitops/apps/
+│   ├── apps/                              # Child Applications: Kyverno, Prom, Backstage, etc.
+│   └── manifests/                         # Custom resources (Kyverno policies, etc.)
 ├── scorecard/                             # Workshop scorecard template
 │   └── SCORECARD-TEMPLATE.md
 ├── scripts/                               # Student IAM provisioning scripts

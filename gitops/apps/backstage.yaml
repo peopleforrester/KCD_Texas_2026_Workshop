@@ -1,0 +1,43 @@
+# ABOUTME: ArgoCD Application that installs Backstage from the upstream Helm chart.
+# ABOUTME: Sync wave 5; image defaults to roadiehq/community-backstage-image -- swap for a workshop-specific image to enable scaffolder templates.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backstage
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: backstage
+    repoURL: https://backstage.github.io/charts
+    targetRevision: "2.7.0"
+    helm:
+      valuesObject:
+        backstage:
+          image:
+            # Default community-built Backstage image. To enable software
+            # templates that produce Kyverno-compliant Deployments, replace
+            # with a workshop-specific image that bakes in the scaffolder
+            # plugin and a static catalog at /app/catalog.
+            repository: roadiehq/community-backstage-image
+            tag: "1.50.4"
+        ingress:
+          enabled: false
+        service:
+          type: ClusterIP
+          ports:
+            backend: 7007
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backstage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

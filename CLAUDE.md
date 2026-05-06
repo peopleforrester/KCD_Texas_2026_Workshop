@@ -11,6 +11,12 @@ This repository holds the workshop materials and provisioning automation for **"
 - `scripts/` — student IAM lifecycle scripts at the repo root: `create-permissions-boundary.sh`, `create-student-users.sh`, `delete-student-users.sh`
 - `assets/` — Mermaid sources (`.mmd`) and rendered SVGs for the four core diagrams
 - `scorecard/SCORECARD-TEMPLATE.md` — blank workshop scorecard. Per-phase fields (AI time / corrections / toil reduced / notes) match the playbook's per-phase scorecard slot 1:1. Wrap-up reflection covers manual-time estimate, toil-shifted question, and lessons. Opt-in submission to `scorecard.md` in each student's workshop repo.
+- `gitops/` — the GitOps source ArgoCD watches on each student cluster.
+  - `gitops/bootstrap/app-of-apps.yaml` — root Application; students `kubectl apply` this in Phase 1 after Helm-installing ArgoCD. It points at `gitops/apps/` in this repo on `main`, so all 60 student clusters share the same canonical manifests.
+  - `gitops/apps/` — four child Applications (Kyverno, kyverno-policies, kube-prometheus-stack, Backstage), each with sync-wave annotations matching the kubeauto reference build's ordering.
+  - `gitops/manifests/kyverno-policies/` — three ClusterPolicy YAMLs (require-labels, require-resource-limits, disallow-privileged), all enforced on the `apps` namespace only.
+  - **Workshop model:** Students do not push to git during the workshop. They clone this repo read-only, then Claude Code walks them through the pre-committed manifests and verifies each component installed correctly.
+  - **Repo visibility:** the workshop repo must be readable by each ArgoCD instance. If left private, post-provision-setup needs to seed each ArgoCD with a read-only credential; if made public, no credentials are needed.
 - `kcd-texas-provisioning/` — cluster-provisioning sources: Terraform modules under `terraform/` (`main.tf`, `vpc.tf`, `eks.tf`, `variables.tf`, `outputs.tf`), batch provisioning/teardown scripts (`batch-provision.sh`, `batch-teardown.sh`, `post-provision-setup.sh`, `teardown.sh`), and `iam-policy-workshop-provisioner.json`. These are **different** scripts from those in the root `scripts/` directory — root `scripts/` handles student IAM, `kcd-texas-provisioning/` handles cluster creation.
 
 ## Branch Workflow

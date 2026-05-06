@@ -1,0 +1,29 @@
+# ABOUTME: Kyverno ClusterPolicy requiring 'app' and 'team' labels on Pods in the apps namespace.
+# ABOUTME: Demonstrates label-based admission control without affecting system namespaces.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require app and team labels
+    policies.kyverno.io/category: Workshop / Best Practices
+    policies.kyverno.io/severity: medium
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-required-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - apps
+      validate:
+        message: "Pods in 'apps' must have non-empty 'app' and 'team' labels."
+        pattern:
+          metadata:
+            labels:
+              app: "?*"
+              team: "?*"

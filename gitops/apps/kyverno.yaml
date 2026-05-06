@@ -1,0 +1,46 @@
+# ABOUTME: ArgoCD Application that installs the Kyverno admission controller from the upstream chart.
+# ABOUTME: Sync wave -5 ensures Kyverno CRDs exist before kyverno-policies (wave -4) applies them.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: kyverno
+    repoURL: https://kyverno.github.io/kyverno
+    targetRevision: "3.8.0"
+    helm:
+      valuesObject:
+        admissionController:
+          replicas: 1
+        config:
+          webhooks:
+            namespaceSelector:
+              matchExpressions:
+                - key: kubernetes.io/metadata.name
+                  operator: NotIn
+                  values:
+                    - kube-system
+                    - kube-public
+                    - kube-node-lease
+                    - argocd
+                    - monitoring
+                    - backstage
+                    - kyverno
+                    - sample-app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

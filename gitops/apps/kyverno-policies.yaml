@@ -1,0 +1,28 @@
+# ABOUTME: ArgoCD Application that applies the workshop's three Kyverno ClusterPolicies.
+# ABOUTME: Sync wave -4 (after kyverno wave -5); enforces label, resource-limit, and privileged-container rules in the apps namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+    targetRevision: main
+    path: gitops/manifests/kyverno-policies
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
