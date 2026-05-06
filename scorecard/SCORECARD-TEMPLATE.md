@@ -33,8 +33,8 @@ Fill one row at the end of each phase. The four columns map 1:1 to the scorecard
 
 ### How to fill each column
 
-- **AI time (min):** Wall-clock minutes from when you pasted the phase prompt to when the verification command passed. Round to the nearest minute. Don't subtract time you spent reading.
-- **Correction cycles:** Count the number of times you had to give Claude a corrective prompt to fix something it got wrong. Initial prompt + zero corrections = `0`. Initial prompt → fix-1 → fix-2 → success = `2`.
+- **AI time (min):** Wall-clock minutes from when you pasted the phase prompt to when the verification command passed. Round to the nearest minute; if unsure, round down. Don't count time you stepped away from the keyboard (bathroom, refilling water, side conversations).
+- **Correction cycles:** Count the number of **distinct corrective prompts** you sent to Claude — not the number of issues addressed in a single prompt. Initial prompt + zero corrections = `0`. Initial prompt → "fix-the-labels-and-limits-and-probes" (one corrective prompt addressing three issues) → success = `1`. Initial prompt → fix-1 → fix-2 → success = `2`.
 - **Toil reduced (1–10):** Your honest estimate of how much manual work AI eliminated for you in this phase.
   - `10` = AI did in minutes what would have taken me hours by hand, with no rework.
   - `5` = AI got me roughly half-way; I corrected significantly.

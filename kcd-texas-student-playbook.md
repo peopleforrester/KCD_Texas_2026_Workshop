@@ -2,6 +2,16 @@
 
 **Workshop:** "The 90-Minute IDP" • **Date:** May 15, 2026 • **Tool:** Claude Code
 
+## Orientation (for readers reviewing this before the workshop)
+
+This is the student-facing walkthrough for a 90-minute hands-on workshop at KCD Texas 2026. The audience is platform engineers, SREs, and Kubernetes practitioners who want a concrete look at what AI-assisted IDP work looks like in practice — not a slide deck about AI, but actual hands-on time using [Claude Code](https://docs.claude.com/en/docs/claude-code) against a real EKS cluster.
+
+Each of the ~60 attendees gets a dedicated, pre-provisioned EKS cluster on AWS. ArgoCD and four IDP components (Kyverno, kube-prometheus-stack, Backstage) are pre-staged in this repository's `gitops/` directory. Students bootstrap ArgoCD on their cluster, point it at this repo, and ArgoCD installs the four components. The workshop's pedagogical model is a **guided tour**: Claude Code walks each student through the pre-committed manifests in `gitops/apps/`, explains why they're structured that way, and helps them verify each component installed correctly. By the end, every student has a working IDP they can poke at.
+
+The point isn't to demonstrate that AI can write Helm values. The point is to ask, honestly, **whether AI shifted the toil or actually shrunk it** — which is why the per-phase scorecard at [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) captures correction cycles, AI time, and a wrap-up reflection on toil-shifting. Aggregated results (opt-in submission) inform a follow-on talk.
+
+---
+
 You walk in, your EKS cluster is already running, and in 90 minutes you'll see and understand a working Internal Developer Platform on top of it: GitOps with ArgoCD, policy enforcement with Kyverno, observability with Prometheus + Grafana, and a developer portal with Backstage.
 
 You don't type Kubernetes YAML from scratch. You **describe what you want to Claude Code**, paste the prompts below, run the verification command, and move on.
@@ -12,14 +22,38 @@ You don't type Kubernetes YAML from scratch. You **describe what you want to Cla
 
 ---
 
+## Prerequisites
+
+You should arrive with:
+
+- A laptop with terminal access, **kubectl**, the **AWS CLI**, and **git** installed
+- **Claude Code** installed and authenticated on the laptop (every attendee runs Claude Code against their own cluster — this is hands-on, not observe-the-presenter)
+- Comfortable with kubectl basics (pods, deployments, services, namespaces) and a CLI
+- Helm and ArgoCD experience helpful but not required — you'll see both in action
+
+If Claude Code isn't installed before you walk in, you'll lose 10 minutes to install + auth and the workshop will already be in Phase 1. Install ahead of time.
+
 ## Before You Start (5 min)
 
-**Your connection card lists what you need:**
+**Your connection card** is a small handout you'll receive at registration. It looks like this:
 
-- AWS access key + secret (for your IAM user)
-- Cluster name (`kcd-texas-student-NN`)
+```
+================================================================
+KCD Texas 2026 — "The 90-Minute IDP" — Connection Card
 
-The workshop's GitHub repository is `https://github.com/peopleforrester/KCD_Texas_2026_Workshop` — same repo you're reading this playbook from. ArgoCD will pull from this repo; you'll clone it locally so Claude Code can show you what's inside.
+Cluster:        kcd-texas-student-23
+Region:         us-east-2
+
+AWS Access Key: AKIAxxxxxxxxxxxxxxxx
+AWS Secret Key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+Workshop repo:  https://github.com/peopleforrester/KCD_Texas_2026_Workshop
+
+If you get stuck, raise your hand.  TAs are circulating.
+================================================================
+```
+
+The workshop repo is the same repository you're reading this playbook from. ArgoCD will pull from it; you'll clone it locally so Claude Code can show you what's inside.
 
 **On your laptop, in your terminal:**
 
@@ -51,6 +85,16 @@ claude
 ```
 
 If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand**. We have spare clusters.
+
+### Preflight troubleshooting (before you call a TA over)
+
+| Symptom | First-pass fix |
+|---|---|
+| `aws configure` rejects the keys | Re-enter carefully — Secret Keys often get pasted with leading/trailing whitespace. Confirm region is `us-east-2`, format `json`. |
+| `aws sts get-caller-identity` fails | Your keys aren't reaching AWS. Check `~/.aws/credentials` actually got written. |
+| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — raise your hand. |
+| `kubectl get nodes` returns "Unauthorized" | The cluster's `aws-auth` ConfigMap doesn't have your user mapped — raise your hand; a TA can patch it in 30 seconds. |
+| `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, raise your hand for a spare. |
 
 **How this playbook works.** Each of the four phases gives you:
 
@@ -302,9 +346,15 @@ Outside this room, on your own time, you can extend the same pattern to:
 
 The reference build at [github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day) shows the full 7-phase version of what you toured today — ~10 hours of build with all 27 components and the full scorecard.
 
-### Cluster Teardown
+### After the Workshop
 
-You don't need to clean up — the workshop infrastructure is destroyed shortly after the session ends. **Up to 15 attendees** can keep their cluster for an additional ~1 hour after the session if you want to keep exploring; ask a TA. Save anything you want to keep (Grafana screenshots, manifests you wrote in Claude Code) before you walk out.
+**Your cluster is destroyed shortly after the session ends.** Up to 15 attendees can keep theirs for ~1 additional hour if you want to keep exploring; ask a TA at the end. Save anything you want to keep (Grafana screenshots, any manifests you generated in Claude Code) before you walk out.
+
+**This repository stays public and bookmarkable.** Everything you saw today — the playbook, the GitOps source, the diagrams, the scorecard template — lives at [github.com/peopleforrester/KCD_Texas_2026_Workshop](https://github.com/peopleforrester/KCD_Texas_2026_Workshop) and isn't going anywhere. Fork it if you want to extend it; reference it freely.
+
+**Your scorecard is yours.** If you're willing to share it (anonymized aggregation only — no names, no cluster IDs in the published version), drop the filled file at `scorecard.md` in your local clone before you leave the venue and a TA will collect it. Or keep it private; the personal-reflection value is the main point either way.
+
+**Where to ask follow-on questions:** open an Issue on this repository. For deeper technical reference, the full 7-phase production version of what you toured today is at [github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day) — ~10 hours of build with all 27 components and the full scorecard data.
 
 ---
 
