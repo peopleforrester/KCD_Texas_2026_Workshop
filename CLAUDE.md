@@ -10,6 +10,7 @@ This repository holds the workshop materials and provisioning automation for **"
 - `lab-requirements-may-2026-events.md` — lab requirements for May 2026 events
 - `scripts/` — student IAM lifecycle scripts at the repo root: `create-permissions-boundary.sh`, `create-student-users.sh`, `delete-student-users.sh`
 - `assets/` — Mermaid sources (`.mmd`) and rendered SVGs for the four core diagrams
+- `scorecard/SCORECARD-TEMPLATE.md` — blank workshop scorecard. Per-phase fields (AI time / corrections / toil reduced / notes) match the playbook's per-phase scorecard slot 1:1. Wrap-up reflection covers manual-time estimate, toil-shifted question, and lessons. Opt-in submission to `scorecard.md` in each student's workshop repo.
 - `kcd-texas-provisioning/` — cluster-provisioning sources: Terraform modules under `terraform/` (`main.tf`, `vpc.tf`, `eks.tf`, `variables.tf`, `outputs.tf`), batch provisioning/teardown scripts (`batch-provision.sh`, `batch-teardown.sh`, `post-provision-setup.sh`, `teardown.sh`), and `iam-policy-workshop-provisioner.json`. These are **different** scripts from those in the root `scripts/` directory — root `scripts/` handles student IAM, `kcd-texas-provisioning/` handles cluster creation.
 
 ## Branch Workflow
