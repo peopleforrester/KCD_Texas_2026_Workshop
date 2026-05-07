@@ -9,7 +9,8 @@ Each of ~60 attendees gets their own pre-provisioned Amazon EKS cluster. Attende
 | File | Purpose |
 |---|---|
 | [`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md) | Student-facing 90-minute walkthrough — what to paste into Claude Code, how to verify each phase, and the per-phase scorecard slot |
-| [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Blank scorecard each student fills in during the workshop (4-row phase table + wrap-up reflection). Submission is opt-in. |
+| [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Blank scorecard each student fills in during the workshop (4-row phase table + 6-question wrap-up reflection including a usability rating). Submission is opt-in. |
+| [`scorecard/PRESENTER-SCORECARD.md`](scorecard/PRESENTER-SCORECARD.md) | The live, on-stage presenter scorecard. Three dimensions per component (Install, Integration, Usability) on a 6-row breakdown of the four phases. Filled in real time on the projector. |
 | [`gitops/`](gitops/) | The GitOps source for the workshop. ArgoCD on every student cluster points at this directory; child Applications under `gitops/apps/` install Kyverno, Prometheus + Grafana, and Backstage. |
 | [`kcd-texas-lab-setup-guide.md`](kcd-texas-lab-setup-guide.md) | Engineer-facing setup guide — how the labs are provisioned end-to-end |
 | [`kcd-texas-provisioning-README.md`](kcd-texas-provisioning-README.md) | Detailed cluster-provisioning guide (Terraform + EKS, cost breakdown) |

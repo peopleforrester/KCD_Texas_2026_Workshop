@@ -74,19 +74,33 @@ One sentence on which phase felt most/least like toil-shifting:
 
 ____________________________________________________________
 
-### 3. Where AI helped most today
+### 3. How usable is what you've got?
+
+Look at the IDP running on your cluster right now. Forget for a moment whether it was easy or hard to install. **Could you actually deploy a service through this platform tomorrow morning?** Could a teammate who didn't attend this workshop?
+
+Usability score (1–10): ____
+
+- `10` = production-ready as-is; I'd hand this to a junior engineer and they'd ship.
+- `5` = the bones are right but I'd need a half-day to make it actually usable for my team.
+- `1` = installed-but-not-usable; nice tour, can't ship anything through it.
+
+One sentence — what's the single biggest barrier between this platform and someone using it Monday morning?
+
+____________________________________________________________
+
+### 4. Where AI helped most today
 
 The phase or step where Claude made you most productive — what was it, and what specifically about it worked?
 
 ____________________________________________________________
 
-### 4. Where AI struggled today
+### 5. Where AI struggled today
 
 The phase or step where Claude got the most things wrong — what was it, and what was the failure pattern? (Wrong chart values, hallucinated API, deprecated pattern, missed context, etc.)
 
 ____________________________________________________________
 
-### 5. One thing you'll take back to your team
+### 6. One thing you'll take back to your team
 
 You don't have to have a "lesson." If you do, what is it?
 
