@@ -10,6 +10,8 @@ Each of the ~60 attendees gets a dedicated, pre-provisioned EKS cluster on AWS. 
 
 The point isn't to demonstrate that AI can write Helm values. The point is to ask, honestly, **whether AI shifted the toil or actually shrunk it** — which is why the per-phase scorecard at [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) captures correction cycles, AI time, and a wrap-up reflection on toil-shifting. Aggregated results (opt-in submission) inform a follow-on talk.
 
+**About the framework.** The Kyverno policies and admission controls you'll see today are server-side enforcement controls in the **Agentic Covenants** framework — a prevention-first matrix for autonomous-agent governance. Today's workshop is a 90-minute worked example of one column of that matrix: the Authorization and Blast-radius rows, server-side. The full framework — five concerns × three layers × fifteen cells, with citations to NIST CSF 2.0, NIST AI RMF, OWASP LLM Top 10, and OWASP Agentic Top 10 — lives at [github.com/peopleforrester/agentic-covenants](https://github.com/peopleforrester/agentic-covenants).
+
 ---
 
 You walk in, your EKS cluster is already running, and in 90 minutes you'll see and understand a working Internal Developer Platform on top of it: GitOps with ArgoCD, policy enforcement with Kyverno, observability with Prometheus + Grafana, and a developer portal with Backstage.
@@ -374,7 +376,7 @@ For comparison, the reference build (a single experienced engineer running this 
 
 Outside this room, on your own time, you can extend the same pattern to:
 
-- Fork this repo and add a fifth Application (Falco for runtime threat detection, cert-manager for TLS, ExternalSecrets pulling from AWS Secrets Manager)
+- Fork this repo and add a fifth Application. Examples: **Falco + Falco Talon** (Falco detects at the syscall layer; Talon adds response that acts fast enough to approximate prevention — the pair spans Detect and Respond in [Agentic Covenants](https://github.com/peopleforrester/agentic-covenants) terms), cert-manager for TLS, or ExternalSecrets pulling from AWS Secrets Manager.
 - Build your own Backstage image with the scaffolder plugin and add a software template that creates a Kyverno-compliant Deployment
 - Wire OpenTelemetry traces through an OTel Collector
 

@@ -2,6 +2,8 @@
 
 This repository holds the workshop materials and provisioning automation for **"The 90-Minute IDP"** at **KCD Texas 2026 (May 15, 2026)**. ~60 attendees, each with their own pre-provisioned EKS cluster. The workshop has a hard date — correctness and timely readiness matter more than refactoring.
 
+The workshop is a worked example of one column of the **Agentic Covenants** framework (Michael's prevention-first matrix for autonomous-agent governance). Source of truth for the framework lives at [github.com/peopleforrester/agentic-covenants](https://github.com/peopleforrester/agentic-covenants); do not duplicate framework content here, only reference it. The Kyverno policies in `gitops/manifests/kyverno-policies/` are server-side enforcement controls in the Authorization and Blast-radius rows of the matrix.
+
 ## Layout
 
 - `kcd-texas-student-playbook.md` — student-facing 90-minute walkthrough (4 phases, prompts, verification commands, scorecard). Modeled on `kubeauto-ai-day/spec/BUILD-SPEC.md` but condensed for workshop pacing per `assets/kubeauto-reference-analysis.md`. Prompts say "current stable GA chart" rather than pinning chart versions — Helm resolves on workshop day. Two corrections that were *not* version drift: the ArgoCD reconciliation timeout lives at `configs.cm."timeout.reconciliation"` (not `configs.params`), and the Backstage Helm chart has no `appVersion` — image tag is set in `backstage.image.tag` (the kubeauto reference's "Backstage 1.9.1" was a bogus number, fix-forward).
