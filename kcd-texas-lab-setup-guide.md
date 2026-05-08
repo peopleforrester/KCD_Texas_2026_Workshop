@@ -341,11 +341,11 @@ This reduces first-install time from minutes to seconds.
 
 ### Provisioning Steps
 
-The provisioning package (`kcd-texas-provisioning-package.zip`) contains Terraform configs and scripts. See `kcd-texas-provisioning-README.md` for full details. The Terraform variables should already specify t3.xlarge — verify in `variables.tf`.
+The provisioning sources live under [`kcd-texas-provisioning/`](kcd-texas-provisioning/) — Terraform modules under `terraform/`, plus the batch scripts (`batch-provision.sh`, `batch-teardown.sh`, `post-provision-setup.sh`, `teardown.sh`) and the IAM policy JSON at the directory root. See `kcd-texas-provisioning-README.md` for full details. The Terraform variables specify `t3.xlarge` by default — verify in `kcd-texas-provisioning/terraform/variables.tf`.
 
 **Test first (1 cluster):**
 ```bash
-cd terraform/
+cd kcd-texas-provisioning/terraform
 terraform init
 terraform apply -var="cluster_name=kcd-texas-test-01" -var="region=us-east-2"
 cd ..
@@ -356,6 +356,7 @@ kubectl get nodes   # 3 Ready nodes, t3.xlarge each
 
 **Batch provision (64 clusters) — do this 2-3 hours before the workshop:**
 ```bash
+cd kcd-texas-provisioning
 ./batch-provision.sh 64 us-east-2
 ```
 
