@@ -329,15 +329,21 @@ The post-provision setup script creates these namespaces on each cluster:
 
 ### Pre-Pulled Container Images
 
-The post-provision script also pre-pulls the main container images onto all nodes so Helm installs during the workshop don't block on image downloads:
+The post-provision script deploys an `image-prepull` DaemonSet that pulls (then exits) the main workshop container images onto every node so Helm installs during the workshop don't block on image downloads. Tags are pinned to match what `gitops/apps/*.yaml` actually deploys — the two must move together:
 
-- ArgoCD (quay.io/argoproj/argocd)
-- Kyverno (ghcr.io/kyverno/kyverno)
-- Prometheus (quay.io/prometheus/prometheus)
-- Grafana (docker.io/grafana/grafana)
-- Backstage (backstage base image)
+| Component | Image tag pre-pulled | Tracks |
+|---|---|---|
+| ArgoCD | `quay.io/argoproj/argocd:v3.3.9` | Chart `argo-cd 9.5.x` (installed in Phase 1) |
+| Kyverno admission controller | `ghcr.io/kyverno/kyverno:v1.18.0` | `gitops/apps/kyverno.yaml` (chart `3.8.0`) |
+| Kyverno cleanup controller | `ghcr.io/kyverno/cleanup-controller:v1.18.0` | Same |
+| Prometheus | `quay.io/prometheus/prometheus:v3.11.3` | `gitops/apps/kube-prometheus-stack.yaml` (chart `84.5.0`) |
+| Grafana | `docker.io/grafana/grafana:12.3.0` | Same |
+| Prometheus operator | `quay.io/prometheus-operator/prometheus-operator:v0.90.1` | Same |
+| Backstage | `roadiehq/community-backstage-image:1.50.4` | `gitops/apps/backstage.yaml` (chart `2.7.0`) |
 
-This reduces first-install time from minutes to seconds.
+Alertmanager is disabled in `gitops/apps/kube-prometheus-stack.yaml` and not pre-pulled. `node-exporter` and `kube-state-metrics` (~50 MB each) are also not pre-pulled — they pull at install time and add ~30 seconds to Phase 3 on first run.
+
+This reduces first-install time from minutes to seconds for the components that matter (ArgoCD ~700 MB, Backstage ~600 MB, Grafana ~400 MB).
 
 ### Provisioning Steps
 

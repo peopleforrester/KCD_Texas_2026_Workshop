@@ -111,9 +111,12 @@ spec:
       labels:
         purpose: workshop-prepull
     spec:
+      # Image tags below MUST track what gitops/apps/*.yaml deploys.
+      # Update both files together when bumping chart pins.
       initContainers:
+      # ArgoCD: chart argo-cd 9.5.x (Phase 1 Helm install) -> ArgoCD 3.3.x
       - name: pull-argocd
-        image: quay.io/argoproj/argocd:v2.14.2
+        image: quay.io/argoproj/argocd:v3.3.9
         command: ["sh", "-c", "echo done"]
         resources:
           requests:
@@ -121,8 +124,9 @@ spec:
             memory: 16Mi
           limits:
             memory: 32Mi
+      # Kyverno: gitops/apps/kyverno.yaml -> chart 3.8.0 -> app v1.18.0
       - name: pull-kyverno
-        image: ghcr.io/kyverno/kyverno:v1.13.4
+        image: ghcr.io/kyverno/kyverno:v1.18.0
         command: ["sh", "-c", "echo done"]
         resources:
           requests:
@@ -130,8 +134,19 @@ spec:
             memory: 16Mi
           limits:
             memory: 32Mi
+      - name: pull-kyverno-cleanup
+        image: ghcr.io/kyverno/cleanup-controller:v1.18.0
+        command: ["sh", "-c", "echo done"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            memory: 32Mi
+      # kube-prometheus-stack 84.5.0: bundles Prometheus v3.11.3, Grafana 12.3.0,
+      # prometheus-operator v0.90.1.  Alertmanager disabled in gitops/apps/.
       - name: pull-prometheus
-        image: quay.io/prometheus/prometheus:v3.1.0
+        image: quay.io/prometheus/prometheus:v3.11.3
         command: ["sh", "-c", "echo done"]
         resources:
           requests:
@@ -140,7 +155,28 @@ spec:
           limits:
             memory: 32Mi
       - name: pull-grafana
-        image: grafana/grafana:11.4.0
+        image: docker.io/grafana/grafana:12.3.0
+        command: ["sh", "-c", "echo done"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            memory: 32Mi
+      - name: pull-prom-operator
+        image: quay.io/prometheus-operator/prometheus-operator:v0.90.1
+        command: ["sh", "-c", "echo done"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            memory: 32Mi
+      # Backstage: gitops/apps/backstage.yaml -> chart 2.7.0 with the
+      # roadiehq community image at 1.50.4.  Largest single image (~600MB)
+      # so this pre-pull is the highest-leverage entry in the list.
+      - name: pull-backstage
+        image: roadiehq/community-backstage-image:1.50.4
         command: ["sh", "-c", "echo done"]
         resources:
           requests:
