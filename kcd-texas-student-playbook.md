@@ -90,6 +90,16 @@ claude
 
 If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand**. We have spare clusters.
 
+### Bring your own cluster (BYOC)
+
+If you're using your own cluster instead of the workshop EKS one (per the abstract: *"Got your own cluster? Bring that too"*), skip the `aws configure` / `aws eks update-kubeconfig` steps. Your cluster needs to meet three conditions:
+
+- `kubectl get nodes` returns **at least 3 Ready nodes** with roughly **16 GB total spare RAM** (Prometheus + Grafana + Backstage + ArgoCD adds up; see `lab-requirements-may-2026-events.md` for the per-component footprint)
+- You have **`cluster-admin`** — installing CRDs and admission webhooks needs it
+- The six workshop namespaces exist; if not, create them: `kubectl create ns argocd kyverno monitoring backstage apps sample-app`
+
+Then jump to step 5 of the preflight (clone the workshop repo) and continue normally. Phase 1's ArgoCD install picks up whatever kubeconfig is active — no AWS-specific assumptions in the GitOps source.
+
 ### Preflight troubleshooting (before you call a TA over)
 
 | Symptom | First-pass fix |
