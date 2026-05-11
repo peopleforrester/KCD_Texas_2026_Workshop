@@ -5,15 +5,15 @@ variable "region" {
 }
 
 variable "cluster_name" {
-  description = "Name prefix for the EKS cluster. Each attendee cluster should use a unique name (e.g., kcd-texas-attendee-01)"
+  description = "EKS cluster name.  Each student cluster gets a unique name (e.g., kcd-texas-student-01); batch-provision.sh sets this per-iteration."
   type        = string
   default     = "kcd-texas-workshop"
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version for EKS. Check https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html for latest supported."
+  description = "Kubernetes version for EKS.  Check https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html for latest supported.  As of May 2026 EKS supports through 1.34 GA."
   type        = string
-  default     = "1.32"
+  default     = "1.34"
 }
 
 variable "node_instance_type" {

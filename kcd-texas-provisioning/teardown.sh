@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # teardown.sh
 # Destroys the workshop cluster and all associated AWS resources.
 # Run this IMMEDIATELY after the workshop to stop burning money.
@@ -18,8 +18,12 @@ echo "Region:  ${REGION}"
 echo "============================================="
 echo ""
 echo "WARNING: This will destroy the EKS cluster, VPC, and all workshop resources."
-echo "Press Ctrl+C within 10 seconds to abort."
-sleep 10
+echo ""
+read -r -p "Type 'TEARDOWN ${CLUSTER_NAME}' to confirm: " CONFIRM
+if [ "${CONFIRM}" != "TEARDOWN ${CLUSTER_NAME}" ]; then
+  echo "Aborted."
+  exit 0
+fi
 
 # -----------------------------------------------
 # 1. Delete workshop resources that might block Terraform destroy

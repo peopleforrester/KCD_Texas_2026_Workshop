@@ -138,10 +138,25 @@
       "Resource": "*"
     },
     {
-      "Sid": "IAMRolesForEKS",
+      "Sid": "IAMCreateNewResources",
       "Effect": "Allow",
       "Action": [
         "iam:CreateRole",
+        "iam:CreatePolicy",
+        "iam:CreateInstanceProfile",
+        "iam:CreateOpenIDConnectProvider"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/Project": "kcd-texas-*"
+        }
+      }
+    },
+    {
+      "Sid": "IAMManageExistingResources",
+      "Effect": "Allow",
+      "Action": [
         "iam:DeleteRole",
         "iam:GetRole",
         "iam:ListRoles",
@@ -154,21 +169,18 @@
         "iam:PutRolePolicy",
         "iam:DeleteRolePolicy",
         "iam:GetRolePolicy",
-        "iam:CreatePolicy",
         "iam:DeletePolicy",
         "iam:GetPolicy",
         "iam:GetPolicyVersion",
         "iam:ListPolicyVersions",
         "iam:CreatePolicyVersion",
         "iam:DeletePolicyVersion",
-        "iam:CreateInstanceProfile",
         "iam:DeleteInstanceProfile",
         "iam:GetInstanceProfile",
         "iam:AddRoleToInstanceProfile",
         "iam:RemoveRoleFromInstanceProfile",
         "iam:ListInstanceProfilesForRole",
         "iam:PassRole",
-        "iam:CreateOpenIDConnectProvider",
         "iam:DeleteOpenIDConnectProvider",
         "iam:GetOpenIDConnectProvider",
         "iam:ListOpenIDConnectProviders",

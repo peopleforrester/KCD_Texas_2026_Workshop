@@ -53,7 +53,7 @@ Each participant needs access to a pre-provisioned Kubernetes lab environment.
 
 | Resource | Specification |
 |---|---|
-| Kubernetes version | 1.35 (or latest stable) |
+| Kubernetes version | 1.34 (latest stable on EKS as of May 2026) |
 | Cluster type | Managed Kubernetes (EKS, GKE, AKS, or equivalent) |
 | Node count | 3 nodes (1 control plane, 2 workers) |
 | Node sizing | Minimum 4 vCPU, 8 GB RAM per node |

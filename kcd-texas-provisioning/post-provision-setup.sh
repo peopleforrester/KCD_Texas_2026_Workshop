@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # post-provision-setup.sh
 # Run AFTER terraform apply completes.
 # Configures kubectl, validates the cluster, installs workshop prerequisites,
@@ -32,16 +32,16 @@ echo "  kubectl context set to ${CLUSTER_NAME}"
 echo ""
 echo "[2/6] Validating cluster health..."
 
+# Wait up to 5 minutes for all nodes to be Ready.  Exits as soon as they
+# are, instead of sleeping a fixed 60s and re-checking.
+if ! kubectl wait --for=condition=Ready node --all --timeout=300s >/dev/null 2>&1; then
+  echo "  FATAL: Nodes did not reach Ready within 5 minutes. Check EKS console."
+  exit 1
+fi
 NODE_COUNT=$(kubectl get nodes --no-headers 2>/dev/null | grep -c "Ready" || true)
 if [ "${NODE_COUNT}" -lt 3 ]; then
-  echo "  ERROR: Expected at least 3 Ready nodes, found ${NODE_COUNT}"
-  echo "  Waiting 60 seconds for nodes to come up..."
-  sleep 60
-  NODE_COUNT=$(kubectl get nodes --no-headers 2>/dev/null | grep -c "Ready" || true)
-  if [ "${NODE_COUNT}" -lt 3 ]; then
-    echo "  FATAL: Still only ${NODE_COUNT} Ready nodes. Check EKS console."
-    exit 1
-  fi
+  echo "  FATAL: Only ${NODE_COUNT} Ready nodes (expected >=3). Check EKS console."
+  exit 1
 fi
 echo "  ${NODE_COUNT} nodes Ready"
 
@@ -208,7 +208,7 @@ echo "[6/6] Cluster summary"
 echo "============================================="
 echo "Cluster:     ${CLUSTER_NAME}"
 echo "Region:      ${REGION}"
-echo "K8s Version: $(kubectl version --short 2>/dev/null | grep Server | awk '{print $3}' || kubectl version -o json 2>/dev/null | grep -m1 gitVersion | awk -F'"' '{print $4}')"
+echo "K8s Version: $(kubectl version -o json 2>/dev/null | grep -m1 gitVersion | awk -F'"' '{print $4}')"
 echo "Nodes:       ${NODE_COUNT}"
 echo "Namespaces:  ${NAMESPACES[*]}"
 echo ""

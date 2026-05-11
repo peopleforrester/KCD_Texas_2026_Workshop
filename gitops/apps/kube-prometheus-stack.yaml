@@ -18,6 +18,10 @@ spec:
     helm:
       valuesObject:
         grafana:
+          # Cleartext admin password is acceptable here -- workshop clusters
+          # are ephemeral and destroyed shortly after the session.  For any
+          # longer-lived environment, rotate this or set
+          # admin.existingSecret to an ExternalSecret-managed Secret.
           adminPassword: "kcd-texas"
         prometheus:
           prometheusSpec:

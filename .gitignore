@@ -17,6 +17,8 @@ override.tf.json
 *.key
 .aws-credentials
 credentials.csv
+# Generated connection cards contain live AWS access keys -- never commit.
+attendee-configs/
 
 # Editors / OS
 .vscode/

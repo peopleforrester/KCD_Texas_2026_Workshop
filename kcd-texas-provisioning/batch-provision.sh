@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # batch-provision.sh
 # Provisions multiple EKS clusters for workshop attendees.
 # Each attendee gets their own isolated cluster.
@@ -7,9 +7,10 @@
 # Example: ./batch-provision.sh 30 us-east-2
 #
 # COST WARNING:
-#   Each cluster costs ~$0.76/hr (EKS + 3x t3.xlarge)
-#   30 clusters for 3 hours = ~$68
-#   50 clusters for 3 hours = ~$114
+#   Each cluster costs ~$0.65/hr:
+#     EKS control plane $0.10 + 3x t3.xlarge $0.50 + NAT Gateway $0.045 + EIP $0.005
+#   30 clusters for 3 hours = ~$59
+#   64 clusters for 3 hours = ~$125
 #   DESTROY IMMEDIATELY AFTER THE WORKSHOP.
 
 set -euo pipefail
@@ -25,12 +26,16 @@ echo "============================================="
 echo "KCD Texas Workshop - Batch Provisioning"
 echo "Attendees:  ${ATTENDEE_COUNT}"
 echo "Region:     ${REGION}"
-echo "Cost est:   ~\$$(echo "${ATTENDEE_COUNT} * 0.76 * 3" | bc)/3hrs"
+echo "Cost est:   ~\$$(echo "${ATTENDEE_COUNT} * 0.65 * 3" | bc)/3hrs"
 echo "============================================="
 echo ""
 echo "This will create ${ATTENDEE_COUNT} EKS clusters."
-echo "Press Ctrl+C within 10 seconds to abort."
-sleep 10
+echo ""
+read -r -p "Type 'PROVISION ${ATTENDEE_COUNT}' to confirm: " CONFIRM
+if [ "${CONFIRM}" != "PROVISION ${ATTENDEE_COUNT}" ]; then
+  echo "Aborted."
+  exit 0
+fi
 
 # Track results
 SUCCESSES=0
@@ -110,5 +115,17 @@ fi
 echo ""
 echo "Connection cards in: ${OUTPUT_DIR}/"
 echo ""
-echo "REMEMBER: Run batch-teardown.sh IMMEDIATELY after the workshop."
+echo "NEXT: provision the presenter cluster and 3 spares (not handled by this script):"
+echo "  cd \"\$(dirname \"\$0\")/terraform\""
+echo "  terraform workspace new presenter || terraform workspace select presenter"
+echo "  terraform apply -var=\"cluster_name=kcd-texas-presenter\" -var=\"region=${REGION}\" -auto-approve"
+echo "  cd .. && bash post-provision-setup.sh kcd-texas-presenter \"${REGION}\""
+echo "  for i in 01 02 03; do"
+echo "    cd \"\$(dirname \"\$0\")/terraform\""
+echo "    terraform workspace new \"spare-\$i\" || terraform workspace select \"spare-\$i\""
+echo "    terraform apply -var=\"cluster_name=kcd-texas-spare-\$i\" -var=\"region=${REGION}\" -auto-approve"
+echo "    cd .. && bash post-provision-setup.sh \"kcd-texas-spare-\$i\" \"${REGION}\""
+echo "  done"
+echo ""
+echo "REMEMBER: Run batch-teardown.sh + manual teardown of presenter + spares IMMEDIATELY after the workshop."
 echo "============================================="

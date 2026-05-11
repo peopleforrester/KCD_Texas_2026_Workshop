@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # batch-teardown.sh
 # Destroys ALL attendee EKS clusters.
 # Run this IMMEDIATELY after the workshop ends.
@@ -17,9 +17,13 @@ echo "KCD Texas Workshop - BATCH TEARDOWN"
 echo "Destroying ${ATTENDEE_COUNT} clusters"
 echo "============================================="
 echo ""
-echo "WARNING: This will destroy ALL attendee clusters."
-echo "Press Ctrl+C within 10 seconds to abort."
-sleep 10
+echo "WARNING: This will destroy ALL ${ATTENDEE_COUNT} attendee clusters."
+echo ""
+read -r -p "Type 'TEARDOWN ${ATTENDEE_COUNT}' to confirm: " CONFIRM
+if [ "${CONFIRM}" != "TEARDOWN ${ATTENDEE_COUNT}" ]; then
+  echo "Aborted."
+  exit 0
+fi
 
 DESTROYED=0
 FAILED=0

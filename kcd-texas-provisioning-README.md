@@ -27,19 +27,20 @@ Each `terraform apply` creates:
 | 1 NAT Gateway | Outbound internet for private subnets | $0.045/hr + data |
 | 1 Elastic IP | NAT Gateway | $0.005/hr |
 | 1 EKS Cluster | Kubernetes control plane | $0.10/hr |
-| 3 t3.xlarge EC2 instances | Worker nodes (4 vCPU, 16 GB RAM each) | $0.22/hr each |
+| 3 t3.xlarge EC2 instances | Worker nodes (4 vCPU, 16 GB RAM each) | $0.166/hr each |
 | IAM roles | Cluster and node permissions | Free |
 | Security groups | Network access rules | Free |
 
-**Total per cluster: ~$0.82/hr**
+**Total per cluster: ~$0.65/hr** ($0.10 EKS + $0.50 nodes + $0.045 NAT + $0.005 EIP)
 
 ### Cost Estimates by Attendee Count
 
 | Attendees | 2-hour window | 3-hour window (with buffer) |
 |---|---|---|
-| 20 | ~$33 | ~$49 |
-| 30 | ~$49 | ~$74 |
-| 50 | ~$82 | ~$123 |
+| 20 | ~$26 | ~$39 |
+| 30 | ~$39 | ~$59 |
+| 50 | ~$65 | ~$98 |
+| 64 | ~$83 | ~$125 |
 
 **These clusters must be destroyed immediately after the workshop.**
 
@@ -222,7 +223,7 @@ chmod +x teardown.sh
 
 ### Timing
 
-Provision clusters **the morning of the workshop** or **the evening before**. Each cluster costs ~$0.82/hr, so provisioning the night before a 30-cluster workshop adds ~$200 in overnight costs. Morning-of is cheaper but riskier if something fails.
+Provision clusters **the morning of the workshop** or **the evening before**. Each cluster costs ~$0.65/hr, so provisioning the night before a 30-cluster workshop adds ~$155 in overnight costs (8 hr × $0.65 × 30). Morning-of is cheaper but riskier if something fails.
 
 Recommendation: Provision 2-3 hours before the workshop starts. The 12-18 minute per-cluster creation time runs in parallel via Terraform workspaces.
 
@@ -248,8 +249,8 @@ After provisioning completes, the `attendee-configs/` directory contains one fil
 
 ```
 attendee-configs/
-  kcd-texas-attendee-01-connection.txt
-  kcd-texas-attendee-02-connection.txt
+  kcd-texas-student-01-connection.txt
+  kcd-texas-student-02-connection.txt
   ...
 ```
 

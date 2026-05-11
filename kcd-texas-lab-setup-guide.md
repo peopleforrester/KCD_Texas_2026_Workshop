@@ -25,7 +25,7 @@ AWS-side, students are restricted to only the services needed to operate their E
 - Pre-created namespaces: `argocd`, `kyverno`, `monitoring`, `backstage`, `apps`, `sample-app`
 - Pre-pulled images for ArgoCD, Kyverno, Prometheus, Grafana, Backstage
 
-**Cost:** ~$0.60/hr per cluster × 64 clusters × 3 hours = **~$122**
+**Cost:** ~$0.65/hr per cluster × 64 clusters × 3 hours = **~$125**
 
 ---
 
@@ -315,7 +315,7 @@ Based on the [kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-da
 
 | Setting | Value |
 |---------|-------|
-| EKS version | Latest stable |
+| EKS version | 1.34 (Terraform pin in `variables.tf`; latest stable on EKS as of May 2026) |
 | Region | us-east-2 |
 | Node count | 3 |
 | Instance type | t3.xlarge (4 vCPU, 16 GB RAM) or equivalent |
@@ -368,26 +368,37 @@ kubectl get nodes   # 3 Ready nodes, t3.xlarge each
 ./teardown.sh kcd-texas-test-01 us-east-2
 ```
 
-**Batch provision (64 clusters) — do this 2-3 hours before the workshop:**
+**Batch provision (60 students + 3 spares + 1 presenter = 64 clusters) — do this 2-3 hours before the workshop:**
+
+The batch script handles the 60 student clusters; provision the spares and presenter explicitly after.
+
 ```bash
 cd kcd-texas-provisioning
-./batch-provision.sh 64 us-east-2
-```
 
-Creates 64 clusters in parallel via Terraform workspaces, runs post-provision setup on each.
+# 60 student clusters (requires typing "PROVISION 60" to confirm)
+./batch-provision.sh 60 us-east-2
+
+# 3 spare clusters (TAs hand these out if a student's cluster fails)
+for i in 01 02 03; do
+  (cd terraform && (terraform workspace new "spare-$i" || terraform workspace select "spare-$i") \
+    && terraform apply -var="cluster_name=kcd-texas-spare-$i" -var="region=us-east-2" -auto-approve)
+  bash post-provision-setup.sh "kcd-texas-spare-$i" us-east-2
+done
+
+# 1 presenter cluster (Michael)
+(cd terraform && (terraform workspace new presenter || terraform workspace select presenter) \
+  && terraform apply -var="cluster_name=kcd-texas-presenter" -var="region=us-east-2" -auto-approve)
+bash post-provision-setup.sh kcd-texas-presenter us-east-2
+```
 
 **Create student IAM users — after clusters are up:**
 ```bash
-./scripts/create-student-users.sh 64 us-east-2
+./scripts/create-student-users.sh 60 us-east-2
 ```
 
-For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, patches aws-auth ConfigMap with `system:masters`, writes connection card to `attendee-configs/`.
+For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, creates an EKS Access Entry + associates `AmazonEKSClusterAdminPolicy` at cluster scope, writes connection card to `attendee-configs/`.
 
-**Presenter cluster:**
-```bash
-terraform apply -var="cluster_name=kcd-texas-presenter" -var="region=us-east-2"
-./post-provision-setup.sh kcd-texas-presenter us-east-2
-```
+The spares do not need student users — TAs hand them out using their own credentials if a student's cluster fails.
 
 ---
 
@@ -417,7 +428,7 @@ All 64 clusters should show 3 Ready nodes and 6 workshop namespaces.
 
 ## 6. Teardown
 
-**Do this immediately after Michael gives the all-clear.** Every hour costs ~$38 (64 × ~$0.60).
+**Do this immediately after Michael gives the all-clear.** Every hour costs ~$42 (64 × ~$0.65).
 
 ### Destroy Clusters
 
@@ -463,15 +474,15 @@ Every check should return empty. If anything is left, delete it manually.
 
 | Item | Count | Rate | Duration | Cost |
 |------|------:|-----:|---------:|-----:|
-| Student clusters | 63 | ~$0.60/hr | 3 hrs | ~$113 |
-| Presenter cluster | 1 | ~$0.60/hr | 3 hrs | ~$1.80 |
-| Spare clusters | 3 | ~$0.60/hr | 3 hrs | ~$5.40 |
-| Test provisioning (prep) | 1-3 | ~$0.60/hr | 1 hr | ~$1.80 |
-| **Total** | | | | **~$122** |
+| Student clusters | 60 | ~$0.65/hr | 3 hrs | ~$117 |
+| Presenter cluster | 1 | ~$0.65/hr | 3 hrs | ~$2 |
+| Spare clusters | 3 | ~$0.65/hr | 3 hrs | ~$6 |
+| Test provisioning (prep) | 1-3 | ~$0.65/hr | 1 hr | ~$2 |
+| **Total** | | | | **~$125** |
 
-If provisioning the night before, add ~$307 for 8 hours overnight (64 × $0.60 × 8).
+If provisioning the night before, add ~$333 for 8 hours overnight (64 × $0.65 × 8).
 
-Costs are approximate. t3.xlarge in us-east-2 is ~$0.166/hr per instance × 3 nodes = ~$0.50/hr plus EKS control plane at $0.10/hr.
+Costs are approximate. t3.xlarge in us-east-2 is ~$0.166/hr per instance × 3 nodes = ~$0.50/hr, plus EKS control plane $0.10/hr, NAT Gateway $0.045/hr, and Elastic IP $0.005/hr — total ~$0.65/hr per cluster.
 
 ---
 

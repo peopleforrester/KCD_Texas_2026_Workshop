@@ -30,6 +30,6 @@ output "kubeconfig_command" {
 }
 
 output "estimated_hourly_cost" {
-  description = "Approximate hourly cost for this cluster (EKS + EC2 nodes)"
-  value       = "~$0.76/hr (EKS $0.10 + 3x t3.xlarge at ~$0.22/hr each). Destroy promptly after workshop."
+  description = "Approximate hourly cost for this cluster (EKS + EC2 nodes + NAT GW + EIP)"
+  value       = "~$0.65/hr: EKS $0.10 + 3x t3.xlarge ~$0.50 + NAT Gateway $0.045 + EIP $0.005. Destroy promptly after workshop."
 }
