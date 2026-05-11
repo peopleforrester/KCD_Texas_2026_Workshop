@@ -57,10 +57,20 @@ module "eks" {
     }
   }
 
-  # Allow the provisioner IAM role and the attendee to access the cluster
+  # Use the modern Access Entries API exclusively.  No aws-auth ConfigMap.
+  # The legacy ConfigMap mode (API_AND_CONFIG_MAP) is a maintenance hazard
+  # in a 60-cluster batch: a shell script that patches aws-auth via strategic
+  # JSON merge against a YAML-as-string field is fragile and silently fails
+  # in ways students notice at the door.  Access Entries are AWS-API-driven,
+  # idempotent, and don't depend on kubectl being reachable from the
+  # provisioner laptop.
+  authentication_mode = "API"
+
+  # Grant the provisioner identity cluster-admin via an automatic access entry.
   enable_cluster_creator_admin_permissions = true
 
-  # Access entries for attendee kubectl access.
-  # The provisioning script adds the attendee IAM role post-creation.
+  # Per-student access entries are created post-provision by
+  # scripts/create-student-users.sh using `aws eks create-access-entry` and
+  # `aws eks associate-access-policy AmazonEKSClusterAdminPolicy`.
   access_entries = {}
 }

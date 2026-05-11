@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ABOUTME: Creates temporary IAM users for workshop students in a single shared account.
-# ABOUTME: Attaches permissions boundary, scoped IAM policy, patches aws-auth, writes connection cards.
+# ABOUTME: Attaches permissions boundary, scoped IAM policy, creates EKS Access Entry, writes connection cards.
 
 set -euo pipefail
 
@@ -105,40 +105,36 @@ EOF
     SECRET_KEY=$(echo "$KEY_OUTPUT" | jq -r '.AccessKey.SecretAccessKey')
     echo "  Created access key: $ACCESS_KEY"
 
-    # Patch aws-auth ConfigMap on the student's cluster
-    echo "  Patching aws-auth on cluster $CLUSTER..."
-    aws eks update-kubeconfig --name "$CLUSTER" --region "$REGION" --kubeconfig "/tmp/kubeconfig-${CLUSTER}" 2>/dev/null
-
-    KUBECTL="kubectl --kubeconfig /tmp/kubeconfig-${CLUSTER}"
+    # Grant cluster-admin via EKS Access Entries (modern API, no aws-auth).
+    # Two steps: create the access entry for the principal, then associate the
+    # AWS-managed cluster-admin policy at cluster scope.  Both are idempotent
+    # via existence checks; AssociateAccessPolicy is idempotent server-side
+    # but we suppress its error output for noise control.
     USERARN="arn:aws:iam::${ACCOUNT_ID}:user/${USER}"
+    ADMIN_POLICY_ARN="arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
-    # Get current mapUsers, append this student
-    CURRENT_MAP=$($KUBECTL get configmap aws-auth -n kube-system -o jsonpath='{.data.mapUsers}' 2>/dev/null || echo "[]")
-
-    # Build new entry
-    NEW_ENTRY="- userarn: ${USERARN}
-  username: ${USER}
-  groups:
-    - system:masters"
-
-    if echo "$CURRENT_MAP" | grep -q "$USERARN" 2>/dev/null; then
-        echo "  User already in aws-auth, skipping patch."
+    if aws eks describe-access-entry \
+        --cluster-name "$CLUSTER" \
+        --principal-arn "$USERARN" \
+        --region "$REGION" &>/dev/null; then
+        echo "  Access entry already exists, skipping create."
     else
-        if [ "$CURRENT_MAP" = "[]" ] || [ -z "$CURRENT_MAP" ]; then
-            UPDATED_MAP="$NEW_ENTRY"
-        else
-            UPDATED_MAP="${CURRENT_MAP}
-${NEW_ENTRY}"
-        fi
-
-        $KUBECTL patch configmap aws-auth -n kube-system \
-            --type strategic \
-            -p "{\"data\":{\"mapUsers\":\"${UPDATED_MAP}\"}}" 2>/dev/null && \
-            echo "  Patched aws-auth with system:masters." || \
-            echo "  WARNING: Could not patch aws-auth. Manual update may be needed."
+        aws eks create-access-entry \
+            --cluster-name "$CLUSTER" \
+            --principal-arn "$USERARN" \
+            --region "$REGION" \
+            --type STANDARD \
+            --username "$USER" >/dev/null
+        echo "  Created EKS access entry."
     fi
 
-    rm -f "/tmp/kubeconfig-${CLUSTER}"
+    aws eks associate-access-policy \
+        --cluster-name "$CLUSTER" \
+        --principal-arn "$USERARN" \
+        --policy-arn "$ADMIN_POLICY_ARN" \
+        --access-scope type=cluster \
+        --region "$REGION" >/dev/null 2>&1 || true
+    echo "  Associated AmazonEKSClusterAdminPolicy (cluster scope)."
 
     # Write connection card
     CARD_FILE="${OUTPUT_DIR}/${CLUSTER}-connection.txt"

@@ -263,19 +263,27 @@ The SCP (or boundary) is the ceiling. Each student also needs an IAM policy that
 
 Students can only do what both the **permissions boundary** and their IAM policy allow. The boundary sets the outer ceiling for every student user. The inline IAM policy scopes each student to their own cluster.
 
-### Kubernetes Access: system:masters
+### Kubernetes Access: EKS Access Entries
 
-Map each student's IAM user to `system:masters` in the cluster's `aws-auth` ConfigMap:
+Grant each student cluster-admin via the **EKS Access Entries API** (the modern, AWS-recommended path; we don't touch `aws-auth`). The Terraform sets `authentication_mode = "API"` on each cluster so Access Entries are the only auth mechanism. The provisioning script then runs two AWS API calls per student:
 
-```yaml
-mapUsers: |
-  - userarn: arn:aws:iam::ACCOUNT_ID:user/kcd-texas-student-NN
-    username: kcd-texas-student-NN
-    groups:
-      - system:masters
+```bash
+aws eks create-access-entry \
+  --cluster-name kcd-texas-student-NN \
+  --principal-arn arn:aws:iam::ACCOUNT_ID:user/kcd-texas-student-NN \
+  --type STANDARD \
+  --username kcd-texas-student-NN
+
+aws eks associate-access-policy \
+  --cluster-name kcd-texas-student-NN \
+  --principal-arn arn:aws:iam::ACCOUNT_ID:user/kcd-texas-student-NN \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster
 ```
 
-Full cluster admin. No Kubernetes-side restrictions. Students can create namespaces, install CRDs, modify RBAC, deploy anything — it's their cluster.
+`AmazonEKSClusterAdminPolicy` is the AWS-managed access policy that maps to `system:masters` in the cluster. Full cluster admin — students can create namespaces, install CRDs, modify RBAC, deploy anything. It's their cluster.
+
+The API-based path is idempotent (DescribeAccessEntry → CreateAccessEntry), works without kubectl access from the provisioner laptop, and doesn't depend on patching a YAML-as-string field in a ConfigMap. `scripts/create-student-users.sh` runs these calls automatically for each student.
 
 ### Connection Card
 
