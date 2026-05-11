@@ -126,11 +126,11 @@ The prompts assume Claude Code can read this repo. Anything Claude needs to know
 
 ### Goal
 
-Install ArgoCD via Helm. Apply the **app-of-apps** root Application. Watch ArgoCD discover the four IDP components in `gitops/apps/` and start installing them. By the end of this phase, you'll have ArgoCD running, four child Applications visible in `argocd app list`, and components reaching `Synced` / `Healthy` state over the next few minutes.
+Install ArgoCD via Helm. Apply the **app-of-apps** root Application. Watch ArgoCD discover the five IDP components in `gitops/apps/` and start installing them. By the end of this phase, you'll have ArgoCD running, five child Applications visible in `argocd app list`, and components reaching `Synced` / `Healthy` state over the next few minutes.
 
 ### Prompt
 
-> Open `gitops/bootstrap/app-of-apps.yaml` and explain what it does. Then install ArgoCD using the current stable GA Helm chart `argo-cd` from `https://argoproj.github.io/argo-helm` into the `argocd` namespace, setting `configs.cm."timeout.reconciliation"` to `30s` so demo syncs are fast (this writes to the `argocd-cm` ConfigMap — `configs.params` is a different sibling section, do not use that path). Once ArgoCD is up, `kubectl apply` `gitops/bootstrap/app-of-apps.yaml`. Then poll `kubectl get application -n argocd` until you see four child Applications (`kyverno`, `kyverno-policies`, `kube-prometheus-stack`, `backstage`) appear with sync wave annotations. Stop when the root `app-of-apps` Application is `Synced`/`Healthy` and the four children are at least `Progressing`.
+> Open `gitops/bootstrap/app-of-apps.yaml` and explain what it does. Then install ArgoCD using the current stable GA Helm chart `argo-cd` from `https://argoproj.github.io/argo-helm` into the `argocd` namespace. Set `configs.cm."timeout.reconciliation"` to `30s` so demo syncs are fast (this writes to the `argocd-cm` ConfigMap — `configs.params` is a different sibling section, do not use that path). Also enable Prometheus metrics endpoints on the controller, server, and repo-server by setting `controller.metrics.enabled: true`, `server.metrics.enabled: true`, and `repoServer.metrics.enabled: true` — but leave `serviceMonitor.enabled: false` for each (the Prometheus Operator's ServiceMonitor CRD doesn't exist yet; the `argocd-servicemonitors` Application in `gitops/apps/` creates the ServiceMonitors at sync wave 2 after `kube-prometheus-stack` registers the CRD). Once ArgoCD is up, `kubectl apply` `gitops/bootstrap/app-of-apps.yaml`. Then poll `kubectl get application -n argocd` until you see five child Applications (`kyverno`, `kyverno-policies`, `kube-prometheus-stack`, `argocd-servicemonitors`, `backstage`) appear with sync wave annotations. Stop when the root `app-of-apps` Application is `Synced`/`Healthy` and the five children are at least `Progressing`.
 
 ### Verify
 
@@ -141,12 +141,13 @@ kubectl get pods -n argocd
 
 kubectl get application -n argocd
 # Expected (after a couple minutes):
-#   NAME                    SYNC STATUS   HEALTH STATUS
-#   app-of-apps             Synced        Healthy
-#   kyverno                 Synced        Healthy        (or Progressing)
-#   kyverno-policies        Synced        Healthy
-#   kube-prometheus-stack   Synced        Healthy        (or Progressing)
-#   backstage               Synced        Healthy        (or Progressing)
+#   NAME                     SYNC STATUS   HEALTH STATUS
+#   app-of-apps              Synced        Healthy
+#   kyverno                  Synced        Healthy        (or Progressing)
+#   kyverno-policies         Synced        Healthy
+#   kube-prometheus-stack    Synced        Healthy        (or Progressing)
+#   argocd-servicemonitors   Synced        Healthy        (waits for kube-prom-stack CRDs)
+#   backstage                Synced        Healthy        (or Progressing)
 ```
 
 ### If Broken
@@ -164,7 +165,7 @@ If you want this phase to be the one where you *build* instead of *tour*, **don'
 
 > Write me an ArgoCD `Application` named `root` in the `argocd` namespace pointing at `https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git`, branch `main`, path `gitops/apps`. Enable automated sync with `prune: true` and `selfHeal: true`. Add a retry policy of 5 attempts with exponential backoff starting at 5 seconds and capping at 3 minutes. Save it to `~/my-app-of-apps.yaml`, then `kubectl apply -f ~/my-app-of-apps.yaml`.
 
-Verify the same way (`kubectl get application -n argocd` should still show `app-of-apps` synced + four child Applications progressing). End state matches the Tour path; you wrote the bootstrap yourself instead of using the pre-committed copy.
+Verify the same way (`kubectl get application -n argocd` should still show `app-of-apps` synced + five child Applications progressing). End state matches the Tour path; you wrote the bootstrap yourself instead of using the pre-committed copy.
 
 ### Scorecard for Phase 1
 

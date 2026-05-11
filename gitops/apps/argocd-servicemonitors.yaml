@@ -1,0 +1,31 @@
+# ABOUTME: ArgoCD Application that applies ServiceMonitors for ArgoCD's components.
+# ABOUTME: Sync wave 2 -- runs after kube-prometheus-stack (wave 1) registers the ServiceMonitor CRD.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-servicemonitors
+  namespace: argocd
+  annotations:
+    # Wave 2 -- after kube-prometheus-stack (wave 1) installs the
+    # ServiceMonitor CRD.  Applying these in Phase 1 alongside the ArgoCD
+    # Helm install would fail because the CRD does not exist yet.
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+    targetRevision: main
+    path: gitops/manifests/argocd-servicemonitors
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

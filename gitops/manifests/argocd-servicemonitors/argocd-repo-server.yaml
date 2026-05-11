@@ -1,0 +1,17 @@
+# ABOUTME: ServiceMonitor for the argocd-repo-server's metrics endpoint.
+# ABOUTME: Picked up by Prometheus once kube-prometheus-stack syncs (wave 1).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: argocd
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

@@ -26,6 +26,14 @@ spec:
         prometheus:
           prometheusSpec:
             retention: 2h
+            # Auto-discover ServiceMonitors / PodMonitors / PrometheusRules /
+            # Probes in any namespace regardless of the chart's release label.
+            # Without this, externally-created ServiceMonitors (e.g.,
+            # gitops/manifests/argocd-servicemonitors/) are silently ignored.
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            probeSelectorNilUsesHelmValues: false
         alertmanager:
           # Disabled for the workshop -- keeps the install lean and avoids
           # paging on transient install-time alerts.

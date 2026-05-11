@@ -48,8 +48,8 @@ The Kyverno policies and admission controls in this workshop are server-side enf
 ├── gitops/                                # GitOps source: ArgoCD on each cluster watches this tree
 │   ├── bootstrap/
 │   │   └── app-of-apps.yaml               # Root Application that watches gitops/apps/
-│   ├── apps/                              # Child Applications: Kyverno, Prom, Backstage, etc.
-│   └── manifests/                         # Custom resources (Kyverno policies, etc.)
+│   ├── apps/                              # Child Applications: Kyverno, Prom, ArgoCD-SMs, Backstage
+│   └── manifests/                         # Custom resources (Kyverno policies, ArgoCD ServiceMonitors)
 ├── scorecard/                             # Workshop scorecards
 │   ├── SCORECARD-TEMPLATE.md              # Per-student
 │   └── PRESENTER-SCORECARD.md             # Live on-stage
