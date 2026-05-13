@@ -378,8 +378,10 @@ cd kcd-texas-provisioning
 # 60 student clusters (requires typing "PROVISION 60" to confirm)
 ./batch-provision.sh 60 us-east-2
 
-# 3 spare clusters (TAs hand these out if a student's cluster fails)
-for i in 01 02 03; do
+# 5-10 spare clusters (Michael keeps these credentials in his pocket and
+# swaps them in during the setup window if a student's cluster doesn't
+# work).  Adjust the count below if you want more headroom.
+for i in 01 02 03 04 05; do
   (cd terraform && (terraform workspace new "spare-$i" || terraform workspace select "spare-$i") \
     && terraform apply -var="cluster_name=kcd-texas-spare-$i" -var="region=us-east-2" -auto-approve)
   bash post-provision-setup.sh "kcd-texas-spare-$i" us-east-2
@@ -398,7 +400,7 @@ bash post-provision-setup.sh kcd-texas-presenter us-east-2
 
 For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, creates an EKS Access Entry + associates `AmazonEKSClusterAdminPolicy` at cluster scope, writes connection card to `attendee-configs/`.
 
-The spares do not need student users — TAs hand them out using their own credentials if a student's cluster fails.
+The spares do not need student IAM users at creation time — Michael hands them out from his pocket during the setup window if a student's cluster doesn't work. The receiving student configures `aws` with whatever credentials are on the spare card and proceeds normally. (Workshop is solo-presenter: no TAs to distribute these in parallel.)
 
 ---
 

@@ -44,7 +44,7 @@ Same diagnosis, less narration. If a student's gate fails when Michael's passed,
 - Their AWS connectivity dropped briefly
 - They ran the gate before applying — re-check the bootstrap is in place
 
-Suggest those in order, then escalate to a TA if none apply.
+Suggest those in order. If none apply and the student is dark on a cluster issue, they're an observer for the rest of the build — the workshop is solo-presenter and Michael can't break away mid-phase to debug a single cluster. After Phase 4 wraps, they can flag him for a post-workshop cluster swap if there's time.
 
 ## What this command does NOT do
 

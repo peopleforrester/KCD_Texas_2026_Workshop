@@ -29,11 +29,11 @@ If Claude Code isn't installed before you walk in, you'll lose 10 minutes to ins
 
 ## Before You Start (5 min)
 
-**Your connection card** is a small handout you'll receive at registration. It looks like this:
+**You claim your cluster credentials at the door.** A QR code on the projector (or by the door) points at a self-service landing page that hands you a unique pre-provisioned cluster. If the landing page is offline, fall back to the numbered cards in a stack at the door. Same content either way — it looks like this:
 
 ```
 ================================================================
-KCD Texas 2026 — "The 90-Minute IDP" — Connection Card
+KCD Texas 2026 — "The 90-Minute IDP"
 
 Cluster:        kcd-texas-student-23
 Region:         us-east-2
@@ -43,7 +43,9 @@ AWS Secret Key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Workshop repo:  https://github.com/peopleforrester/KCD_Texas_2026_Workshop
 
-If you get stuck, raise your hand.  TAs are circulating.
+Michael is solo today — no TAs.  Use the setup window before T+0
+to flag any problems.  After the build starts he's driving the
+projector and can't help individuals.
 ================================================================
 ```
 
@@ -76,7 +78,7 @@ cd ~/kcd-texas-workshop
 claude
 ```
 
-If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand**. We have spare clusters.
+If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand during the setup window** — Michael has spare cluster credentials in his pocket and will swap you in 30 seconds. Once Phase 1 starts he can't break away to help individuals.
 
 ### Bring your own cluster (BYOC)
 
@@ -88,15 +90,17 @@ If you brought your own cluster, skip the AWS configure + kubeconfig steps. Thre
 
 Then jump to step 5 (clone the workshop repo) and continue normally.
 
-### Preflight troubleshooting (before you call a TA over)
+### Preflight troubleshooting (during the setup window before T+0)
+
+Fix yourself first; flag Michael only if it's not a 30-second fix.
 
 | Symptom | First-pass fix |
 |---|---|
 | `aws configure` rejects the keys | Re-enter carefully — secrets often paste with leading/trailing whitespace. Confirm region is `us-east-2`, format `json`. |
 | `aws sts get-caller-identity` fails | Your keys aren't reaching AWS. Check `~/.aws/credentials` actually got written. |
-| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — raise your hand. |
-| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — raise your hand; a TA fixes it in 30 seconds. |
-| `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, raise your hand for a spare. |
+| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — flag Michael, ask for a spare. |
+| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — flag Michael, ask for a spare. |
+| `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, ask for a spare. |
 
 ---
 
@@ -348,7 +352,7 @@ For comparison, the kubeauto reference build (single experienced engineer, overn
 
 ### After the workshop
 
-**Your cluster is destroyed shortly after the session ends.** Up to 15 attendees can keep theirs for ~1 additional hour if you want to keep exploring; ask a TA. Save anything you want to keep (Grafana screenshots, manifests Claude generated) before you walk out.
+**Your cluster is destroyed shortly after the session ends.** Up to 15 attendees can keep theirs for ~1 additional hour if you want to keep exploring; flag Michael during the closing 5 minutes or after the wrap. Save anything you want to keep (Grafana screenshots, manifests Claude generated) before you walk out.
 
 **This repository stays public and bookmarkable.** Everything you saw today — the playbook, the spec, the GitOps source, the scorecard template, the framework reference — lives at [github.com/peopleforrester/KCD_Texas_2026_Workshop](https://github.com/peopleforrester/KCD_Texas_2026_Workshop). Fork it; extend it; reference it freely.
 
@@ -360,11 +364,11 @@ For comparison, the kubeauto reference build (single experienced engineer, overn
 
 ## If something is really stuck
 
-If you've burned more than 5 minutes on a single failure and the failure-modes table didn't help:
+**Michael is alone** — there are no TAs. Once Phase 1 starts he's driving Claude on the projector; he can't break away to debug individual clusters mid-build. Triage paths:
 
-1. **Raise your hand.** A TA will come over.
-2. **If your cluster is genuinely broken**, we have spare clusters. Your TA can move you to one and you can pick up from where the rest of the room is.
-3. **If you fall behind on a phase but your cluster is fine**, run `/build-phase N` in your own Claude on the phase the room is currently on. You'll catch up; Claude reads each phase spec independently.
+1. **During the setup window before T+0:** flag Michael by raising your hand. Cluster swaps happen here (30-second handoff from his pocket-spare credentials) or never.
+2. **After Phase 1 starts, if your cluster is broken:** you're an observer for the rest of the build. Still take notes; still score what you see Claude do on the projector. The methodology lesson lands either way.
+3. **If you fall behind on a phase but your cluster is fine:** run `/build-phase N` in your own Claude on whatever phase the room is currently on. Claude reads each phase spec independently — you'll catch up.
 4. **Don't try to fix infrastructure from scratch.** The point of the workshop is to use Claude Code on a working substrate. Lost time on the substrate is lost time on the methodology.
 
 If Phase 4 faceplants — *especially* in front of the whole room when Michael drives it — **that's the talk title.** "AI Ate My Implementation. Let's Build a Platform Together and Score What's Left." Score it honestly. The failure is the data.

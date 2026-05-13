@@ -12,18 +12,24 @@ This is the sequence Michael executes on workshop day. Rough timing is suggested
 - Pull up the closing-slide QR codes in a separate tab: workshop repo, kubeauto reference, agentic-covenants framework, scorecard submission URL.
 - Pull up `spec/OPENING-SCRIPT.md` on a second screen (phone, tablet, or other monitor) for reference during the open.
 
+## Credential distribution
+
+**Direction (for the PowerPoint, not yet spec'd):** QR code at the door → self-service landing page that hands each student a unique pre-provisioned cluster credential. Single source of truth, no manual handoff, no clipboard tracking. The detailed design (landing page architecture, credential pool management, claim-tracking) is a separate deliverable; for now, the runbook assumes the QR-and-landing-page flow exists by workshop day.
+
+Until that's built, fallback is printed numbered cards in a stack at the door. Same content either way: cluster name, region, AWS keys, repo URL, three setup commands.
+
 ## T-15 min (10:15) — students arrive
 
-- TAs stationed at the door hand connection cards as students enter
-- Students sit down, open laptops
-- Soft music or screen art on projector ("KCD Texas 2026 — The 90-Minute IDP — Room 3 — Starting at 10:30")
-- TAs circulate offering setup help
+- Slide on projector: large QR code + "Scan to claim your cluster" + "Doors close 10:28, build starts 10:30"
+- Students scan, land on the page, get their unique cluster credential, copy it into their terminal
+- You are at the front of the room, not at the door — the QR code is doing the work
 
 ## T-5 (10:25) — start to settle the room
 
 - Microphone on, audio check
 - Take a sip of water
 - Verify the projector mirroring still works after the room warmed up
+- Check the landing page's claim counter: if it's reading "53 claimed of 60 available" at 10:25, you can start on time. If it's reading "31 of 60," people are still walking in and you'll want to budget extra setup time during the opener.
 
 ## T+0 (10:30) — open
 
@@ -39,9 +45,11 @@ Read approximately verbatim. The bridge from "I've already built this end-to-end
 
 ### "Open your terminals" pause
 
-> "Open laptops. Connection cards out. Three commands on the back of the card. If `kubectl get nodes` doesn't show three Ready nodes, raise your hand — TAs are circulating. I'll start the build in 60 seconds."
+> "Open laptops. Three commands from your landing-page card. Get to `kubectl get nodes` showing three Ready nodes. **There are no TAs today — it's just me — so the setup window is the time to surface problems.** If your terminal isn't green in five minutes, raise your hand and I'll come over before we start Phase 1. I'd rather start two minutes late with everyone connected than on time with a third of the room behind."
 
-Pause 60–90 seconds. Watch for raised hands. TAs triage in parallel.
+Pause 3–5 minutes for setup. Be visible — walk between the rows once during the pause, eyeballing screens. People who are stuck will signal even without raising their hands if they see you nearby.
+
+**You alone with 60 students is the operational reality.** Triage during this window is the most important thing you do in the first 15 minutes — once Phase 1 starts, you're driving Claude on the projector and can't simultaneously help individuals. Be honest with the room about this up front.
 
 ## T+6–7 (10:36) — begin Phase 1
 
@@ -144,18 +152,23 @@ Point at the live scorecard. Read the totals. Make the "Install ≫ Integration 
 
 ## T+90 (12:00) — done
 
-Thank the room. Stay 5 minutes for one-on-one questions. TAs collect student feedback cards if you're doing that.
+Thank the room. Stay 5 minutes for one-on-one questions. If you're collecting student scorecards for the follow-on talk, have a labeled bin or designated email address visible on the closing slide so opt-in submissions land somewhere you'll actually find them.
 
 ---
 
 ## What can go wrong, in priority order
 
-1. **A student's AWS creds don't work.** TA escalates to the spare cluster. Don't pause the build.
-2. **Half the room's `kubectl get nodes` is dark.** Check if you fat-fingered the region in the connection cards (worth a 30s check during setup). TAs help.
-3. **My Claude Code locks up mid-build.** Restart `claude`, paste the spec again, resume from the last `<promise>PHASE_N_DONE>` we saw. Don't apologize at length — narrate it as "this is what AI tools look like when they're at the edge of context windows."
-4. **A gate fails on stage.** Narrate by name (using the phase spec's Known Failure Modes). The failure is the talk.
-5. **The projector mirroring breaks.** TAs have a backup HDMI cable. Worst case, students follow along from the playbook on their own laptops — they have the same Claude, same prompts, same repo.
-6. **Time runs short before Phase 4.** Switch to the pre-recorded Backstage segment. Don't try to rush Phase 4 live in 5 minutes.
+You're alone with 60 students. Triage decisions are blunt: keep the room moving, accept that 1–2 individuals will be behind, do not pause Phase 1+ to fix one cluster.
+
+1. **A student's credentials don't work / `kubectl get nodes` fails.** During the setup window only: walk over, look at the screen, common fix is usually region typo or stale `~/.aws/credentials`. **If it's not a 30-second fix, hand them a spare cluster's credentials from your pocket and move on.** Pre-provision 5–10 spare clusters expressly for this. After Phase 1 starts, students with broken setups become observers, not participants — they still see the methodology, they just can't run alongside.
+2. **My Claude Code locks up mid-build.** Restart `claude`, paste the spec again, resume from the last `<promise>PHASE_N_DONE>` we saw. Don't apologize at length — narrate it as "this is what AI tools look like when they're at the edge of context windows."
+3. **A test gate fails on stage.** Narrate by name using the phase spec's Known Failure Modes. The failure is the talk.
+4. **Setup pause runs long.** If at T+8 minutes (10:38) you've still got more than ~5 students dark, *don't push to T+15*. Start Phase 1 anyway. Dark students keep watching, score on the connection-card scorecard based on what they see Claude do on the projector. Honest framing: "If your setup didn't land, you're in observer mode for the build — still take notes, still score what you see."
+5. **The projector mirroring breaks.** Backup HDMI cable in your bag. Worst case, students follow along from the playbook on their own laptops — they have the same Claude, same prompts, same repo.
+6. **The QR landing page is down at T-15.** Fall back to printed numbered cards (which you should also have in your bag, even when the QR flow is "working"). This is your insurance policy and the reason the cards-direction is in this runbook even though the QR flow is the plan.
+7. **Time runs short before Phase 4.** Switch to the pre-recorded Backstage segment. Don't try to rush Phase 4 live in 5 minutes.
+
+The single highest-leverage thing to do for "Michael alone" mode: **pre-provision spare clusters and have spare credentials physically with you.** The cost is 5–10 unused EKS clusters for a day. The value is being able to swap a broken cluster in 30 seconds instead of debugging it in 5 minutes during a workshop you're also running.
 
 ## Rehearsal checklist (do this once before workshop day)
 
@@ -166,9 +179,11 @@ Thank the room. Stay 5 minutes for one-on-one questions. TAs collect student fee
 - [ ] Run `/build-phase 1` end-to-end. Time it. (Target: 12–15 min for someone who knows the stack.)
 - [ ] Run `/build-phase 2`. Time it.
 - [ ] Run `/build-phase 3`. Time it. Port-forward Grafana, confirm dashboards populate.
-- [ ] Run `/build-phase 4`. **If it fails or takes >25 min, record the run** to use as the Phase 4 fallback video.
-- [ ] Practice the opener out loud, three times.
+- [ ] Run `/build-phase 4`. **If it fails or takes >25 min, record the run** to use as the Phase 4 fallback video. **This recording is non-optional given you're alone in the room — it's your insurance against running long.**
+- [ ] Practice the opener out loud, three times. Especially the "there are no TAs today, just me" line — it's a real constraint and the room needs to hear it.
 - [ ] Practice the closing script out loud, twice.
 - [ ] Confirm the projector mirroring works with your typical terminal font sizes (audience needs to read it from the back of the room).
+- [ ] Print ~70 numbered credential cards as a fallback even if the QR landing page is ready. Carry them in your bag. They cost nothing and they're the insurance policy if the landing page misbehaves.
+- [ ] Pre-provision 5–10 spare clusters with their credentials on extra cards. Keep those cards in your pocket — not in a folder, not in a bag, in your pocket. Walking-distance access matters when you have 60 seconds to swap a broken cluster.
 
 If anything in rehearsal surfaces a spec/skill bug, edit the relevant Markdown file. Re-run `dry-run-validate.sh`. Commit.

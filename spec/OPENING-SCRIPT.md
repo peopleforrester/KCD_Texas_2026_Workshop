@@ -14,7 +14,7 @@ Read this approximately verbatim. ~165 words, ~70 seconds at conversational pace
 >
 > What we *are* doing is teaching the methodology I used to build it. **Spec-driven development with Claude Code.** I write a spec. I hand it to Claude. Claude generates the platform. I verify with test gates. I score what Claude did. I move on.
 >
-> Today I drive Claude live on this projector, building a piece of the same IDP — real CNCF projects, ArgoCD, Kyverno, Prometheus, Backstage. You build alongside me on your own EKS cluster, with your own Claude Code, with the connection card we handed you at the door.
+> Today I drive Claude live on this projector, building a piece of the same IDP — real CNCF projects, ArgoCD, Kyverno, Prometheus, Backstage. You build alongside me on your own EKS cluster, with your own Claude Code, with the credentials you got from the landing page when you walked in.
 >
 > How far we get is how far we get. The live scorecard tells you where AI saved toil and where it just shifted it.
 >
@@ -65,9 +65,9 @@ After the opener, before any prompts get pasted. Three quick slides.
 
 Switch to terminal. The first thing on screen is `cat spec/BUILD-SPEC.md` so the audience sees the artifact they just heard about. Then:
 
-> "I'm going to paste this spec into Claude in a second. Before I do that — open your laptops. Make sure your terminal is set up. If `kubectl get nodes` doesn't show three Ready nodes, raise your hand now. TAs are circulating."
+> "I'm going to paste this spec into Claude in a second. Before I do that — open your laptops. The three setup commands from your landing-page card: `aws configure`, `aws eks update-kubeconfig`, `kubectl get nodes`. If `kubectl get nodes` doesn't show three Ready nodes, raise your hand now — there are no TAs today, just me, so the setup window is the only time I can help individuals. I'd rather start two minutes late with everyone connected than on time with a third of the room behind."
 
-Pause for 60–90 seconds for stragglers. Then begin Phase 1.
+Pause 3–5 minutes for stragglers. Walk between the rows. Hand spare-cluster credentials to anyone whose setup doesn't land. Then begin Phase 1.
 
 ---
 
