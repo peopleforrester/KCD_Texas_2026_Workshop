@@ -8,10 +8,14 @@ metadata:
   labels:
     app.kubernetes.io/part-of: argocd
 spec:
+  # The argo-cd chart 9.5.x creates a Service named "argocd-server-metrics"
+  # with label app.kubernetes.io/name=argocd-server-metrics.  Selecting on
+  # the main "argocd-server" Service would target ports that don't expose
+  # metrics.
   selector:
     matchLabels:
-      app.kubernetes.io/name: argocd-server
+      app.kubernetes.io/name: argocd-server-metrics
   endpoints:
-    - port: metrics
+    - port: http-metrics    # Chart names the metrics port "http-metrics", not "metrics".
       interval: 30s
       path: /metrics

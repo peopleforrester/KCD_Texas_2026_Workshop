@@ -8,10 +8,12 @@ metadata:
   labels:
     app.kubernetes.io/part-of: argocd
 spec:
+  # Chart 9.5.x: Service is "argocd-repo-server-metrics" with label
+  # app.kubernetes.io/name=argocd-repo-server-metrics.
   selector:
     matchLabels:
-      app.kubernetes.io/name: argocd-repo-server
+      app.kubernetes.io/name: argocd-repo-server-metrics
   endpoints:
-    - port: metrics
+    - port: http-metrics
       interval: 30s
       path: /metrics
