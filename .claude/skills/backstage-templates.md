@@ -1,471 +1,205 @@
-# Backstage Templates — KCD Texas 2026 Workshop
+# Backstage Skill
 
-Adapted from `kubeauto-ai-day/.claude/skills/backstage-templates.md` for the
-90-minute workshop scope.
+Use this skill **before generating the Backstage Application.** The Backstage Helm chart is unusual in a critical way: **it has no default container image.** Without an explicit image, the Pod won't start. This is the #1 way Phase 4 of the workshop faceplants.
 
-**Workshop scope:** the workshop deploys Backstage via Helm chart `backstage`
-2.7.x with the community image `ghcr.io/backstage/backstage:1.30.2`
-(set in `backstage.image.repository` / `backstage.image.tag`). Reference
-manifest at `gitops/apps/backstage.yaml`. Students inspecting the catalog and
-running a template is the Phase 4 goal; the index.ts / app-config patterns
-below are reference for students extending Backstage post-workshop with a
-custom image.
+## Critical version pins
 
-## CRITICAL VERSION WARNING
+| Thing | Workshop value |
+|---|---|
+| Helm chart | `backstage/backstage` |
+| Chart version | `2.7.0` |
+| Image (workshop) | `ghcr.io/backstage/backstage:1.30.2` |
+| Image config path | `backstage.image.registry` + `repository` + `tag` (nested under `backstage:`) |
+| App-config override | `backstage.appConfig` (nested under `backstage:`) — required so Kubernetes plugin init does not crash |
+| Service port | `7007` (NOT 3000 — that's old tutorials) |
+| Backend system | current `createBackend()` from `@backstage/backend-defaults` |
 
-**Workshop uses Backstage 1.46+.** The new backend system is **mandatory** since early 2025.
+## The two traps
 
-**ALL Backstage tutorials, blog posts, and Stack Overflow answers written before mid-2024 are WRONG.** They reference the legacy backend system which has been removed. Do NOT use any configuration patterns from:
+**Trap 1: chart has no default image.** Most Helm charts ship with a `appVersion` that becomes the default image tag. Backstage's chart explicitly does not — Backstage is *"infrastructure for an app you build"*, meaning the chart assumes you've built and pushed your own image containing your custom plugins, catalog, and config. If you don't set `backstage.image.*`, the Pod has no container to run.
 
-- Old `packages/backend/src/index.ts` with manual `createServiceBuilder()` or plugin wiring
-- `@backstage/backend-common` imports (deprecated package)
-- `createRouter()` patterns for backend plugins
-- Any tutorial showing `backend.add(plugin)` in a loop manually
+**Trap 2: the upstream image's baked-in `app-config.yaml` initializes the Kubernetes plugin and crashes without a cluster locator.** This is the bug we caught on a live cluster on 2026-05-13. Logs look like:
 
-The ONLY correct backend API is `createBackend()` from `@backstage/backend-defaults`.
-
----
-
-## Correct Patterns
-
-### Backend Entry Point (packages/backend/src/index.ts)
-
-The new backend system uses auto-discovery. The backend entry point is minimal:
-
-```typescript
-// ABOUTME: Backstage backend entry point using new backend system (1.46+)
-// ABOUTME: Uses createBackend() API with module auto-discovery
-
-import { createBackend } from '@backstage/backend-defaults';
-
-const backend = createBackend();
-
-// Core services (auto-discovered from package.json)
-backend.add(import('@backstage/plugin-app-backend/alpha'));
-backend.add(import('@backstage/plugin-catalog-backend/alpha'));
-backend.add(import('@backstage/plugin-scaffolder-backend/alpha'));
-backend.add(import('@backstage/plugin-techdocs-backend/alpha'));
-backend.add(import('@backstage/plugin-auth-backend'));
-backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
-backend.add(import('@backstage/plugin-proxy-backend/alpha'));
-backend.add(import('@backstage/plugin-search-backend/alpha'));
-backend.add(import('@backstage/plugin-search-backend-module-catalog/alpha'));
-
-// ArgoCD plugin (community)
-backend.add(import('@roadiehq/backstage-plugin-argo-cd-backend'));
-
-// Kubernetes plugin
-backend.add(import('@backstage/plugin-kubernetes-backend/alpha'));
-
-backend.start();
+```
+ForwardedError: Plugin 'kubernetes' startup failed; caused by
+  Error: Kubernetes configuration is missing
+    at KubernetesBuilder.build (.../plugin-kubernetes-backend.../1576:15)
 ```
 
-### App Config — Catalog with Static File Locations (backstage/app-config.yaml)
+The fix is a `backstage.appConfig` override that sets a minimal-but-valid Kubernetes config (`serviceLocatorMethod: multiTenant` + empty `clusterLocatorMethods: []`). The plugin initializes with zero clusters to query, the backend starts.
 
-For this project, use **static file catalog locations** initially. This avoids needing a GitHub token during the build phase.
+## What we use, and why this image specifically
 
-```yaml
-# ABOUTME: Backstage app-config for KubeAuto Day IDP
-# ABOUTME: Uses static catalog locations, ArgoCD plugin, and Kubernetes plugin
+`ghcr.io/backstage/backstage:1.30.2` is the last tagged release on the Backstage project's own GHCR image path. The Backstage project stopped tagging this image after 1.30 in favor of users building their own. The image works fine for demo / workshop purposes — it boots, shows a small example catalog, and demonstrates what a developer portal *is*.
 
-app:
-  title: KubeAuto Day IDP
-  baseUrl: http://localhost:3000
+Earlier drafts of this workshop pointed at `roadiehq/community-backstage-image:1.50.4`. **That image does not exist** at any registry — verified via HTTP 404 against GHCR and the Docker Hub repo being abandoned since 2021-08-07. Don't go back to it; use the upstream image.
 
-organization:
-  name: KubeAuto Day
-
-backend:
-  baseUrl: http://localhost:7007
-  listen:
-    port: 7007
-  database:
-    client: better-sqlite3
-    connection: ':memory:'
-
-# --- Catalog: Static File Locations ---
-# No GitHub token needed. Files are loaded from local paths or URLs.
-catalog:
-  rules:
-    - allow: [Component, System, API, Resource, Location, Template]
-  locations:
-    # Root catalog file
-    - type: file
-      target: /app/catalog/catalog-info.yaml
-    # Software templates
-    - type: file
-      target: /app/templates/deploy-service/template.yaml
-    - type: file
-      target: /app/templates/create-namespace/template.yaml
-    # Sample app
-    - type: file
-      target: /app/catalog/systems/sample-app.yaml
-
-# --- ArgoCD Plugin ---
-argocd:
-  # The base URL of the ArgoCD API server
-  baseUrl: https://argocd-server.argocd.svc.cluster.local
-  # Authentication: use an ArgoCD API token stored in a K8s secret (via ESO)
-  # The token is injected as an environment variable
-  token: ${ARGOCD_AUTH_TOKEN}
-
-# --- Kubernetes Plugin ---
-kubernetes:
-  serviceLocatorMethod:
-    type: multiTenant
-  clusterLocatorMethods:
-    - type: config
-      clusters:
-        - name: kubeauto-eks
-          url: https://kubernetes.default.svc
-          authProvider: serviceAccount
-          serviceAccountToken: ${K8S_SA_TOKEN}
-          skipTLSVerify: true
-          skipMetricsLookup: true
-
-# --- Auth (Phase 7 — OIDC) ---
-# Uncomment in Phase 7 when GitHub OAuth App is configured
-# auth:
-#   environment: production
-#   providers:
-#     github:
-#       production:
-#         clientId: ${GITHUB_CLIENT_ID}
-#         clientSecret: ${GITHUB_CLIENT_SECRET}
-
-# --- TechDocs ---
-techdocs:
-  builder: local
-  generator:
-    runIn: local
-  publisher:
-    type: local
-```
-
-### catalog-info.yaml Annotations for Plugins
-
-Each component registered in the catalog needs specific annotations for plugins to discover it.
+## Pattern 1 — Workshop Application values (matches `gitops/apps/backstage.yaml`)
 
 ```yaml
-# ABOUTME: Catalog entry for the sample Flask app
-# ABOUTME: Annotations wire ArgoCD and Kubernetes plugins to this component
-apiVersion: backstage.io/v1alpha1
-kind: Component
+apiVersion: argoproj.io/v1alpha1
+kind: Application
 metadata:
-  name: sample-app
-  description: Sample Python Flask application with OTel instrumentation
+  name: backstage
+  namespace: argocd
   annotations:
-    # ArgoCD plugin — must match the ArgoCD Application name exactly
-    argocd/app-name: sample-app
-
-    # Kubernetes plugin — label selector to find pods
-    backstage.io/kubernetes-label-selector: "app=sample-app"
-    # Kubernetes plugin — namespace(s) to search
-    backstage.io/kubernetes-namespace: apps
-
-    # TechDocs — path to mkdocs.yml relative to catalog-info.yaml
-    backstage.io/techdocs-ref: dir:.
-  tags:
-    - python
-    - flask
-    - otel
+    argocd.argoproj.io/sync-wave: "5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  type: service
-  lifecycle: production
-  owner: platform-team
-  system: kubeauto-idp
-```
-
-### Software Template Format (backstage/templates/deploy-service/template.yaml)
-
-```yaml
-# ABOUTME: Backstage software template for deploying a new service
-# ABOUTME: Creates K8s manifests and ArgoCD Application compliant with Kyverno policies
-apiVersion: scaffolder.backstage.io/v1beta3
-kind: Template
-metadata:
-  name: deploy-service
-  title: Deploy a New Service
-  description: Creates a Kubernetes deployment with ArgoCD Application, compliant with all Kyverno policies
-  tags:
-    - kubernetes
-    - argocd
-    - recommended
-spec:
-  owner: platform-team
-  type: service
-
-  parameters:
-    - title: Service Details
-      required:
-        - name
-        - owner
-        - image
-      properties:
-        name:
-          title: Service Name
-          type: string
-          description: Unique name for the service (lowercase, alphanumeric, hyphens)
-          pattern: '^[a-z0-9][a-z0-9-]*[a-z0-9]$'
-        owner:
-          title: Owner Team
-          type: string
-          description: Team that owns this service
-          default: platform-team
-        image:
-          title: Container Image
-          type: string
-          description: "Full image reference (e.g., docker.io/library/nginx:latest)"
-        replicas:
-          title: Replicas
-          type: integer
-          default: 2
-          minimum: 1
-          maximum: 5
-        port:
-          title: Container Port
-          type: integer
-          default: 8080
-
-  steps:
-    - id: fetch-skeleton
-      name: Fetch Skeleton
-      action: fetch:template
-      input:
-        url: ./skeleton
-        values:
-          name: ${{ parameters.name }}
-          owner: ${{ parameters.owner }}
-          image: ${{ parameters.image }}
-          replicas: ${{ parameters.replicas }}
-          port: ${{ parameters.port }}
-
-    - id: publish
-      name: Write to GitOps Repo
-      action: publish:file
-      input:
-        path: gitops/apps/${{ parameters.name }}
-
-  output:
-    links:
-      - title: ArgoCD Application
-        url: https://argocd.example.com/applications/${{ parameters.name }}
-```
-
-### Skeleton Template File (backstage/templates/deploy-service/skeleton/deployment.yaml)
-
-All generated resources MUST comply with Kyverno policies in the `apps` namespace:
-
-```yaml
-# ABOUTME: Skeleton deployment template for Backstage scaffolder
-# ABOUTME: Pre-compliant with all Kyverno policies (labels, limits, probes, non-privileged)
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ${{ values.name }}
-  namespace: apps
-  labels:
-    app: ${{ values.name }}
-    team: ${{ values.owner }}
-spec:
-  replicas: ${{ values.replicas }}
-  selector:
-    matchLabels:
-      app: ${{ values.name }}
-  template:
-    metadata:
-      labels:
-        app: ${{ values.name }}
-        team: ${{ values.owner }}
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
-      containers:
-        - name: ${{ values.name }}
-          image: ${{ values.image }}
+  project: default
+  source:
+    chart: backstage
+    repoURL: https://backstage.github.io/charts
+    targetRevision: "2.7.0"
+    helm:
+      valuesObject:
+        backstage:
+          image:
+            # CRITICAL: chart has no default image; you MUST set these.
+            registry: ghcr.io
+            repository: backstage/backstage
+            tag: "1.30.2"
+          # CRITICAL: the upstream image's baked-in app-config initializes
+          # the Kubernetes plugin, which crashes without a cluster locator.
+          # Override with a minimal-but-valid config to satisfy plugin init.
+          appConfig:
+            app:
+              title: KCD Texas 2026 Workshop IDP
+              baseUrl: http://localhost:7007
+            backend:
+              baseUrl: http://localhost:7007
+              listen: { port: 7007 }
+              csp:
+                connect-src: ["'self'", "http:", "https:"]
+              cors:
+                origin: http://localhost:7007
+                methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+                credentials: true
+              database:
+                client: better-sqlite3
+                connection: ":memory:"
+            organization:
+              name: KCD Texas Workshop
+            auth:
+              providers: {}                  # guest mode
+            kubernetes:
+              serviceLocatorMethod:
+                type: multiTenant
+              clusterLocatorMethods: []      # zero clusters; plugin inits cleanly
+            catalog:
+              rules:
+                - allow: [Component, System, API, Resource, Location, Template, User, Group]
+              locations: []
+            techdocs:
+              builder: local
+              publisher:
+                type: local
+        ingress:
+          enabled: false                     # Workshop: port-forward only
+        service:
+          type: ClusterIP
           ports:
-            - containerPort: ${{ values.port }}
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 256Mi
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: ${{ values.port }}
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: ${{ values.port }}
-            initialDelaySeconds: 10
-            periodSeconds: 30
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
+            backend: 7007                    # Default Backstage backend port (NOT 3000)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backstage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
 ```
 
----
+Notes on the values structure:
+- **`backstage.image.*`** and **`backstage.appConfig`** are nested under `backstage:`, not at the top level. The chart's values schema puts the workload config inside `backstage:` and the service/ingress at top level. Get this nesting wrong and Helm silently ignores your override. *(Live-discovered bug: a previous version of `gitops/apps/backstage.yaml` had `appConfig` at the root; the chart accesses `.Values.backstage.appConfig`, so the override was being silently dropped. Watch for this in the diff if Claude generates a flat structure.)*
+- **`image.registry: ghcr.io`** is explicit. The chart defaults to `ghcr.io` if unset, but explicit is clearer.
 
-## Guardrail Integration
+## Pattern 2 — Why this image specifically
 
-Backstage implements **Guardrail #1** at Layer 3 (Kubernetes Infrastructure).
+The Backstage backend was rewritten in late 2023. Two systems exist:
 
-| Guardrail | How Backstage Implements It |
-|-----------|----------------------------|
-| **#1 Propose-Approve-Execute** | Software templates enforce a structured propose-approve-execute workflow for developers. Templates produce Kyverno-compliant resources (labels, limits, probes, non-privileged). Developers propose via template, platform team approves via catalog review, ArgoCD executes via GitOps sync. |
+- **Legacy backend** — `createServiceBuilder()` from `@backstage/backend-common`. Used by Backstage <1.10.
+- **Current backend** — `createBackend()` from `@backstage/backend-defaults`. Used by Backstage 1.10+.
 
-**Backstage + Kyverno synergy:** Templates generate compliant resources at creation time (shift-left). Kyverno validates at admission time (defense-in-depth). If a template produces non-compliant resources, Kyverno rejects them — this catches template bugs before they reach production.
+Chart 2.x **only runs the current backend system.** If you swap in an older custom image (e.g., one built against Backstage 1.5), the Pod crashes with:
 
-**Layer 2 enforcement:** No direct Layer 2 hooks for Backstage. The catalog is populated via static file locations and ConfigMap mounts.
-
----
-
-### Root Catalog File (backstage/catalog/catalog-info.yaml)
-
-```yaml
-# ABOUTME: Root Backstage catalog file for the KubeAuto Day IDP
-# ABOUTME: References all systems, components, and templates via static locations
-apiVersion: backstage.io/v1alpha1
-kind: System
-metadata:
-  name: kubeauto-idp
-  description: KubeAuto Day Internal Developer Platform
-spec:
-  owner: platform-team
+```
+TypeError: createServiceBuilder is not a function
 ```
 
----
+`ghcr.io/backstage/backstage:1.30.2` is built with the current system. Safe.
 
-## Common Mistakes
+## Pattern 3 — Why the Kubernetes plugin gets a minimal config (not disabled)
 
-### Mistake 1: Using the legacy backend system
-```typescript
-// WRONG — this was removed in early 2025
-import { createServiceBuilder } from '@backstage/backend-common';
-const service = createServiceBuilder(module)
-  .loadConfig(configReader)
-  .addRouter('/catalog', await catalog(catalogEnv))
-```
-Fix: Use `createBackend()` from `@backstage/backend-defaults`. See the correct pattern above.
+The upstream image's baked-in app-config initializes the Kubernetes plugin at startup. The plugin's `build()` requires a `clusterLocatorMethods` value — without it, the plugin throws and the entire backend crashes.
 
-### Mistake 2: Using GitHub discovery for catalog without a token
-```yaml
-# WRONG for initial setup — requires a GitHub token
-catalog:
-  providers:
-    github:
-      organization: my-org
-```
-Fix: Use `type: file` or `type: url` locations initially. Add GitHub discovery in Phase 7 or later when tokens are configured.
+You cannot simply *disable* the plugin from outside the image (no env var, no override flag). What you CAN do is provide an `appConfig` override that the chart mounts at `/app/app-config-extra.yaml` and Backstage reads in addition to the baked-in config. The override at `backstage.appConfig.kubernetes` is what satisfies the plugin's init: zero clusters configured, plugin starts with nothing to query, backend boots cleanly.
 
-### Mistake 3: Wrong annotation key for ArgoCD plugin
-```yaml
-# WRONG — this was the old annotation format
-annotations:
-  argocd/app-selector: app=my-app
-```
-Fix: Use `argocd/app-name: <exact-application-name>` to match the ArgoCD Application resource name.
+For the scorecard: **Usability for Phase 4 will reflect that the catalog is read-only and the Kubernetes plugin shows nothing.** That's honest. Production Backstage requires a workshop-specific image with your org's catalog providers, plugins, and templates pre-baked. Building that is 30+ minutes of plumbing per provider; not a 90-minute workshop scope.
 
-### Mistake 4: Missing Kubernetes namespace annotation
-```yaml
-# WRONG — Kubernetes plugin cannot find pods without namespace
-annotations:
-  backstage.io/kubernetes-label-selector: "app=my-app"
-  # Missing: backstage.io/kubernetes-namespace: apps
-```
-Fix: Always include both `backstage.io/kubernetes-label-selector` AND `backstage.io/kubernetes-namespace`.
+## Pattern 4 — Why no ingress, no auth, no Postgres
 
-### Mistake 5: Template skeleton files not compliant with Kyverno
-If the skeleton generates resources without labels, resource limits, probes, or with privileged containers, Kyverno will reject them in the `apps` namespace. Every skeleton MUST include:
-- `app` and `team` labels on pods
-- CPU and memory `requests` and `limits`
-- `readinessProbe` and `livenessProbe`
-- `securityContext.runAsNonRoot: true`
-- `securityContext.allowPrivilegeEscalation: false`
+- **No ingress:** workshop uses `kubectl port-forward`. No TLS, no DNS, no cert-manager. Workshop concession.
+- **No auth providers:** the `auth.providers: {}` override is guest mode. Production needs OAuth (GitHub, Google, etc.); workshop guests are fine.
+- **No PostgreSQL:** the chart's `postgresql.enabled` defaults to false. Backstage uses its built-in SQLite (in-memory for the workshop). Workshop sidesteps the database complexity.
 
-### Mistake 6: Using deprecated scaffolder API version
-```yaml
-# WRONG — v1beta2 is deprecated
-apiVersion: scaffolder.backstage.io/v1beta2
-```
-Fix: Use `scaffolder.backstage.io/v1beta3` for template definitions.
+If Claude generates `postgresql.enabled: true`, the install still works but adds a second pod and a secret. Workshop default is `false`.
 
-### Mistake 7: Referencing old plugin package names
-```typescript
-// WRONG — old package naming
-import '@backstage/plugin-catalog-backend';
-```
-Fix: For the new backend system, many plugins use the `/alpha` export path:
-```typescript
-backend.add(import('@backstage/plugin-catalog-backend/alpha'));
-```
-Check each plugin's current documentation for the correct import path.
+## Common failure modes
 
-### Mistake 8: Hardcoding secrets in app-config.yaml
-```yaml
-# WRONG — secrets must come from environment variables via ESO
-argocd:
-  token: "argocd-admin-token-abc123"
-```
-Fix: Use `${ENV_VAR}` substitution. Inject secrets as environment variables from K8s secrets managed by External Secrets Operator.
+| What you see | Cause | Fix |
+|---|---|---|
+| Pod in `CrashLoopBackOff`, logs show `Plugin 'kubernetes' startup failed; Kubernetes configuration is missing` | Missing `backstage.appConfig.kubernetes` override | Apply the appConfig block from Pattern 1 |
+| Pod in `CrashLoopBackOff`, image errors in logs | Missing `backstage.image.repository` / `tag` | Set both; chart has no default |
+| Pod logs show `createServiceBuilder is not a function` | Custom image built against legacy backend | Use `ghcr.io/backstage/backstage:1.30.2`; don't debug legacy backends live |
+| Pod logs show `ERR_OSSL_EVP_UNSUPPORTED` | Node version / OpenSSL mismatch in image | Pin tag `1.30.2`; later versions may have this |
+| Pod Running but `curl` returns connection refused | `backend.listen.host: 127.0.0.1` (chart default) | The appConfig in Pattern 1 sets `listen: { port: 7007 }` which binds to all interfaces |
+| Catalog shows empty / `No entities` | The `catalog.locations: []` override produces an empty catalog | Expected with the workshop's minimal appConfig. To populate, mount a static catalog ConfigMap and add a `type: file` location |
+| Pod stuck `ImagePullBackOff` | Image registry pull issue | `kubectl describe pod -n backstage <pod>` — usually node-level, not workshop |
+| `appConfig` override silently ignored | `appConfig:` at values root instead of under `backstage:` | Re-nest. Chart accesses `.Values.backstage.appConfig`. |
 
-### Mistake 9: Database config for production
-```yaml
-# WRONG for production — SQLite is for dev only
-backend:
-  database:
-    client: better-sqlite3
-    connection: ':memory:'
-```
-For a demo/conference environment, SQLite is acceptable. For production, use PostgreSQL. Since this is a demo IDP, SQLite is fine but note the limitation.
-
----
-
-## Validation Commands
+## Verify commands
 
 ```bash
-# Verify Backstage pod is running
-kubectl get pods -n backstage -l app.kubernetes.io/name=backstage
+# Pod Running (most common failure point — check logs if not)
+kubectl get pods -n backstage
+# Expected: backstage-<hash> Pod, Running, ~60-90s after Application syncs
 
-# Check Backstage logs for startup errors (plugin wiring issues show here)
-kubectl logs -n backstage -l app.kubernetes.io/name=backstage --tail=50
+# If CrashLoopBackOff:
+kubectl logs -n backstage -l app.kubernetes.io/name=backstage --tail=80
 
-# Test Backstage UI accessibility
+# Port-forward
 kubectl port-forward -n backstage svc/backstage 7007:7007 &
-curl -s -o /dev/null -w "%{http_code}" http://localhost:7007
-# Should return 200
 
-# Verify catalog has entities
-curl -s http://localhost:7007/api/catalog/entities | python3 -m json.tool | head -20
-# Should show at least one entity
+# Health probe
+curl -s http://localhost:7007/.backstage/health/v1/liveness
+# Expected: {"status":"ok"}
 
-# Verify templates are registered
-curl -s "http://localhost:7007/api/catalog/entities?filter=kind=template" | python3 -m json.tool
-# Should show deploy-service and create-namespace templates
+# Catalog API
+curl -s http://localhost:7007/api/catalog/entities | python3 -c "import sys,json; print(len(json.load(sys.stdin)))"
+# Expected: integer >= 0  (will be 0 with empty catalog.locations; that's fine)
 
-# Verify ArgoCD plugin connectivity
-curl -s http://localhost:7007/api/argocd/applications | python3 -m json.tool
-# Should return ArgoCD applications list (or auth error if token not set)
-
-# Verify Kubernetes plugin connectivity
-curl -s http://localhost:7007/api/kubernetes/clusters | python3 -m json.tool
-# Should return cluster info
-
-# Check that static catalog locations loaded
-kubectl logs -n backstage -l app.kubernetes.io/name=backstage --tail=100 | grep -i "location"
-# Should see locations being processed without errors
-
-# Verify no deprecated backend warnings in logs
-kubectl logs -n backstage -l app.kubernetes.io/name=backstage --tail=100 | grep -i "deprecated"
-# Should be clean — any deprecation warnings indicate old patterns
+# UI
+# Browser: http://localhost:7007  — Catalog page renders (likely empty)
 ```
+
+## What NOT to generate
+
+- A values block without `backstage.image.*` — chart has no default; the #1 failure
+- `image:` at the top level of values (instead of nested under `backstage:`) — wrong path
+- `appConfig:` at the top level of values (instead of nested under `backstage:`) — silently dropped
+- A values block without the `backstage.appConfig.kubernetes` override — the Pod will CrashLoopBackOff on plugin init
+- `service.ports.backend: 3000` — old tutorials; current image listens on 7007
+- `catalog.providers.github:` — requires real GitHub token, out of workshop scope
+- `auth.providers.github:` — OAuth out of workshop scope; the appConfig uses guest mode
+- `ingress.enabled: true` — workshop uses port-forward
+- `postgresql.enabled: true` — adds a second pod and a secret; SQLite is fine for 90 min
+
+## The talk's payoff lives in this phase
+
+Phase 4 is the most likely component to fail in front of an audience. **That's the talk.** If your Backstage Pod is in CrashLoopBackOff at minute 20 and you haven't recovered, write down exactly what the logs said. A 3/10 Install score with *"Pod stuck in CrashLoopBackOff with `Plugin 'kubernetes' startup failed` because Claude omitted the appConfig kubernetes override"* is **more valuable** to the workshop's central claim than a working Backstage with a perfect 9/10.
+
+"AI didn't just speed up implementation. It ate most of it. But here's what it choked on." Point at your scorecard.

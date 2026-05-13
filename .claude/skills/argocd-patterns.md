@@ -1,123 +1,53 @@
-# ArgoCD Patterns Skill — KCD Texas 2026 Workshop
+# ArgoCD Patterns Skill (chart 9.x, ArgoCD 3.x line)
 
-Adapted from `kubeauto-ai-day/.claude/skills/argocd-patterns.md` for the
-90-minute workshop. Same patterns, but updated chart pins and one critical
-values-path correction.
+Use this skill **before generating any ArgoCD manifest.** Most tutorials and blog posts reference patterns from chart 5.x–7.x (ArgoCD 2.x). The current chart line is **9.x**, which produces ArgoCD **v3.x**. The differences matter.
 
-This skill encodes correct patterns for ArgoCD 3.2+. The entire ArgoCD 2.x line
-is END OF LIFE. Most tutorials, blog posts, and Stack Overflow answers reference
-2.x patterns that will produce broken or deprecated configurations.
+## Critical version pins
 
-**When in doubt, assume a pattern you recall is from 2.x and verify it here.**
+| Thing | Current GA at workshop time |
+|---|---|
+| Helm chart name | `argo-cd` |
+| Helm repo | `https://argoproj.github.io/argo-helm` |
+| Chart version | `9.5.x` (current GA in the 9.x line) |
+| ArgoCD app version | `v3.4.x` |
+| Default reconciliation timeout | `120s` (workshop overrides to `30s`) |
+| Resource tracking method | annotation-based (3.x default; do not set to `label`) |
 
----
+`argo/argo-cd 7.x` still exists but is ArgoCD v2.14, feature-frozen. Don't pin to 7.x unless the user explicitly asks.
 
-## Correct Patterns
+## Pattern 1 — Helm installation values for the workshop
 
-### Helm Chart Installation (3.x)
+The workshop installs ArgoCD via `helm install` (not via Application — ArgoCD is the thing that runs Applications). The values you generate should produce something equivalent to:
 
-ArgoCD 3.x uses the `argo-cd` Helm chart from the official OCI registry.
-
-```yaml
-# ArgoCD 3.2+ Helm values
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: argocd
-  namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "-5"
-spec:
-  project: default
-  source:
-    chart: argo-cd
-    repoURL: https://argoproj.github.io/argo-helm
-    targetRevision: "9.5.*"    # 9.x chart = ArgoCD 3.3.x (as of May 2026).
-                                # Chart 7.x maps to older ArgoCD 3.x; do not use.
-    helm:
-      valuesObject:
-        # 3.x: annotation-based tracking is the DEFAULT
-        # Do NOT set tracking method to "label" — that is legacy 2.x behavior
-        server:
-          extraArgs:
-            - --insecure  # If terminated at LB/ingress
-        configs:
-          cm:
-            # 30-second reconciliation for demo purposes (default is 3 minutes).
-            # CRITICAL: this lives under configs.cm (argocd-cm ConfigMap), NOT
-            # configs.params (argocd-cmd-params-cm).  Using configs.params here
-            # silently writes to the wrong ConfigMap and the setting is ignored.
-            timeout.reconciliation: "30s"
-            # Self-heal: auto-correct drift
-            application.resourceTrackingMethod: "annotation"  # default in 3.x, explicit for clarity
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-```
-
-### Annotation-Based Tracking (Default in 3.x)
-
-ArgoCD 3.x defaults to annotation-based resource tracking. It uses the
-`argocd.argoproj.io/tracking-id` annotation on managed resources.
-
-```yaml
-# You do NOT need to set this — it is the default in 3.x
-# Shown for awareness only
+```bash
+helm install argocd argo/argo-cd -n argocd --create-namespace -f - <<'YAML'
+server:
+  extraArgs:
+    - --insecure          # Workshop: TLS terminates at port-forward
 configs:
   cm:
-    application.resourceTrackingMethod: "annotation"
+    timeout.reconciliation: "30s"   # 30s for fast demo syncs (default is 120s)
+  # Do NOT set configs.params.timeout.reconciliation — wrong path; the timeout
+  # lives in argocd-cm, not argocd-cmd-params-cm.
+  # Annotation-based resource tracking is the DEFAULT in 3.x. Do NOT set
+  # application.resourceTrackingMethod: "label" — that's legacy 2.x behavior.
+YAML
 ```
 
-Do NOT set `application.resourceTrackingMethod: "label"` — that is the legacy
-2.x default and causes issues with resources that have label length limits.
+**Verified:** chart 9.5.13 has `timeout.reconciliation` under `configs.cm` (writes to `argocd-cm` ConfigMap). `helm template` confirms the rendered ConfigMap contains the override.
 
-### RBAC Configuration (3.x Subject Format)
+## Pattern 2 — app-of-apps bootstrap Application
 
-ArgoCD 3.x changed the RBAC subject format for Dex/OIDC users and groups.
-The prefix format now uses the SSO provider name.
+This is **not** installed by the chart — it's a `kubectl apply` after ArgoCD is up. Match the structure of `gitops/bootstrap/app-of-apps.yaml`:
 
 ```yaml
-configs:
-  rbac:
-    policy.csv: |
-      # 3.x format: role:<role-name> for built-in roles
-      # 3.x format: <sso-provider>:<group-or-user> for SSO subjects
-
-      # Grant admin to a specific OIDC group
-      g, oidc:platform-admins, role:admin
-
-      # Grant read-only to all authenticated users
-      p, role:readonly, applications, get, */*, allow
-      p, role:readonly, applications, list, */*, allow
-      g, oidc:authenticated, role:readonly
-
-    # Default policy for authenticated users with no matching rule
-    policy.default: role:readonly
-
-    # Scopes to request from OIDC provider
-    scopes: "[groups, email]"
-```
-
-**2.x used different subject prefixes.** If you see examples with bare group
-names or `sso:` prefix, those are 2.x patterns.
-
-### App-of-Apps Pattern
-
-The root application bootstraps all other applications via sync waves.
-
-```yaml
-# Root app-of-apps application
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-app
+  name: app-of-apps
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io   # Clean up child apps on delete
 spec:
   project: default
   source:
@@ -131,331 +61,125 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
 ```
 
-### Sync Waves
+Notes:
+- **No sync-wave on the bootstrap itself** — it's the top of the tree. Sync waves are on the *child* Applications in `gitops/apps/`.
+- **`targetRevision: main`** — the workshop reads from `main` (not `staging`). `staging` is the working branch; `main` is the canonical version ArgoCD watches.
+- **Finalizer** — `resources-finalizer.argocd.argoproj.io` ensures `kubectl delete application app-of-apps` actually cleans up the platform.
+- **Retry policy** — exponential backoff because Phase 1 reconciles may race CRDs.
 
-Sync waves control deployment ordering. Lower numbers deploy first.
+## Pattern 3 — Sync waves (the workshop's actual ordering)
+
+The pre-committed manifests use these waves (verified against `gitops/apps/`):
+
+| Component | Wave | Why this wave |
+|---|---|---|
+| `kyverno` (chart install) | `-5` | First — admission controller must exist before policies |
+| `kyverno-policies` | `-4` | After Kyverno controller; CRDs must exist |
+| `kube-prometheus-stack` | `1` | After admission policies are enforcing; needs them to allow its pods through |
+| `backstage` | `5` | Last — depends on having observability + policies in place |
+
+Annotation form:
 
 ```yaml
-# gitops/apps/namespaces.yaml — wave -10 (first)
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: namespaces
-  namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "-10"
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
-    targetRevision: main
-    path: gitops/base/namespaces
-  destination:
-    server: https://kubernetes.default.svc
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-
----
-# gitops/apps/kyverno.yaml — wave -5 (before apps that need policies)
-apiVersion: argoproj.io/v1alpha1
-kind: Application
 metadata:
   name: kyverno
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "-5"
-# ...
-
----
-# gitops/apps/sample-app.yaml — wave 5 (after platform components)
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: sample-app
-  namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-# ...
+    argocd.argoproj.io/sync-wave: "-5"   # String, not int
 ```
 
-**Recommended wave ordering for this project:**
-- Wave -10: Namespaces, CRDs
-- Wave -5: Security stack (Kyverno, Falco, ESO), ArgoCD self-manage
-- Wave 0: Observability (Prometheus, Grafana, OTel)
-- Wave 3: Platform services (Backstage)
-- Wave 5: Application workloads (sample Flask app)
+Wave values are **strings**, not integers. Lower runs first. Apps in the same wave run in parallel.
 
-### 30-Second Demo Sync Interval
+**Most common Claude failure:** generating four child Applications with no sync-wave annotations. Result: parallel install, Kyverno policies race the Kyverno controller, policy CRDs aren't ready when policies try to apply, ArgoCD shows the policy Application as `OutOfSync` for ~3 minutes. Adding waves fixes it.
 
-For the workshop demo, set a 30-second reconciliation interval so changes appear fast.
+## Pattern 4 — syncOptions for charts with large CRDs
 
-```yaml
-configs:
-  cm:
-    timeout.reconciliation: "30s"
-```
+The Prometheus operator's CRDs exceed Kubernetes's annotation size limit (256 KB). Without `ServerSideApply=true`, ArgoCD's `kubectl.kubernetes.io/last-applied-configuration` annotation gets too large, and the CRDs flip `OutOfSync` every reconcile.
 
-**CRITICAL:** the path is `configs.cm.timeout.reconciliation`, NOT
-`configs.params.timeout.reconciliation`. The former writes to the `argocd-cm`
-ConfigMap (correct, controller reads from here). The latter writes to
-`argocd-cmd-params-cm` (wrong, silently ignored for this setting).
-
-**Do NOT use 30s in production.** The default 3-minute interval is appropriate
-for real clusters. This is a workshop demo optimization only.
-
-### Self-Heal Policy
-
-Self-heal automatically reverts manual changes (drift) to match Git state.
+Always include `ServerSideApply=true` for charts with large CRDs:
 
 ```yaml
 syncPolicy:
   automated:
-    prune: true      # Remove resources deleted from Git
-    selfHeal: true   # Revert manual changes to match Git
-  retry:
-    limit: 5
-    backoff:
-      duration: 5s
-      factor: 2
-      maxDuration: 3m
+    prune: true
+    selfHeal: true
+  syncOptions:
+    - CreateNamespace=true
+    - ServerSideApply=true
 ```
 
-### ApplicationSet for Multi-Environment (Optional)
+Required for: `kube-prometheus-stack`, `kyverno`, `backstage`. Harmless to add to all charts.
 
-If generating apps from a directory structure:
+## Pattern 5 — Helm-chart Application structure
+
+When deploying a Helm chart via Application (Phases 2–4):
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
+kind: Application
 metadata:
-  name: platform-components
+  name: <component>
   namespace: argocd
-spec:
-  generators:
-    - git:
-        repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
-        revision: main
-        directories:
-          - path: gitops/components/*
-  template:
-    metadata:
-      name: "{{path.basename}}"
-      namespace: argocd
-    spec:
-      project: default
-      source:
-        repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
-        targetRevision: main
-        path: "{{path}}"
-      destination:
-        server: https://kubernetes.default.svc
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-```
-
----
-
-## Agentic Covenants framing
-
-ArgoCD is a server-side enforcement control in the **Agentic Covenants** matrix
-(see `github.com/peopleforrester/agentic-covenants`). Specifically:
-
-| Concern row | How ArgoCD covers it |
-|-------------|---------------------|
-| **Approval gating** (server-side) | All changes flow Git → ArgoCD reconcile. No `kubectl apply` after Phase 1 bootstrap. Self-heal auto-reverts manual drift. Pre-committed reference manifests in `gitops/apps/` are the source of truth. |
-| **Blast radius** (server-side) | Sync waves order destructive operations. `prune: true` removes resources deleted from Git. Retry policy with bounded backoff prevents runaway reconcile storms. |
-
-The workshop is a worked example of one column of that matrix. Don't dwell on
-this in the skill; it's framing for what students are touring.
-
----
-
-### ArgoCD Project Scoping
-
-Restrict what the `default` project can deploy to, and create a platform project.
-
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: platform
-  namespace: argocd
-spec:
-  description: Platform infrastructure components
-  sourceRepos:
-    - "https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git"
-    - "https://argoproj.github.io/argo-helm"
-    - "https://charts.jetstack.io"
-    - "https://kyverno.github.io/kyverno"
-    - "https://prometheus-community.github.io/helm-charts"
-    - "https://backstage.github.io/charts"
-    - "https://falcosecurity.github.io/charts"
-  destinations:
-    - namespace: "*"
-      server: https://kubernetes.default.svc
-  clusterResourceWhitelist:
-    - group: "*"
-      kind: "*"
-```
-
----
-
-## Common Mistakes
-
-### CRITICAL: Use the current chart version for ArgoCD 3.3.x
-
-```yaml
-# WRONG — chart version 5.x and 6.x map to ArgoCD 2.x (EOL)
-targetRevision: "5.51.6"
-targetRevision: "6.7.3"
-
-# STALE (kubeauto reference build used these) — chart 7.x maps to older ArgoCD 3.x
-targetRevision: "7.8.*"
-
-# CORRECT (as of May 2026) — chart 9.x maps to ArgoCD 3.3.x
-targetRevision: "9.5.*"
-```
-
-The chart-to-app mapping moves over time. Check
-[argo-helm releases](https://github.com/argoproj/argo-helm/releases) for the
-current stable chart that maps to the ArgoCD release you want.
-
-### CRITICAL: Do NOT use label-based tracking
-
-```yaml
-# WRONG — label-based tracking is legacy 2.x default
-configs:
-  cm:
-    application.resourceTrackingMethod: "label"
-
-# CORRECT — annotation-based tracking is the 3.x default
-# Simply do not set it, or explicitly:
-configs:
-  cm:
-    application.resourceTrackingMethod: "annotation"
-```
-
-### CRITICAL: Do NOT use 2.x RBAC subject format
-
-```yaml
-# WRONG — 2.x subject format
-g, my-github-org:my-team, role:admin
-
-# CORRECT — 3.x subject format with SSO provider prefix
-g, oidc:my-github-org:my-team, role:admin
-```
-
-### Do NOT use deprecated `argocd-cm` ConfigMap keys directly
-
-In 3.x, most configuration has moved to Helm values under `configs.params` and
-`configs.cm`. Do not create raw ConfigMaps.
-
-```yaml
-# WRONG — raw ConfigMap manipulation
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-cm
-data:
-  timeout.reconciliation: "30s"
-
-# CORRECT — set via Helm values
-configs:
-  params:
-    timeout.reconciliation: "30s"
-```
-
-### Do NOT put Application resources outside the argocd namespace
-
-```yaml
-# WRONG
-metadata:
-  name: my-app
-  namespace: default  # Applications must live in the argocd namespace
-
-# CORRECT
-metadata:
-  name: my-app
-  namespace: argocd
-```
-
-### Do NOT forget finalizers for pruning
-
-Without the finalizer, deleting an Application does not clean up deployed resources.
-
-```yaml
-metadata:
-  name: my-app
-  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "<N>"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: <chart-name>                    # Just the chart, no slash
+    repoURL: https://<chart-repo-url>      # The HTTPS repo URL
+    targetRevision: "<chart-version>"      # Pinned version
+    helm:
+      valuesObject:                        # Typed YAML, not a multi-line string
+        # ...chart-specific values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: <target-namespace>
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
 ```
 
-### Do NOT set sync interval below 30s in production
+**Do not generate:**
+- `helm.values: |` as a multi-line YAML string — deprecated. Use `helm.valuesObject:`.
+- `chart: argoproj/argo-cd` (with a slash) — `chart:` takes only the chart name; `repoURL:` is the registry.
 
-```yaml
-# WRONG for production (causes excessive API calls)
-timeout.reconciliation: "5s"
+## Common failure modes
 
-# ACCEPTABLE for demo only
-timeout.reconciliation: "30s"
+| What you see | Likely cause | Fix |
+|---|---|---|
+| Application stuck `Progressing` | Resource references a CRD that doesn't exist yet | Add sync-wave so the CRD installs first |
+| `last-applied-configuration: too long` on CRD apply | No ServerSideApply for a chart with large CRDs | Add `ServerSideApply=true` to syncOptions |
+| Resources created in wrong namespace | `destination.namespace` mismatched with manifest's `metadata.namespace` | Match them, or omit `metadata.namespace` and let destination apply |
+| Application `OutOfSync` every reconcile | Helm chart's controller mutates managed resources (e.g., setting status) | Either accept with `selfHeal: true`, or add `ignoreDifferences` for the mutating fields |
+| `argocd app list` shows everything healthy but no pods exist | Application is `Synced` against an empty path | Verify `source.path` and `source.repoURL` |
 
-# CORRECT for production
-timeout.reconciliation: "180s"  # default
-```
-
----
-
-## Validation Commands
+## Verify commands
 
 ```bash
-# Verify ArgoCD version is 3.x
-kubectl -n argocd exec deploy/argocd-server -- argocd version --short
+# Core ArgoCD pods
+kubectl get pods -n argocd
+# Expected: argocd-server, argocd-repo-server, argocd-application-controller-0, argocd-redis — all Running
 
-# Verify tracking method is annotation (default in 3.x)
-kubectl -n argocd get configmap argocd-cm -o jsonpath='{.data.application\.resourceTrackingMethod}'
-# Should return "annotation" or be empty (annotation is default)
+# Applications discovered
+kubectl get application -n argocd
 
-# Verify reconciliation timeout is 30s for demo
-kubectl -n argocd get configmap argocd-cmd-params-cm -o jsonpath='{.data.timeout\.reconciliation}'
+# A specific Application's sync + health status
+kubectl get application <name> -n argocd -o jsonpath='{.status.sync.status}/{.status.health.status}'
 
-# Verify self-heal is enabled on all apps
-kubectl -n argocd get applications -o jsonpath='{range .items[*]}{.metadata.name}: selfHeal={.spec.syncPolicy.automated.selfHeal}{"\n"}{end}'
-
-# Verify all applications are synced and healthy
-kubectl -n argocd get applications
-# Or use argocd CLI:
-argocd app list
-
-# Check sync status of a specific app
-argocd app get root-app --refresh
-
-# Verify sync waves are ordered correctly
-kubectl -n argocd get applications -o jsonpath='{range .items[*]}{.metadata.annotations.argocd\.argoproj\.io/sync-wave} {.metadata.name}{"\n"}{end}' | sort -n
-
-# Verify RBAC policy is loaded
-kubectl -n argocd get configmap argocd-rbac-cm -o yaml
-
-# Check for any degraded or out-of-sync applications
-argocd app list --status Degraded
-argocd app list --status OutOfSync
-
-# Verify app-of-apps root is managing child apps
-argocd app get root-app --show-resources
-
-# Verify chart version deployed (should be 9.x for ArgoCD 3.3.x)
-helm -n argocd list -o json | jq '.[].chart'
-
-# Check ArgoCD server logs for errors
-kubectl -n argocd logs deploy/argocd-server --tail=50
-
-# Verify no label-based tracking annotations on resources
-kubectl get all -A -o jsonpath='{range .items[*]}{.metadata.labels.argocd\.argoproj\.io/instance}{end}'
-# Should be empty; annotation-based tracking uses annotations, not labels
+# Initial admin password (workshop)
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d ; echo
 ```

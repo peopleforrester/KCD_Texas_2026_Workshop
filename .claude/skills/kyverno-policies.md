@@ -1,353 +1,27 @@
-# Kyverno Policies Skill — KCD Texas 2026 Workshop
+# Kyverno Policies Skill
 
-Adapted from `kubeauto-ai-day/.claude/skills/kyverno-policies.md` for the
-90-minute workshop scope.
+Use this skill **before generating any Kyverno manifest.** The workshop uses Kyverno chart `3.8.0` (Kyverno `v1.18.0`) with three ClusterPolicies enforced on the `apps` namespace only.
 
-**Workshop scope:** the workshop installs three of the six policies described
-here (`require-labels`, `require-resource-limits`, `disallow-privileged`).
-Pre-committed reference implementations live at
-`gitops/manifests/kyverno-policies/`.  The other policies in this skill
-(`restrict-image-registries`, `require-probes`, `require-networkpolicy`) are
-included as reference for students who want to extend the policy set after
-the workshop.
+## Critical version pins
 
-This skill encodes correct patterns for Kyverno 1.17+ policy authoring.
-The critical constraint: enforce mode ONLY in the `apps` namespace.
-All system namespaces must be excluded to prevent policies from blocking
-platform components (ArgoCD, Prometheus, Kyverno itself, etc.).
+| Thing | Workshop value |
+|---|---|
+| Helm chart | `kyverno/kyverno` |
+| Chart version | `3.8.0` |
+| Kyverno app version | `v1.18.0` |
+| ClusterPolicy API | `kyverno.io/v1` |
+| Mode | `validationFailureAction: Enforce` (capital E — case sensitive) |
+| Background scan | `background: false` (workshop default — only validates new resources) |
 
----
+## The workshop's architecture in one sentence
 
-## Correct Patterns
+Two ArgoCD Applications: `kyverno` (sync wave -5, installs the chart) and `kyverno-policies` (sync wave -4, applies the three ClusterPolicy files from `gitops/manifests/kyverno-policies/`). System-namespace exclusion is handled **at the chart level** via the webhook `namespaceSelector`, not inside individual policies. This is cleaner than per-policy excludes.
 
-### Namespace Exclusion Strategy
+## Pattern 1 — Kyverno install (Application with chart values)
 
-Every ClusterPolicy MUST exclude system namespaces. Kyverno 1.17+ supports
-namespace selectors and explicit exclusions. Use BOTH for defense-in-depth.
-
-The full exclusion list for this project:
+Matches `gitops/apps/kyverno.yaml`:
 
 ```yaml
-# These namespaces MUST be excluded from ALL enforce policies:
-# - kube-system
-# - kube-public
-# - kube-node-lease
-# - kyverno
-# - argocd
-# - monitoring
-# - backstage
-# - platform
-# - security
-# - cert-manager
-# - ingress-nginx (or aws-load-balancer-controller namespace)
-```
-
-### ClusterPolicy Template (Traditional, Not CEL)
-
-Kyverno 1.17 promoted CEL policies to v1 stable, but this project uses
-traditional ClusterPolicy for broader community familiarity. CEL policies
-are acceptable but not required.
-
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-labels
-  annotations:
-    policies.kyverno.io/title: Require Labels
-    policies.kyverno.io/category: Best Practices
-    policies.kyverno.io/severity: medium
-    policies.kyverno.io/description: >-
-      Require all pods in the apps namespace to have app and version labels.
-spec:
-  validationFailureAction: Enforce    # Enforce ONLY because match targets apps NS
-  background: true
-  rules:
-    - name: require-app-label
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps                 # ONLY target the apps namespace
-      validate:
-        message: "The label 'app' is required."
-        pattern:
-          metadata:
-            labels:
-              app: "?*"
-    - name: require-version-label
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps
-      validate:
-        message: "The label 'version' is required."
-        pattern:
-          metadata:
-            labels:
-              version: "?*"
-```
-
-### Policy: Restrict Image Registries
-
-Only allow images from trusted registries in the `apps` namespace.
-
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: restrict-image-registries
-  annotations:
-    policies.kyverno.io/title: Restrict Image Registries
-    policies.kyverno.io/category: Security
-    policies.kyverno.io/severity: high
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-    - name: validate-registries
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps
-      validate:
-        message: >-
-          Images must come from allowed registries:
-          ghcr.io, docker.io/library, or the project ECR.
-        pattern:
-          spec:
-            containers:
-              - image: "ghcr.io/* | docker.io/library/* | *.dkr.ecr.*.amazonaws.com/*"
-            =(initContainers):
-              - image: "ghcr.io/* | docker.io/library/* | *.dkr.ecr.*.amazonaws.com/*"
-```
-
-### Policy: Require Resource Limits
-
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-resource-limits
-  annotations:
-    policies.kyverno.io/title: Require Resource Limits
-    policies.kyverno.io/category: Best Practices
-    policies.kyverno.io/severity: medium
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-    - name: require-limits
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps
-      validate:
-        message: "CPU and memory limits are required for all containers."
-        pattern:
-          spec:
-            containers:
-              - resources:
-                  limits:
-                    memory: "?*"
-                    cpu: "?*"
-```
-
-### Policy: Disallow Privileged Containers
-
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: disallow-privileged
-  annotations:
-    policies.kyverno.io/title: Disallow Privileged Containers
-    policies.kyverno.io/category: Pod Security
-    policies.kyverno.io/severity: high
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-    - name: disallow-privileged-containers
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps
-      validate:
-        message: "Privileged containers are not allowed in the apps namespace."
-        pattern:
-          spec:
-            containers:
-              - =(securityContext):
-                  =(privileged): false
-            =(initContainers):
-              - =(securityContext):
-                  =(privileged): false
-```
-
-### Policy: Require Readiness and Liveness Probes
-
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-probes
-  annotations:
-    policies.kyverno.io/title: Require Probes
-    policies.kyverno.io/category: Best Practices
-    policies.kyverno.io/severity: medium
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-    - name: require-readiness-probe
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps
-      validate:
-        message: "A readinessProbe is required for all containers."
-        pattern:
-          spec:
-            containers:
-              - readinessProbe: {}
-    - name: require-liveness-probe
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps
-      validate:
-        message: "A livenessProbe is required for all containers."
-        pattern:
-          spec:
-            containers:
-              - livenessProbe: {}
-```
-
-### Policy: Require NetworkPolicy Exists (Audit Only)
-
-This policy audits whether a NetworkPolicy exists for each app. Use audit
-mode because it validates cluster state, not individual pod spec.
-
-```yaml
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-networkpolicy
-  annotations:
-    policies.kyverno.io/title: Require NetworkPolicy
-    policies.kyverno.io/category: Networking
-    policies.kyverno.io/severity: medium
-spec:
-  validationFailureAction: Audit    # Audit, not Enforce — informational
-  background: true
-  rules:
-    - name: require-netpol
-      match:
-        any:
-          - resources:
-              kinds:
-                - Deployment
-              namespaces:
-                - apps
-      preconditions:
-        all:
-          - key: "{{request.operation}}"
-            operator: In
-            value: ["CREATE", "UPDATE"]
-      validate:
-        message: "A NetworkPolicy should exist for this application."
-        deny:
-          conditions:
-            all:
-              - key: "{{request.object.metadata.labels.app}}"
-                operator: Equals
-                value: ""
-```
-
-### PSS Labels as Defense-in-Depth Companion
-
-Kyverno enforce policies and PSS namespace labels serve complementary roles:
-- PSS labels are enforced by the Kubernetes API server admission controller
-- Kyverno policies provide more granular rules (labels, registries, probes)
-
-Both should be active on the `apps` namespace.
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: apps
-  labels:
-    # PSS labels — enforced by K8s API server
-    pod-security.kubernetes.io/enforce: restricted
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
-    # Kyverno policies also enforce in this namespace (see policies above)
-```
-
-### Resource Quotas on `apps` Namespace
-
-Complement Kyverno resource-limits policy with namespace-level quotas.
-
-```yaml
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: apps-quota
-  namespace: apps
-spec:
-  hard:
-    pods: "10"
-    requests.cpu: "4"
-    requests.memory: "8Gi"
-    limits.cpu: "4"
-    limits.memory: "8Gi"
-```
-
----
-
-## Guardrail Integration
-
-Kyverno implements **Guardrails #2, #3, #4, and #8** at Layer 3 (Kubernetes Infrastructure).
-
-| Guardrail | How Kyverno Implements It |
-|-----------|--------------------------|
-| **#2 Blast Radius Limits** | Enforce policies scoped to `apps` namespace only. System namespaces excluded. Works alongside RBAC and ResourceQuotas for defense-in-depth. |
-| **#3 Stop Hooks & Circuit Breakers** | Admission webhooks reject non-compliant resources at the API server. Six ClusterPolicies act as circuit breakers: require-labels, restrict-registries, require-limits, disallow-privileged, require-probes, require-networkpolicy. |
-| **#4 Assume Misunderstanding** | Validate rules catch structural errors (missing labels, missing limits) before resources are created. Acts as a "second pair of eyes" on every resource admission. |
-| **#8 Supply Chain Validation** | `restrict-image-registries` policy enforces that only images from ECR, GHCR, docker.io/library, and registry.k8s.io are allowed in the `apps` namespace. |
-
-**Layer 1 enforcement:** The `kyverno-validate` pre-commit hook runs Kyverno CLI dry-run on staged manifests before they reach the cluster (requires kyverno CLI installed locally).
-
-**Layer 1 enforcement:** The `image-allowlist` pre-commit hook provides a file-level registry check as a fast pre-flight before admission.
-
----
-
-### Kyverno Helm Installation Values
-
-```yaml
-# Kyverno 1.17+ Helm values
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -355,34 +29,33 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "-5"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  project: platform
+  project: default
   source:
     chart: kyverno
     repoURL: https://kyverno.github.io/kyverno
-    targetRevision: "3.3.*"    # Chart 3.x = Kyverno 1.17+
+    targetRevision: "3.8.0"
     helm:
       valuesObject:
-        # Exclude Kyverno's own namespace from webhooks to prevent deadlock
+        admissionController:
+          replicas: 1                  # Workshop scale; production wants 3+
         config:
           webhooks:
-            - namespaceSelector:
-                matchExpressions:
-                  - key: kubernetes.io/metadata.name
-                    operator: NotIn
-                    values:
-                      - kyverno
-                      - kube-system
-                      - kube-public
-                      - kube-node-lease
-        # Resource limits for Kyverno itself
-        resources:
-          limits:
-            memory: 512Mi
-            cpu: 500m
-          requests:
-            memory: 256Mi
-            cpu: 100m
+            namespaceSelector:
+              matchExpressions:
+                - key: kubernetes.io/metadata.name
+                  operator: NotIn
+                  values:
+                    - kube-system
+                    - kube-public
+                    - kube-node-lease
+                    - argocd
+                    - monitoring
+                    - backstage
+                    - kyverno
+                    - sample-app
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
@@ -392,256 +65,201 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
 ```
 
----
+**Why webhook namespaceSelector (vs per-policy excludes):**
 
-## Common Mistakes
+- Single source of truth for exclusions — change one place, every policy respects it
+- The webhook itself is bypassed for excluded namespaces, so policy evaluation never even runs there — faster, simpler, less risk of system-pod blocks
+- Verified: `helm template kyverno/kyverno 3.8.0` with these values renders the webhook with the matchExpressions correctly applied
 
-### CRITICAL: Do NOT enforce policies across all namespaces
+## Pattern 2 — kyverno-policies Application (directory source)
+
+Matches `gitops/apps/kyverno-policies.yaml`:
 
 ```yaml
-# WRONG — this will break ArgoCD, Prometheus, Kyverno itself, etc.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"     # After kyverno install (wave -5)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
-  validationFailureAction: Enforce
-  rules:
-    - name: my-rule
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              # No namespace filter = ALL namespaces = disaster
+  project: default
+  source:
+    repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+    targetRevision: main
+    path: gitops/manifests/kyverno-policies
+    directory:
+      recurse: false                       # Single dir, not subtrees
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno                     # Destination namespace; ClusterPolicies are cluster-scoped, namespace is just metadata
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
 ```
 
-Always explicitly scope enforce policies to the `apps` namespace only.
+## Pattern 3 — ClusterPolicy: require-labels
 
-### CRITICAL: Do NOT forget to exclude system namespaces from webhooks
-
-If Kyverno's webhook intercepts its own namespace, a deadlock can occur
-where Kyverno cannot start because its own policies reject its pods.
+Matches `gitops/manifests/kyverno-policies/require-labels.yaml`:
 
 ```yaml
-# WRONG — no namespace exclusion on webhooks
-config:
-  webhooks: []
-
-# CORRECT — exclude kyverno and kube-system at minimum
-config:
-  webhooks:
-    - namespaceSelector:
-        matchExpressions:
-          - key: kubernetes.io/metadata.name
-            operator: NotIn
-            values:
-              - kyverno
-              - kube-system
-```
-
-### Do NOT use `exclude` blocks when `match.namespaces` is sufficient
-
-```yaml
-# OVERLY COMPLEX — listing every system namespace in exclude
-spec:
-  rules:
-    - name: my-rule
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-      exclude:
-        any:
-          - resources:
-              namespaces:
-                - kube-system
-                - kyverno
-                - argocd
-                - monitoring
-                # ... many more
-
-# SIMPLER AND SAFER — only match the target namespace
-spec:
-  rules:
-    - name: my-rule
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - apps        # Only this namespace is targeted
-```
-
-Using `match.namespaces: [apps]` is an allowlist approach (safer).
-Using `exclude` is a denylist approach (fragile — new namespaces are exposed by default).
-
-### Do NOT use CEL policies unless explicitly chosen
-
-```yaml
-# NOT WRONG but not the project convention — traditional ClusterPolicy is preferred
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
-  name: my-policy
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require app and team labels
+    policies.kyverno.io/category: Workshop / Best Practices
+    policies.kyverno.io/severity: medium
 spec:
+  validationFailureAction: Enforce
+  background: false               # Don't background-scan; only validate new resources
   rules:
-    - name: my-rule
+    - name: check-required-labels
       match:
         any:
           - resources:
               kinds:
                 - Pod
+              namespaces:
+                - apps               # Only fire on Pods in the apps namespace
       validate:
-        cel:
-          expressions:
-            - expression: "object.spec.containers.all(c, has(c.resources.limits))"
+        message: "Pods in 'apps' must have non-empty 'app' and 'team' labels."
+        pattern:
+          metadata:
+            labels:
+              app: "?*"              # `?*` means "any non-empty value"
+              team: "?*"
 ```
 
-CEL policies are stable in 1.17+ but this project uses traditional validate/pattern
-syntax for broader audience familiarity at the conference.
-
-### Do NOT apply enforce policies to Deployments instead of Pods
-
-Kyverno evaluates Pods at admission time. If you match Deployments, the policy
-checks the Deployment spec but the actual Pod might differ (injected sidecars, etc.).
+## Pattern 4 — ClusterPolicy: require-resource-limits
 
 ```yaml
-# LESS EFFECTIVE — matches Deployment, not the actual Pod
-match:
-  any:
-    - resources:
-        kinds:
-          - Deployment
-
-# CORRECT — matches Pod (what actually runs)
-match:
-  any:
-    - resources:
-        kinds:
-          - Pod
-```
-
-### Do NOT set validationFailureAction globally when it should differ per rule
-
-If some rules should enforce and others should audit, use per-rule
-`validationFailureAction` overrides (supported in Kyverno 1.17+).
-
-```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
 spec:
-  # Default for the policy
   validationFailureAction: Enforce
+  background: false
   rules:
-    - name: strict-rule
-      # Inherits Enforce from policy level
+    - name: check-resource-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - apps
       validate:
-        # ...
-    - name: informational-rule
-      validate:
-        validationFailureAction: Audit  # Override to Audit for this rule only
-        # ...
+        message: "Pods in 'apps' must declare CPU and memory limits."
+        pattern:
+          spec:
+            containers:                  # Applies the pattern to EACH container in the list
+              - resources:
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
 ```
 
----
+## Pattern 5 — ClusterPolicy: disallow-privileged (uses conditional anchors)
 
-## Validation Commands
+This is the policy that has the conditional anchor trick — `=(field)` means "if this field exists, it must match." Without conditional anchors the policy is too strict and rejects pods that simply don't set `securityContext`.
+
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: deny-privileged
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - apps
+      validate:
+        message: "Privileged containers are not allowed in 'apps'."
+        pattern:
+          spec:
+            =(initContainers):              # If initContainers exists,
+              - =(securityContext):         # and if it has securityContext,
+                  =(privileged): "false"    # then privileged must be false
+            containers:                     # Always check regular containers (no anchor here)
+              - =(securityContext):
+                  =(privileged): "false"
+```
+
+## Common failure modes
+
+| What you see | Cause | Fix |
+|---|---|---|
+| ArgoCD itself stops reconciling after policies install | Forgot `argocd` in the webhook namespaceSelector exclusion | Add `argocd` to the chart's `config.webhooks.namespaceSelector` exclusions |
+| Policy installs but doesn't enforce | `validationFailureAction: enforce` (lowercase) | Change to `Enforce` (capital E) |
+| `unrecognized field "kinds"` on apply | Used old `match.resources.kinds` (flat) form | Switch to `match.any[].resources.kinds` |
+| Compliant pod gets rejected | `match.any[].resources.namespaces` includes more than `apps`, or anchor missing on optional field | Narrow match to `[apps]` only; add `=(field)` conditional anchor for optional fields |
+| Background-scan noise on workshop install | `background: true` | Set `background: false` for workshop policies |
+
+## Verify commands
 
 ```bash
-# Verify Kyverno is running and healthy
-kubectl -n kyverno get pods
+# Controller pods
+kubectl get pods -n kyverno
+# Expected: kyverno-admission-controller, kyverno-background-controller,
+#           kyverno-cleanup-controller, kyverno-reports-controller — all Running
 
-# Verify Kyverno version is 1.17+
-kubectl -n kyverno get deploy kyverno-admission-controller \
-  -o jsonpath='{.spec.template.spec.containers[0].image}'
+# Policies loaded
+kubectl get clusterpolicy
+# Expected: require-labels, require-resource-limits, disallow-privileged
+#           VALIDATE ACTION = Enforce, READY = true
 
-# List all ClusterPolicies
-kubectl get clusterpolicies
+# Block a non-compliant pod
+kubectl run test-bad --image=nginx -n apps
+# Expected: error from server — admission webhook denied
 
-# Verify all policies are in Ready state
-kubectl get clusterpolicies -o jsonpath='{range .items[*]}{.metadata.name}: {.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}'
-
-# Verify enforce policies only target the apps namespace
-kubectl get clusterpolicies -o yaml | grep -A5 "namespaces:" | head -30
-
-# Test a policy by creating a non-compliant pod in apps namespace (should be blocked)
-kubectl run test-no-labels --image=nginx -n apps --dry-run=server
-# Expected: denied by require-labels policy
-
-# Test that the same pod is allowed in a system namespace (should succeed)
-kubectl run test-no-labels --image=nginx -n default --dry-run=server
-# Expected: allowed (policy does not target default namespace)
-
-# Verify Kyverno webhook configuration excludes system namespaces
-kubectl get mutatingwebhookconfigurations kyverno-resource-mutating-webhook-cfg -o yaml | \
-  grep -A10 "namespaceSelector"
-
-# Check policy violation reports
-kubectl get policyreport -A
-kubectl get clusterpolicyreport
-
-# Verify PSS labels on apps namespace
-kubectl get namespace apps -o jsonpath='{.metadata.labels}' | \
-  python3 -m json.tool | grep pod-security
-
-# Verify resource quota on apps namespace
-kubectl -n apps describe resourcequota apps-quota
-
-# Test resource limits enforcement
-cat <<'EOF' | kubectl apply -n apps --dry-run=server -f -
+# Allow a compliant pod
+kubectl apply -f - <<'EOF'
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test-no-limits
-  labels:
-    app: test
-    version: v1
+  name: test-good
+  namespace: apps
+  labels: { app: demo, team: workshop }
 spec:
   containers:
-    - name: test
-      image: docker.io/library/nginx:latest
+  - name: app
+    image: nginx
+    resources:
+      limits: { cpu: 100m, memory: 128Mi }
 EOF
-# Expected: denied by require-resource-limits policy
+# Expected: pod/test-good created
+# Cleanup:
+kubectl delete pod -n apps test-good --ignore-not-found
 
-# Verify a compliant pod is accepted
-cat <<'EOF' | kubectl apply -n apps --dry-run=server -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: test-compliant
-  labels:
-    app: test
-    version: v1
-spec:
-  containers:
-    - name: test
-      image: docker.io/library/nginx:latest
-      resources:
-        limits:
-          cpu: 100m
-          memory: 128Mi
-        requests:
-          cpu: 50m
-          memory: 64Mi
-      readinessProbe:
-        httpGet:
-          path: /
-          port: 80
-      livenessProbe:
-        httpGet:
-          path: /
-          port: 80
-      securityContext:
-        privileged: false
-        runAsNonRoot: true
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-        seccompProfile:
-          type: RuntimeDefault
-EOF
-# Expected: accepted (all policies pass)
-
-# Check Kyverno admission controller logs for errors
-kubectl -n kyverno logs deploy/kyverno-admission-controller --tail=50
+# System namespaces unaffected
+kubectl get pods -n kube-system
+# Expected: all Running
 ```
+
+## What NOT to generate
+
+- `kind: Policy` (namespaced) when you want cluster-wide — use `ClusterPolicy`
+- `match.resources.kinds:` (flat) — use `match.any[].resources.kinds`
+- `validationFailureAction: enforce` (lowercase) — must be `Enforce`
+- Per-policy `exclude.any[].resources.namespaces` — the chart's webhook namespaceSelector handles this; per-policy excludes create two sources of truth
+- `background: true` without a reason — workshop uses `false`
+- ClusterPolicy targeting `kinds: ['*']` — overly broad; scope to `Pod` for these policies
