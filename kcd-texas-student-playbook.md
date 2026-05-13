@@ -4,38 +4,13 @@
 
 ## Orientation (for readers reviewing this before the workshop)
 
-This is the student-facing walkthrough for a 90-minute hands-on workshop at KCD Texas 2026. The audience is platform engineers, SREs, and Kubernetes practitioners who want a concrete look at what AI-assisted IDP work looks like in practice — not a slide deck about AI, but actual hands-on time using [Claude Code](https://docs.claude.com/en/docs/claude-code) against a real EKS cluster.
+This is the attendee-facing companion to a **presenter-led, audience follow-along** workshop at KCD Texas 2026. Michael drives Claude Code live on stage with a build spec; ~60 attendees mirror the same prompts against their own pre-provisioned EKS clusters using Claude Code on their laptops. Real CNCF projects (ArgoCD, Kyverno, Prometheus + Grafana, Backstage), real `kubectl` test gates, real scorecard scored on three dimensions (Install / Integration / Usability) in real time on the projector.
 
-Each of the ~60 attendees gets a dedicated, pre-provisioned EKS cluster on AWS. ArgoCD and four IDP components (Kyverno, kube-prometheus-stack, Backstage) are pre-staged in this repository's `gitops/` directory. Students bootstrap ArgoCD on their cluster, point it at this repo, and ArgoCD installs the four components. The workshop's pedagogical model is a **guided tour**: Claude Code walks each student through the pre-committed manifests in `gitops/apps/`, explains why they're structured that way, and helps them verify each component installed correctly. By the end, every student has a working IDP they can poke at.
+The point is **not** to finish the IDP in 90 minutes. The point is to demonstrate spec-driven development with Claude Code on a real platform-engineering build, score what AI does honestly across three dimensions, and walk out with a methodology you can apply Monday morning.
 
-The point isn't to demonstrate that AI can write Helm values. The point is to ask, honestly, **whether AI shifted the toil or actually shrunk it** — which is why the per-phase scorecard at [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) captures correction cycles, AI time, and a wrap-up reflection on toil-shifting. Aggregated results (opt-in submission) inform a follow-on talk.
+**How far we get is how far we get.** Phase 4 might faceplant on stage — that's the talk title. If it does, Michael switches to a pre-recorded run for the closing 5 minutes; either way the scorecard fills in.
 
-**About the framework.** The Kyverno policies and admission controls you'll see today are server-side enforcement controls in the **Agentic Covenants** framework — a prevention-first matrix for autonomous-agent governance. Today's workshop is a 90-minute worked example of one column of that matrix: the Authorization and Blast-radius rows, server-side. The full framework — five concerns × three layers × fifteen cells, with citations to NIST CSF 2.0, NIST AI RMF, OWASP LLM Top 10, and OWASP Agentic Top 10 — lives at [github.com/peopleforrester/agentic-covenants](https://github.com/peopleforrester/agentic-covenants).
-
----
-
-You walk in, your EKS cluster is already running, and in 90 minutes you'll see and understand a working Internal Developer Platform on top of it: GitOps with ArgoCD, policy enforcement with Kyverno, observability with Prometheus + Grafana, and a developer portal with Backstage.
-
-You don't type Kubernetes YAML from scratch. You **describe what you want to Claude Code**, paste the prompts below, run the verification command, and move on.
-
-> **About versions.** The prompts say "current stable GA chart" instead of pinned chart numbers. The Application manifests in `gitops/apps/` are pinned (workshop maintainers update them before each event), but you don't need to memorize those numbers — Claude can read the file when you ask.
-
-> **How you'll build.** The workshop uses a **spec-driven build** modeled on the
-> kubeauto reference build (`github.com/peopleforrester/kubeauto-ai-day`).
-> Claude Code reads:
-> - `spec/WORKSHOP-BUILD-SPEC.md` — the 4-phase condensed spec
-> - `.claude/skills/{argocd-patterns,kyverno-policies,backstage-templates}.md` — encoded patterns, version pins, and known correction cycles
-> - `.claude/commands/workshop-phase.md` — defines the `/workshop-phase` slash command
-> - The reference manifests in `gitops/apps/` — what the end state should look like
->
-> You invoke `/workshop-phase 1`, Claude Code reads everything above, builds the
-> component, verifies with `kubectl`, prompts you to score, and emits a phase
-> completion promise. The stop hook at `.claude/hooks/cc-stop-deterministic.sh`
-> keeps Claude on-task until each phase actually verifies.
->
-> If you fall behind, every phase has a **Tour fallback**: open the pre-committed
-> manifest in `gitops/apps/` and have Claude walk you through it. Same end state,
-> less explanation of how you got there. Switching modes mid-phase is fine.
+The full spec Michael hands Claude is at [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md) (~90 lines). The on-stage sequence is at [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md). Per-phase prompts and gates are under [`spec/phases/`](spec/phases/). This playbook is what *you* the attendee do.
 
 ---
 
@@ -49,6 +24,8 @@ You should arrive with:
 - Helm and ArgoCD experience helpful but not required — you'll see both in action
 
 If Claude Code isn't installed before you walk in, you'll lose 10 minutes to install + auth and the workshop will already be in Phase 1. Install ahead of time.
+
+---
 
 ## Before You Start (5 min)
 
@@ -70,8 +47,6 @@ If you get stuck, raise your hand.  TAs are circulating.
 ================================================================
 ```
 
-The workshop repo is the same repository you're reading this playbook from. ArgoCD will pull from it; you'll clone it locally so Claude Code can show you what's inside.
-
 **On your laptop, in your terminal:**
 
 ```bash
@@ -87,7 +62,7 @@ aws eks update-kubeconfig --name kcd-texas-student-NN --region us-east-2
 
 # 3. Verify the cluster is alive
 kubectl get nodes
-# Expected: 3 nodes, all Ready, ~2 minutes old or older
+# Expected: 3 nodes, all Ready
 
 # 4. Verify the workshop namespaces are pre-created
 kubectl get ns argocd kyverno monitoring backstage apps sample-app
@@ -105,331 +80,291 @@ If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand**. W
 
 ### Bring your own cluster (BYOC)
 
-If you're using your own cluster instead of the workshop EKS one (per the abstract: *"Got your own cluster? Bring that too"*), skip the `aws configure` / `aws eks update-kubeconfig` steps. Your cluster needs to meet three conditions:
+If you brought your own cluster, skip the AWS configure + kubeconfig steps. Three preconditions to meet:
 
-- `kubectl get nodes` returns **at least 3 Ready nodes** with roughly **16 GB total spare RAM** (Prometheus + Grafana + Backstage + ArgoCD adds up; see `lab-requirements-may-2026-events.md` for the per-component footprint)
-- You have **`cluster-admin`** — installing CRDs and admission webhooks needs it
-- The six workshop namespaces exist; if not, create them: `kubectl create ns argocd kyverno monitoring backstage apps sample-app`
+- `kubectl get nodes` returns at least **3 Ready nodes** with roughly **16 GB total spare RAM**
+- You have **`cluster-admin`** (installing CRDs and admission webhooks needs it)
+- The six workshop namespaces exist: `kubectl create ns argocd kyverno monitoring backstage apps sample-app`
 
-Then jump to step 5 of the preflight (clone the workshop repo) and continue normally. Phase 1's ArgoCD install picks up whatever kubeconfig is active — no AWS-specific assumptions in the GitOps source.
+Then jump to step 5 (clone the workshop repo) and continue normally.
 
 ### Preflight troubleshooting (before you call a TA over)
 
 | Symptom | First-pass fix |
 |---|---|
-| `aws configure` rejects the keys | Re-enter carefully — Secret Keys often get pasted with leading/trailing whitespace. Confirm region is `us-east-2`, format `json`. |
+| `aws configure` rejects the keys | Re-enter carefully — secrets often paste with leading/trailing whitespace. Confirm region is `us-east-2`, format `json`. |
 | `aws sts get-caller-identity` fails | Your keys aren't reaching AWS. Check `~/.aws/credentials` actually got written. |
 | `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — raise your hand. |
-| `kubectl get nodes` returns "Unauthorized" | The cluster's `aws-auth` ConfigMap doesn't have your user mapped — raise your hand; a TA can patch it in 30 seconds. |
+| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — raise your hand; a TA fixes it in 30 seconds. |
 | `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, raise your hand for a spare. |
 
-**How this playbook works.** Each of the four phases gives you:
+---
 
-1. **Goal** — what you'll see by the end of the phase
-2. **Prompt** — copy-paste into Claude Code
-3. **Verify** — one or two commands that prove it worked
-4. **If broken** — the most common failure and the fix
-5. **Scorecard** — record your numbers (you'll fill in the full scorecard at the end)
+## How this works (the follow-along model)
 
-The prompts assume Claude Code can read this repo. Anything Claude needs to know about Helm chart values, sync waves, or Backstage's backend system is either in the manifest files under `gitops/` or in this playbook.
+Michael drives Claude on stage. **You drive your own Claude on your own cluster.** The same prompts go in, the same `kubectl` commands come out the other side. The scorecard fills in on the projector and on your card simultaneously.
+
+You have three options for participation:
+
+1. **Mirror exactly.** Watch what Michael pastes, paste the same thing into your Claude. Run the same `kubectl` gate commands he runs. Score the same row he scores.
+2. **Run the slash command directly.** Type `/build-phase N` in your Claude. Claude reads the same spec + skill files Michael's Claude is reading. You get to the same end state on a slightly different pace. Useful if you fall behind during a phase.
+3. **Hybrid.** Watch Michael for the explanation, then run `/build-phase N` yourself for the build. Most people end up here.
+
+You do **not** push to git. The repo is the canonical ground truth on `main`. Your cluster's ArgoCD reconciles from it directly. Manifests Claude generates for you live in `~/my-<component>.yaml` on your laptop — they're for understanding, not for deploying.
+
+**About versions.** The skill files in [`.claude/skills/`](.claude/skills/) pin current chart and image versions. They're verified-working against real clusters as of May 13, 2026. If something in the chart upstream has moved between then and workshop day, the skill files will tell Claude what to do; your job is just to mirror and verify.
 
 ---
 
-## Phase 1 — Bootstrap ArgoCD and the IDP (~20 min)
+## Phase 1 — Bootstrap ArgoCD + app-of-apps (~20 min)
 
-### Goal
+### What Michael will do on stage
 
-Install ArgoCD via Helm. Apply the **app-of-apps** root Application. Watch ArgoCD discover the five IDP components in `gitops/apps/` and start installing them. By the end of this phase, you'll have ArgoCD running, five child Applications visible in `argocd app list`, and components reaching `Synced` / `Healthy` state over the next few minutes.
+Show `spec/BUILD-SPEC.md` briefly on the projector, then start `claude`, then paste a prompt that tells Claude to read the spec and run `/build-phase 1`. Claude:
 
-### Prompt
+1. Reads `.claude/skills/argocd-patterns.md`, `spec/phases/phase-01-argocd.md`, and `gitops/bootstrap/app-of-apps.yaml`
+2. Walks through the architecture out loud
+3. Generates `~/my-app-of-apps.yaml`
+4. Diffs that against the pre-committed ground truth
+5. Has Michael `helm install` ArgoCD and `kubectl apply` the bootstrap
+6. Runs the gate commands; scores Install / Integration / Usability when they pass
+7. Emits `<promise>PHASE_1_DONE</promise>`
 
-In Claude Code, type:
+### What you do
+
+In your `claude` (already running from `~/kcd-texas-workshop`):
 
 ```
-/workshop-phase 1
+/build-phase 1
 ```
 
-Claude reads `spec/WORKSHOP-BUILD-SPEC.md`, the `argocd-patterns` skill file, and
-`gitops/bootstrap/app-of-apps.yaml`, then bootstraps ArgoCD via Helm with the
-correct version pins and values paths (the skill file encodes the chart 9.x ↔
-ArgoCD 3.3.x mapping and the `configs.cm` vs `configs.params` correction), then
-applies the app-of-apps. The stop hook holds Claude on the phase until you see
-five child Applications progressing and Claude emits
-`<promise>WORKSHOP_PHASE_1_DONE</promise>`.
-
-**Tour fallback:** if `/workshop-phase 1` runs long or you want to skip ahead,
-say: *"Switch to Tour mode. Open `gitops/bootstrap/app-of-apps.yaml`, explain
-what it does, then I'll `kubectl apply` it manually."*
-
-### Verify
+Claude reads the same files, generates `~/my-app-of-apps.yaml` on your laptop, and walks you through the same diff. The gate commands you run yourself:
 
 ```bash
+# Gate 1: ArgoCD core pods are Running
 kubectl get pods -n argocd
-# Expected: argocd-server, argocd-repo-server, argocd-application-controller,
-# argocd-redis -- all Running.
 
+# Gate 2: Apply the bootstrap
+kubectl apply -f gitops/bootstrap/app-of-apps.yaml
+
+# Gate 3: Five child Applications discovered (~30s)
 kubectl get application -n argocd
-# Expected (after a couple minutes):
-#   NAME                     SYNC STATUS   HEALTH STATUS
-#   app-of-apps              Synced        Healthy
-#   kyverno                  Synced        Healthy        (or Progressing)
-#   kyverno-policies         Synced        Healthy
-#   kube-prometheus-stack    Synced        Healthy        (or Progressing)
-#   argocd-servicemonitors   Synced        Healthy        (waits for kube-prom-stack CRDs)
-#   backstage                Synced        Healthy        (or Progressing)
+# Expected:
+#   app-of-apps             Synced  Healthy
+#   kyverno                 Synced  Healthy / Progressing
+#   kyverno-policies        Synced  Healthy / Progressing
+#   kube-prometheus-stack   Synced  Healthy / Progressing
+#   argocd-servicemonitors  Synced  Healthy / Progressing
+#   backstage               Synced  Healthy / Progressing
 ```
 
-### If Broken
+### Score Phase 1 on your scorecard
 
-| Symptom | Fix |
-|---|---|
-| `argocd-server` pod stuck `Pending` | Run `kubectl describe pod -n argocd <pod>` — usually image pull or scheduling. Tell Claude: "the pod is Pending because <reason>, fix it." |
-| `app-of-apps` Application stuck `Progressing`, `repo not accessible` | The repo is reachable but ArgoCD's repo-server may need DNS or a fresh fetch. Tell Claude: "the repo-server can't reach github.com — check DNS in the pod and force an ArgoCD repo refresh." |
-| Helm install fails with "chart not found" | Helm repo isn't refreshed. Tell Claude: "run `helm repo update` first, then retry the install." |
-| Children Applications show `OutOfSync` after a few minutes | Likely benign during initial install (CRDs racing pods). Watch for 2–3 minutes; if still `OutOfSync`, hard-refresh that Application in the ArgoCD UI. |
+Row: **ArgoCD bootstrap + app-of-apps**
+- **Install** (1–10): did Claude's generated manifest, after the apply, bring ArgoCD up healthy?
+- **Integration** (1–10): did the bootstrap discover the five child Applications cleanly?
+- **Usability** (1–10): can you reach the ArgoCD UI, log in, see drift if you edit something?
+- Cycles (count of corrective prompts you sent Claude)
+- AI time (wall clock from paste to gate-passing)
 
-### Scorecard for Phase 1
-
-- AI time (wall clock): __ min
-- Correction cycles: __
-- Toil reduced (1–10): __
-- Integration (1–10) — did the five child Applications auto-discover and start installing cleanly?: __
-- Tour or DIY: __ (circle one)
-- Notes: __
+If any gate fails: the playbook's per-phase Known Failure Modes are in [`spec/phases/phase-01-argocd.md`](spec/phases/phase-01-argocd.md) — Claude reads them too. Most likely cause is `configs.params.timeout.reconciliation` at the wrong path (should be `configs.cm`).
 
 ---
 
-## Phase 2 — Understand and Test Kyverno (~20 min)
+## Phase 2 — Kyverno + a policy (~20 min)
 
-### Goal
+### What Michael will do on stage
 
-Understand what `gitops/apps/kyverno.yaml` and `gitops/apps/kyverno-policies.yaml` actually deploy: a Kyverno admission controller plus three ClusterPolicies (`require-labels`, `require-resource-limits`, `disallow-privileged`) enforced only on the `apps` namespace. Then watch those policies block a non-compliant pod and let a compliant one through.
+`/build-phase 2`. Claude reads `.claude/skills/kyverno-policies.md`, the phase file, and the ground-truth manifests. Generates `~/my-kyverno.yaml` (the install) and `~/my-require-labels.yaml` (one of three policies), diffs both, has Michael verify Kyverno is admission-firing on real pods.
 
-### Prompt
+### What you do
 
 ```
-/workshop-phase 2
+/build-phase 2
 ```
 
-Claude reads the `kyverno-policies` skill file (which encodes the webhook
-`namespaceSelector` map-vs-list correction and the `ServerSideApply=true`
-requirement for the policy CRDs), reviews `gitops/apps/kyverno.yaml`,
-`gitops/apps/kyverno-policies.yaml`, and the three ClusterPolicy files under
-`gitops/manifests/kyverno-policies/`, and verifies Kyverno admission is firing
-on real pods (a non-compliant pod gets rejected; a compliant one passes).
-
-**Tour fallback:** *"Switch to Tour mode. Walk me through `gitops/apps/kyverno.yaml`
-+ the policies, explain sync wave -5 vs -4, and verify with `kubectl get
-clusterpolicy`."*
-
-### Verify
+Gate commands:
 
 ```bash
+# Gate 1: Kyverno controllers Running
 kubectl get pods -n kyverno
-# Expected: kyverno-admission-controller, kyverno-background-controller,
-# kyverno-cleanup-controller, kyverno-reports-controller -- all Running.
 
+# Gate 2: Three ClusterPolicies READY
 kubectl get clusterpolicy
-# Expected: 3 policies -- require-labels, require-resource-limits, disallow-privileged
-# All with VALIDATE ACTION = Enforce, READY = true.
+# Expected: 3 policies, all VALIDATE ACTION=Enforce, READY=true
 
-# Try a non-compliant pod in apps -- admission should reject:
+# Gate 3: A non-compliant pod in apps is REJECTED
 kubectl run test-bad --image=nginx -n apps
-# Expected: error from server: admission webhook ... denied the request: ...
-# (will cite require-labels and require-resource-limits)
+# Expected: admission webhook denied the request: require-labels, require-resource-limits
 
-# A compliant pod -- should succeed:
-kubectl apply -f - <<EOF
+# Gate 4: A compliant pod is ACCEPTED
+kubectl apply -f - <<'EOF'
 apiVersion: v1
 kind: Pod
-metadata:
-  name: test-good
-  namespace: apps
-  labels: { app: demo, team: workshop }
+metadata: { name: test-good, namespace: apps, labels: { app: demo, team: workshop } }
 spec:
-  containers:
-  - name: app
-    image: nginx
-    resources:
-      limits: { cpu: 100m, memory: 128Mi }
+  containers: [ { name: app, image: nginx, resources: { limits: { cpu: 100m, memory: 128Mi } } } ]
 EOF
-# Expected: pod/test-good created
+
+# Gate 5: A pod in kube-system (excluded namespace) is ACCEPTED
+kubectl run test-system --image=nginx -n kube-system
+
+# Cleanup
+kubectl delete pod test-good -n apps
+kubectl delete pod test-system -n kube-system
 ```
 
-> **Heads-up:** Current Kyverno releases auto-generate Kubernetes-native `ValidatingAdmissionPolicy` resources alongside your `ClusterPolicy` objects on EKS 1.30+. You'll see them in `kubectl get validatingadmissionpolicy` — that's expected, not a bug.
+### Score Phase 2
 
-### If Broken
+Two rows in this phase: **Kyverno install** and **Kyverno policies**. Integration is the interesting score — did the policies *actually fire correctly*? Bad rejected, good accepted, system allowed. All three must hold.
 
-| Symptom | Fix |
-|---|---|
-| Kyverno pods crash-looping | Check `kubectl describe pod -n kyverno <pod>` for image pull or webhook config errors. Tell Claude what you see. |
-| `kubectl get clusterpolicy` returns nothing | The `kyverno-policies` Application hasn't synced yet, or the path is wrong. Check ArgoCD UI for the Application's status. |
-| Compliant pod also gets rejected | Check the policy's `match` block — `apps` should be the only listed namespace. If something else is matching unexpectedly, ask Claude to explain which rule fired. |
-| `test-bad` pod is *accepted* | Kyverno admission controller isn't actually enforcing yet (still warming up). Wait 30 seconds; if still accepted, check that the `validationFailureAction` is `Enforce` (not `Audit`). |
-
-### Scorecard for Phase 2
-
-- AI time: __ min  •  Corrections: __  •  Toil reduced: __ /10  •  Integration (1–10, did Kyverno actually block bad pods + allow good?): __  •  Tour or DIY: __  •  Notes: __
+Known traps Claude tends to fall into (from the skill file): webhook `namespaceSelector` as a YAML list instead of a map; Kyverno policies Application without `ServerSideApply=true`. If a gate fails, name the trap.
 
 ---
 
-## Phase 3 — Understand and Open Prometheus + Grafana (~20 min)
+## Phase 3 — kube-prometheus-stack + ArgoCD ServiceMonitors (~20 min)
 
-### Goal
+### What Michael will do on stage
 
-Understand `gitops/apps/kube-prometheus-stack.yaml` — what `kube-prometheus-stack` actually bundles (Prometheus, Grafana, node-exporter, kube-state-metrics; alertmanager is disabled for the workshop). Then open Grafana in your browser and confirm cluster metrics are flowing.
+`/build-phase 3`. Claude reads `.claude/skills/kube-prometheus-stack.md`. Generates `~/my-kube-prometheus-stack.yaml`, diffs against ground truth, has Michael port-forward Grafana on the projector — the *"does the dashboard have real data?"* moment is the talk's payoff for this phase.
 
-### Prompt
+### What you do
 
 ```
-/workshop-phase 3
+/build-phase 3
 ```
 
-Claude reviews `gitops/apps/kube-prometheus-stack.yaml` and
-`gitops/apps/argocd-servicemonitors.yaml`, opens Grafana via `kubectl
-port-forward`, and verifies Prometheus is scraping ArgoCD's metrics endpoints
-(the Phase 3 Integration question on the scorecard).
-
-**Tour fallback:** *"Switch to Tour mode. Walk me through
-`gitops/apps/kube-prometheus-stack.yaml`, explain the
-`serviceMonitorSelectorNilUsesHelmValues: false` override, and tell me the
-port-forward command for Grafana."*
-
-### Verify
+Gate commands:
 
 ```bash
+# Gate 1: Prometheus + Grafana + node-exporter + kube-state-metrics + operator all Running
 kubectl get pods -n monitoring
-# Expected: prometheus-kube-prometheus-stack-prometheus-0,
-# kube-prometheus-stack-grafana-*, kube-prometheus-stack-operator-*,
-# kube-prometheus-stack-kube-state-metrics-*, prometheus-node-exporter-* (one per node).
-# All Running.
 
-kubectl get servicemonitor -n monitoring
-# Expected: ~10+ ServiceMonitors created by the chart.
+# Gate 2: ArgoCD ServiceMonitors exist
+kubectl get servicemonitor -n argocd
+# Expected: argocd-application-controller, argocd-repo-server, argocd-server
 
-# Open Grafana:
+# Gate 3: Prometheus is actually scraping ArgoCD
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
+sleep 3
+curl -s 'http://localhost:9090/api/v1/targets' | \
+  jq -r '.data.activeTargets[] | select(.scrapePool | contains("argocd")) | "\(.scrapePool) \(.health)"'
+# Expected: 3 lines, all "up"
+kill %1
+
+# Gate 4: Grafana UI
 kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
-# In your browser: http://localhost:3000
-# User: admin  •  Password: kcd-texas
-# Click Dashboards -> Browse -> "Kubernetes / Compute Resources / Cluster"
-# -> graphs should be populated.
+# Browser: http://localhost:3000   (admin / kcd-texas)
+# Dashboards → Browse → "Kubernetes / Compute Resources / Cluster" — should be populated
 ```
 
-### If Broken
+### Score Phase 3
 
-| Symptom | Fix |
-|---|---|
-| `prometheus-*-0` stuck `Pending` | Storage class issue. Tell Claude: "the Prometheus StatefulSet is Pending because of a PVC; check `kubectl describe statefulset` and propose a values change." |
-| Grafana shows "no data" on every panel | Prometheus isn't scraping yet — wait 60s. If still empty, check that targets exist via the Prometheus UI: `kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090`, then visit Status → Targets. |
-| Helm install hangs > 3 min | Some sub-images may not be pre-pulled. Watch `kubectl get pods -n monitoring -w` for image-pull events. |
+Integration is the interesting score: is Prometheus *actually scraping* ArgoCD's metrics endpoints, AND is Grafana showing real cluster data? Both must hold.
 
-### Scorecard for Phase 3
-
-- AI time: __ min  •  Corrections: __  •  Toil reduced: __ /10  •  Integration (1–10, is Grafana actually showing populated dashboards?): __  •  Tour or DIY: __  •  Notes: __
+Known trap (from the skill file): `ServerSideApply=true` is mandatory because the chart's CRDs exceed the 256KB annotation size limit. Without it, the sync fails.
 
 ---
 
-## Phase 4 — Understand and Open Backstage (~20 min)
+## Phase 4 — Backstage (~20 min, or pre-recorded if time is tight)
 
-### Goal
+### What Michael will do on stage
 
-Understand `gitops/apps/backstage.yaml` — how the Backstage Helm chart deploys, what image it runs, and why the Backstage chart is unusual in not having a default image. Then open the Backstage portal in your browser and look at the catalog.
+Two paths into Phase 4:
 
-> The Application uses the upstream Backstage image (`ghcr.io/backstage/backstage:1.30.2`) — the last tagged release on the Backstage project's own image path. For a real workshop deliverable with software templates, the workshop maintainer would replace this with a workshop-specific image that bakes in the scaffolder plugin and a static catalog at `/app/catalog`. With the upstream image, you'll see a working Backstage with its default catalog — enough to demonstrate what a developer portal *is*, even if you can't run a custom template here.
+- **Path A (>20 min left, Phase 3 landed clean):** drive Phase 4 live. `/build-phase 4`. Watch the image config block in the diff — that's THE trap.
+- **Path B (<10 min left, Phase 3 was rough):** play the pre-recorded Phase 4 video during the closing 5 minutes. Score it on the live scorecard from the recording.
 
-### Prompt
+Either path produces honest scorecard data. The trap that defines Phase 4: the Backstage chart has no default image. If Claude omits the image config, the Pod CrashLoopBackOffs. Plus the upstream image's baked-in app-config crashes the Kubernetes plugin without a cluster locator override — so `backstage.appConfig` with `kubernetes.clusterLocatorMethods: []` is required.
+
+### What you do
+
+If Path A:
 
 ```
-/workshop-phase 4
+/build-phase 4
 ```
 
-Claude reads the `backstage-templates` skill file (which encodes the
-legacy-backend-system correction — `createServiceBuilder()` and
-`@backstage/backend-common` are removed), reviews `gitops/apps/backstage.yaml`,
-and opens the portal via `kubectl port-forward`. Emits both
-`<promise>WORKSHOP_PHASE_4_DONE</promise>` and `<promise>WORKSHOP_COMPLETE</promise>`
-when verified.
-
-**Tour fallback:** *"Switch to Tour mode. Walk me through `gitops/apps/backstage.yaml`,
-explain why the chart has no default image, and tell me the port-forward command
-for the portal."*
-
-### Verify
+Gate commands:
 
 ```bash
+# Gate 1: Backstage Pod Running (the failure-prone gate)
 kubectl get pods -n backstage
-# Expected: backstage-* pod -- Running.
+# Expected: backstage-<hash> Pod, Running, ~60-90s after Application syncs
+# If CrashLoopBackOff:
+kubectl logs -n backstage -l app.kubernetes.io/name=backstage --tail=80
 
-kubectl port-forward -n backstage svc/backstage 7007:7007
-# In your browser: http://localhost:7007
-# Click Catalog -> you should see a few demo entries from the community image's
-# default catalog. (A workshop-specific image would replace these with our own.)
+# Gate 2: Catalog API
+kubectl port-forward -n backstage svc/backstage 7007:7007 &
+sleep 3
+curl -s http://localhost:7007/api/catalog/entities | python3 -c "import sys,json; print(len(json.load(sys.stdin)))"
+# Expected: integer >= 0  (chart-default catalog is small; 0 with overrides is also fine)
+
+# Gate 3: UI loads
+# Browser: http://localhost:7007
+# Click Catalog → should render the default entries
 ```
 
-### If Broken
+If Path B: watch the recording. Score what you see.
 
-| Symptom | Fix |
-|---|---|
-| Backstage pod fails to start with `createServiceBuilder is not a function` or similar | The image was built against the legacy backend. The current chart will not run it. Tell a TA — this is a workshop maintainer issue, not something to fix in 20 minutes. |
-| Backstage pod stuck `CrashLoopBackOff` with database errors | The chart's default in-cluster Postgres may have raced startup. Tell Claude: "Backstage is crashing on database connection; check that the `backstage-postgresql` pod is Running and that Backstage's `app-config` is pointing at it correctly." |
-| Catalog page is empty | The community image has a small default catalog. If completely empty, the static-catalog ConfigMap mount may be missing — check `kubectl describe pod -n backstage <pod>` volume mounts. |
+### Score Phase 4
 
-### Scorecard for Phase 4
+**Usability score for Backstage will be low.** That's not a failing — it's honest. The workshop image has a small static catalog and no working software templates. Production Backstage requires a custom-built image with org-specific catalog providers, plugins, and templates. That gap — *installed-but-not-shippable* — is the talk's closing line.
 
-- AI time: __ min  •  Corrections: __  •  Toil reduced: __ /10  •  Integration (1–10, did Backstage start cleanly + show a populated catalog?): __  •  Tour or DIY: __  •  Notes: __
+Known trap (from the skill file): the Backstage chart has no default image; `backstage.image.repository` and `tag` must be set. The workshop image is `ghcr.io/backstage/backstage:1.30.2` (the upstream image's last tagged release). The required `backstage.appConfig.kubernetes.clusterLocatorMethods: []` override prevents a startup crash.
 
 ---
 
-## Wrap-Up (5 min)
+## Wrap-up (5 min)
 
 Total your scorecard:
 
-| Phase | AI time | Corrections | Toil reduced (1–10) | Integration (1–10) | Tour / DIY |
-|---|---:|---:|---:|---:|:---:|
-| 1 — ArgoCD bootstrap | __ | __ | __ | __ | __ |
-| 2 — Kyverno | __ | __ | __ | __ | __ |
-| 3 — Prometheus + Grafana | __ | __ | __ | __ | __ |
-| 4 — Backstage | __ | __ | __ | __ | __ |
-| **Total / Average** | __ | __ | __ | __ | — |
+| Row | Install | Integration | Usability | Cycles | AI time |
+|---|---:|---:|---:|---:|---:|
+| ArgoCD bootstrap | | | | | |
+| Kyverno install | | | | | |
+| Kyverno policies | | | | | |
+| kube-prometheus-stack | | | | | |
+| Backstage | | | | | |
+| **Average** | | | | | |
 
-**Integration vs. installation:** "Toil reduced" measures how much manual install work AI eliminated. "Integration" is a separate question — *did it actually work end-to-end?* AI can install Kyverno cleanly and still produce policies that don't fire correctly. Score them independently.
+For the wrap-up reflection (one question, once):
 
-For comparison, the reference build (a single experienced engineer running this same stack end-to-end without time pressure, and writing every manifest from scratch instead of touring pre-committed ones) took **31 minutes of pure AI time** across these four components and saw a **73.8% net toil reduction** vs. doing it by hand. Your numbers will be different — you're touring an IDP with a guide, not building one from scratch.
+- **Manual time estimate:** if you'd built the same stack by hand (no AI), your honest guess for how long it would have taken — hours? days?
+- **Did AI shift the toil?** No / Partial / Yes. One sentence on which phase felt most/least like babysitting.
+- **Usability rating (1–10):** could you actually deploy a service through this platform tomorrow morning? What's the single biggest barrier?
+- **Where AI helped most.** One specific moment.
+- **Where AI struggled.** One specific failure pattern.
+- **One thing you'll take back to your team.**
 
-### What You Have Now
+For comparison, the kubeauto reference build (single experienced engineer, overnight, no time pressure, 7 phases, 27 components) took **3 hours 10 minutes of AI time** with a **73.8% net toil reduction** and a **41% zero-correction rate**. The workshop run-of-the-day is a 4-component subset under live pressure with audience watching — your numbers will be different. **The variance is the data.** The closing slide compares yours to the reference and asks: what does the gap tell you about where AI actually helps?
 
-- An EKS cluster running an Internal Developer Platform that mirrors what most platform teams spend weeks setting up
-- A real GitOps loop: ArgoCD watching this workshop repo and reconciling four Applications into your cluster
-- Admission-time policy: bad pods are rejected before they ever run
-- Cluster observability: Prometheus is scraping, Grafana is graphing
-- A developer portal you can open and click through
+### What you take home
 
-### Where to Take It Next
+- **Your scorecard.** Honest numbers across however many phases we landed.
+- **The methodology.** Spec + skills + test gates + three-dimension scoring. Apply it to whatever you're building Monday.
+- **The reference build.** [`github.com/peopleforrester/kubeauto-ai-day`](https://github.com/peopleforrester/kubeauto-ai-day) — 7 phases, 27 components, full scorecard. The "alone overnight" baseline to compare against.
+- **The framework underneath.** [`github.com/peopleforrester/agentic-covenants`](https://github.com/peopleforrester/agentic-covenants) — the prevention-first matrix the Kyverno policies in this workshop are server-side enforcement cells of.
 
-Outside this room, on your own time, you can extend the same pattern to:
+### After the workshop
 
-- Fork this repo and add a fifth Application. Examples: **Falco + Falco Talon** (Falco detects at the syscall layer; Talon adds response that acts fast enough to approximate prevention — the pair spans Detect and Respond in [Agentic Covenants](https://github.com/peopleforrester/agentic-covenants) terms), cert-manager for TLS, or ExternalSecrets pulling from AWS Secrets Manager.
-- Build your own Backstage image with the scaffolder plugin and add a software template that creates a Kyverno-compliant Deployment
-- Wire OpenTelemetry traces through an OTel Collector
+**Your cluster is destroyed shortly after the session ends.** Up to 15 attendees can keep theirs for ~1 additional hour if you want to keep exploring; ask a TA. Save anything you want to keep (Grafana screenshots, manifests Claude generated) before you walk out.
 
-The reference build at [github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day) shows the full 7-phase version of what you toured today — ~10 hours of build with all 27 components and the full scorecard.
+**This repository stays public and bookmarkable.** Everything you saw today — the playbook, the spec, the GitOps source, the scorecard template, the framework reference — lives at [github.com/peopleforrester/KCD_Texas_2026_Workshop](https://github.com/peopleforrester/KCD_Texas_2026_Workshop). Fork it; extend it; reference it freely.
 
-### After the Workshop
+**Your scorecard is yours.** If you're willing to share it for the post-workshop aggregation (anonymized — no names, no cluster IDs in the published version), drop the filled file as `scorecard.md` in a fork or send it via the channel on the closing slide. Or keep it private. The personal-reflection value is the point either way.
 
-**Your cluster is destroyed shortly after the session ends.** Up to 15 attendees can keep theirs for ~1 additional hour if you want to keep exploring; ask a TA at the end. Save anything you want to keep (Grafana screenshots, any manifests you generated in Claude Code) before you walk out.
-
-**This repository stays public and bookmarkable.** Everything you saw today — the playbook, the GitOps source, the diagrams, the scorecard template — lives at [github.com/peopleforrester/KCD_Texas_2026_Workshop](https://github.com/peopleforrester/KCD_Texas_2026_Workshop) and isn't going anywhere. Fork it if you want to extend it; reference it freely.
-
-**Your scorecard is yours.** If you're willing to share it (anonymized aggregation only — no names, no cluster IDs in the published version), drop the filled file at `scorecard.md` in your local clone before you leave the venue and a TA will collect it. Or keep it private; the personal-reflection value is the main point either way.
-
-**Where to ask follow-on questions:** open an Issue on this repository. For deeper technical reference, the full 7-phase production version of what you toured today is at [github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day) — ~10 hours of build with all 27 components and the full scorecard data.
+**Where to ask follow-on questions:** open an Issue on this repository.
 
 ---
 
-## If Something Is Really Stuck
+## If something is really stuck
 
-If you've burned more than 5 minutes on a single failure and the "If broken" hints didn't help:
+If you've burned more than 5 minutes on a single failure and the failure-modes table didn't help:
 
-1. Raise your hand — a TA will come over.
-2. If your cluster is genuinely broken, we have **spare clusters**. Your TA can move you to one and you can pick up from where the rest of the room is.
-3. Don't try to fix infrastructure from scratch. The point of the workshop is to use Claude Code on a working substrate; lost time on the substrate is wasted time.
+1. **Raise your hand.** A TA will come over.
+2. **If your cluster is genuinely broken**, we have spare clusters. Your TA can move you to one and you can pick up from where the rest of the room is.
+3. **If you fall behind on a phase but your cluster is fine**, run `/build-phase N` in your own Claude on the phase the room is currently on. You'll catch up; Claude reads each phase spec independently.
+4. **Don't try to fix infrastructure from scratch.** The point of the workshop is to use Claude Code on a working substrate. Lost time on the substrate is lost time on the methodology.
+
+If Phase 4 faceplants — *especially* in front of the whole room when Michael drives it — **that's the talk title.** "AI Ate My Implementation. Let's Build a Platform Together and Score What's Left." Score it honestly. The failure is the data.
