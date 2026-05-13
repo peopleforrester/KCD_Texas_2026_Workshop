@@ -466,11 +466,12 @@ and verify it renders the community image's default catalog.
 kubectl get application backstage -n argocd
 # Expected:  backstage   Synced  Healthy
 
-# Backstage pod is Running
+# Backstage pod is Running.  Note: the chart's PostgreSQL is DISABLED by
+# default in 2.7.x (Backstage runs with its built-in in-memory SQLite).
+# So expect just one pod, not a separate Postgres pod.
 kubectl get pods -n backstage
-# Expected (all STATUS=Running):
+# Expected (STATUS=Running):
 #   backstage-* (the app pod, READY=1/1)
-#   backstage-postgresql-0 (in-cluster Postgres, READY=1/1)
 
 # Open Backstage
 kubectl port-forward -n backstage svc/backstage 7007:7007
@@ -481,9 +482,9 @@ kubectl port-forward -n backstage svc/backstage 7007:7007
 
 ### Expected duration
 
-- `backstage` sync (sync wave 5): 2-4 min (Postgres init + image pull, even
-  with pre-pull, takes longer than other components)
-- Backstage app ready: 60-90s after Postgres is ready
+- `backstage` sync (sync wave 5): 2-3 min (image pull is the slowest part;
+  no Postgres init since SQLite in-memory is the default)
+- Backstage app ready: 60-90s after image pull completes
 - Verification: 1-2 min
 
 ### Failure modes and fixes
@@ -491,7 +492,7 @@ kubectl port-forward -n backstage svc/backstage 7007:7007
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Backstage pod fails to start with `createServiceBuilder is not a function` (in logs) | The image was built against the legacy backend (pre-2024). The current chart will not run it. | This shouldn't happen with the workshop default image. If you swapped to a custom image, rebuild it with `createBackend()` from `@backstage/backend-defaults`. |
-| Backstage pod stuck `CrashLoopBackOff`, logs show DB connection refused | Postgres pod isn't ready yet (race condition) | Wait. `kubectl get pod -n backstage backstage-postgresql-0` — when it's `Running` and `READY=1/1`, Backstage will recover. |
+| Backstage pod stuck `CrashLoopBackOff`, logs show DB connection refused | Chart's `postgresql.enabled` was set to true but Postgres init is slow | Default workshop config has `postgresql.enabled: false` — Backstage uses in-memory SQLite, no separate DB pod. If you enabled Postgres, wait for `backstage-postgresql-0` to be Ready. |
 | `kubectl port-forward` works but `http://localhost:7007` shows blank page | First request triggers asset compilation in some image variants | Refresh after 10s. If still blank, `kubectl logs -n backstage deploy/backstage` for stack trace. |
 | Catalog page is empty | The community image has a tiny default catalog; if it's completely empty, the ConfigMap mount may be missing | `kubectl describe pod -n backstage <pod>` — check volume mounts include the catalog. |
 
