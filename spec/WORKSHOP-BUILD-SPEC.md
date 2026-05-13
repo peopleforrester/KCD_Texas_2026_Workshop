@@ -54,7 +54,7 @@ Each student walks in to a cluster where the workshop organizers have already:
    - `quay.io/argoproj/argocd:v3.3.9`
    - `ghcr.io/kyverno/kyverno:v1.18.0` + `ghcr.io/kyverno/cleanup-controller:v1.18.0`
    - `quay.io/prometheus/prometheus:v3.11.3`
-   - `docker.io/grafana/grafana:12.3.0`
+   - `docker.io/grafana/grafana:13.0.1`
    - `quay.io/prometheus-operator/prometheus-operator:v0.90.1`
    - `ghcr.io/backstage/backstage:1.30.2`
 
@@ -643,16 +643,79 @@ substantial buffer for explanations, debugging, and scoring discussion.
 
 ## Timing reference (from validated runs)
 
-> The timing data below is filled in by the workshop maintainer after running
-> a validated end-to-end walk-through. The kubeauto reference build's
-> equivalent timing (3h 10m AI time across 27 components) is in
-> `kubeauto-ai-day/spec/SCORECARD.md`. The condensed 4-phase workshop should
-> see roughly 15-25 min of pure AI-build time, plus verification overhead.
+The timing data below is from a real end-to-end validation on a fresh EKS
+cluster (`kcd-texas-spec-validate`, 3× t3.xlarge, us-east-2, May 13 2026).
+The kubeauto reference build's equivalent timing (3h 10m AI time across 27
+components) is in `kubeauto-ai-day/spec/SCORECARD.md`.
 
-| Phase | Run-1 wall time | Run-2 wall time | Notes |
-|---|---|---|---|
-| Phase 1 | _TBD_ | _TBD_ | |
-| Phase 2 | _TBD_ | _TBD_ | |
-| Phase 3 | _TBD_ | _TBD_ | |
-| Phase 4 | _TBD_ | _TBD_ | |
-| **Total** | _TBD_ | _TBD_ | |
+| Phase | Wall time | Components ready | Notes |
+|---|---:|---|---|
+| **Phase 0** | ~10 min | EKS provisioned (3 nodes Ready, all 6 namespaces, all 4 EKS addons) | One-shot, before students arrive |
+| **Phase 1** | **~2 min** | ArgoCD installed (helm install with `--wait`: 52s); root app-of-apps applied; 5 child Applications discovered within 10s; all children at least Progressing within 60s | Pre-pull cache hits on argocd image; dex + redis pull at install time (~30s) |
+| **Phase 2** | **~30s** (after Phase 1) | Kyverno installed + 3 ClusterPolicies READY; admission tests pass (bad rejected, good accepted, system allowed) | Kyverno chart 3.8.0 webhook initializes in ~30s |
+| **Phase 3** | **~90s** (after Phase 1) | kube-prometheus-stack Healthy; all 3 ArgoCD scrape targets "up" in `curl /api/v1/targets`; Grafana port-forward responds | Wave 1 → Wave 2 ordering works as designed |
+| **Phase 4** | **~2 min** (after Phase 1) | Backstage pod Running 1/1; HTTP / returns 200; `/api/catalog/entities` returns 3 entries; health probe OK | Largest single image pull, no Postgres init needed |
+| **Total active build** | **~3-4 min** | All five child Applications Synced/Healthy in ArgoCD | Phases run in parallel via sync waves; the long pole is Backstage at wave 5 |
+
+Real workshop wall time will be longer because students invoke phases
+sequentially with explanation/verification between each (the 20-min budget
+per phase covers paste-prompt, watch-build, run-verify, score). The build
+itself is fast; the pedagogy fills the rest.
+
+**Known non-blocking transient state:** during the first 60-90s after `kubectl
+apply -f gitops/bootstrap/app-of-apps.yaml`, several Applications will flicker
+through `OutOfSync/Degraded` → `OutOfSync/Progressing` → `Synced/Healthy`.
+This is expected. ArgoCD shows the Application as `Degraded` while the
+underlying Helm chart's resources are still racing CRD installation.
+Eventually convergent. Don't chase those transient states; wait for the
+final Healthy.
+
+**Known persistent `OutOfSync` (benign):** after everything settles, `kyverno`
+and `kyverno-policies` Applications stay marked `OutOfSync` indefinitely. The
+Health is `Healthy` and policies fire correctly. This is because Kyverno
+mutates its own resources at runtime (e.g., updating webhook configurations)
+which ArgoCD reads as drift from the chart's rendered manifests. This is a
+known Kyverno-with-ArgoCD interaction and is not a workshop bug. **Score
+Integration based on whether the policies actually fire, not on the
+Application sync status.** Add an `ignoreDifferences` block to the Kyverno
+Applications post-workshop if you want them to read Synced; out of scope here.
+
+## Live validation findings (May 13 2026)
+
+This spec was validated against a live cluster before workshop day. The
+walkthrough found and fixed three workshop-critical bugs that would have
+blocked students otherwise:
+
+1. **Node group IAM role name_prefix exceeded 38 chars** (Terraform `tofu plan`
+   error). Cluster `kcd-texas-student-NN` (20 chars) + node group
+   `"${var.cluster_name}-workers"` (28 chars) + module's `"-eks-node-group-"`
+   suffix (16 chars) exceeded AWS's 38-char limit. **Fix:** changed node
+   group name to just `"workers"` in `terraform/eks.tf`.
+
+2. **ArgoCD ServiceMonitor selectors targeted the wrong labels and wrong
+   port name.** Original selectors used `app.kubernetes.io/name: argocd-server`
+   but the chart's metrics Service has label `argocd-server-metrics`. Port
+   name was `metrics` but the chart names it `http-metrics`. Result: zero
+   ArgoCD scrape targets, Phase 3 Integration check would have answered "no".
+   **Fix:** corrected all three ServiceMonitor manifests in
+   `gitops/manifests/argocd-servicemonitors/` to use the right labels and
+   port name (verified via `helm template argo/argo-cd`).
+
+3. **Backstage image `roadiehq/community-backstage-image:1.50.4` did not
+   exist.** Docker Hub repo abandoned since 2021-08-07; only stale
+   `v0.4.1-XXXX-gYYYY` tags. **Fix:** switched to
+   `ghcr.io/backstage/backstage:1.30.2` (the chart's default registry path,
+   last tagged release). Required an additional appConfig override under
+   `backstage.appConfig` in `gitops/apps/backstage.yaml` because the upstream
+   demo image's baked-in Kubernetes plugin init crashes without a cluster
+   locator config. Override sets `kubernetes.serviceLocatorMethod: multiTenant`
+   with empty `clusterLocatorMethods: []`, which satisfies the plugin's init.
+
+4. **YAML indentation bug**: `appConfig` was at the values root level instead
+   of nested under `backstage:` — silently ignored because the chart accesses
+   `.Values.backstage.appConfig`. **Fix:** moved `appConfig` under
+   `backstage:` in `gitops/apps/backstage.yaml`.
+
+These are the kinds of bugs that don't surface in static review or schema
+validation. They only fail on a real cluster, at workshop time. The validated
+spec above is post-fix.

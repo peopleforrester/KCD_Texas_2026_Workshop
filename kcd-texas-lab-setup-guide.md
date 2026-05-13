@@ -345,7 +345,7 @@ The post-provision script deploys an `image-prepull` DaemonSet that pulls (then 
 | Kyverno admission controller | `ghcr.io/kyverno/kyverno:v1.18.0` | `gitops/apps/kyverno.yaml` (chart `3.8.0`) |
 | Kyverno cleanup controller | `ghcr.io/kyverno/cleanup-controller:v1.18.0` | Same |
 | Prometheus | `quay.io/prometheus/prometheus:v3.11.3` | `gitops/apps/kube-prometheus-stack.yaml` (chart `84.5.0`) |
-| Grafana | `docker.io/grafana/grafana:12.3.0` | Same |
+| Grafana | `docker.io/grafana/grafana:13.0.1` | Same |
 | Prometheus operator | `quay.io/prometheus-operator/prometheus-operator:v0.90.1` | Same |
 | Backstage | `ghcr.io/backstage/backstage:1.30.2` | `gitops/apps/backstage.yaml` (chart `2.7.0`) |
 

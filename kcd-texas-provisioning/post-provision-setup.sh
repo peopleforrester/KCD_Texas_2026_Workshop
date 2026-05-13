@@ -143,8 +143,10 @@ spec:
             memory: 16Mi
           limits:
             memory: 32Mi
-      # kube-prometheus-stack 84.5.0: bundles Prometheus v3.11.3, Grafana 12.3.0,
-      # prometheus-operator v0.90.1.  Alertmanager disabled in gitops/apps/.
+      # kube-prometheus-stack 84.5.0: bundles Prometheus v3.11.3, Grafana 13.0.1,
+      # prometheus-operator v0.90.1, node-exporter v1.11.1, kube-state-metrics v2.18.0.
+      # Verified by inspecting deployed pod images on a live cluster.
+      # Alertmanager disabled in gitops/apps/.
       - name: pull-prometheus
         image: quay.io/prometheus/prometheus:v3.11.3
         command: ["sh", "-c", "echo done"]
@@ -155,7 +157,7 @@ spec:
           limits:
             memory: 32Mi
       - name: pull-grafana
-        image: docker.io/grafana/grafana:12.3.0
+        image: docker.io/grafana/grafana:13.0.1
         command: ["sh", "-c", "echo done"]
         resources:
           requests:
