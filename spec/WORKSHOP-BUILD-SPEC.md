@@ -670,15 +670,17 @@ underlying Helm chart's resources are still racing CRD installation.
 Eventually convergent. Don't chase those transient states; wait for the
 final Healthy.
 
-**Known persistent `OutOfSync` (benign):** after everything settles, `kyverno`
-and `kyverno-policies` Applications stay marked `OutOfSync` indefinitely. The
-Health is `Healthy` and policies fire correctly. This is because Kyverno
-mutates its own resources at runtime (e.g., updating webhook configurations)
-which ArgoCD reads as drift from the chart's rendered manifests. This is a
-known Kyverno-with-ArgoCD interaction and is not a workshop bug. **Score
-Integration based on whether the policies actually fire, not on the
-Application sync status.** Add an `ignoreDifferences` block to the Kyverno
-Applications post-workshop if you want them to read Synced; out of scope here.
+**Eventual consistency on Kyverno Applications:** during this validation run,
+`kyverno` and `kyverno-policies` first reported `OutOfSync/Healthy` for ~3
+minutes after install completed, then reconciled to `Synced/Healthy` once
+Kyverno's runtime self-mutations (webhook config tweaks) settled. The policies
+fire correctly the entire time — Integration is independent of sync status.
+If you see Kyverno apps stuck `OutOfSync` for >5 minutes after the policies
+are confirmed firing, hard-refresh the Application in ArgoCD UI; if still
+stuck after that, it's the known Kyverno-self-mutation drift pattern and you
+can add an `ignoreDifferences` block post-workshop. For workshop day, the
+acceptance criterion is "policies fire correctly" not "Application sync is
+green."
 
 ## Live validation findings (May 13 2026)
 
