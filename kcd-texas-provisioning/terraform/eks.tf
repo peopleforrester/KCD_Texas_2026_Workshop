@@ -41,7 +41,12 @@ module "eks" {
 
   eks_managed_node_groups = {
     workshop = {
-      name           = "${var.cluster_name}-workers"
+      # Node group name must NOT include the cluster name -- the EKS module
+      # appends "-eks-node-group-<random>" to derive the IAM role name_prefix,
+      # which has a 38-char limit.  cluster_name="kcd-texas-student-NN" (20
+      # chars) + "-workers" + "-eks-node-group-" already busts that limit
+      # before the random suffix is even added.  Keep the node group name short.
+      name           = "workers"
       instance_types = [var.node_instance_type]
 
       min_size     = var.node_count
