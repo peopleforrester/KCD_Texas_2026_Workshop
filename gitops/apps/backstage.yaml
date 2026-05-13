@@ -23,59 +23,58 @@ spec:
             # (so registry: ghcr.io, repository: backstage/backstage).
             # 1.30.2 is the last tagged release on this image path -- the
             # Backstage project stopped tagging this image after 1.30 in
-            # favor of users building their own. The image works fine for
+            # favor of users building their own.  The image works fine for
             # demo / workshop purposes.  A workshop maintainer can swap
             # this for a custom image with the scaffolder plugin and
             # workshop-specific catalog if needed.
             registry: ghcr.io
             repository: backstage/backstage
             tag: "1.30.2"
+          # appConfig overrides the image's default /app/app-config.yaml.
+          # The upstream demo image's app-config initializes the Kubernetes
+          # plugin in a way that crashes ('Kubernetes configuration is
+          # missing') unless we provide a cluster locator config.  Empty
+          # clusters list satisfies the plugin: it initializes with zero
+          # clusters and Backstage starts cleanly.
+          appConfig:
+            app:
+              title: KCD Texas 2026 Workshop IDP
+              baseUrl: http://localhost:7007
+            backend:
+              baseUrl: http://localhost:7007
+              listen:
+                port: 7007
+              csp:
+                connect-src: ["'self'", "http:", "https:"]
+              cors:
+                origin: http://localhost:7007
+                methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+                credentials: true
+              database:
+                client: better-sqlite3
+                connection: ":memory:"
+            organization:
+              name: KCD Texas Workshop
+            auth:
+              providers: {}
+            kubernetes:
+              serviceLocatorMethod:
+                type: multiTenant
+              clusterLocatorMethods: []
+            catalog:
+              rules:
+                - allow: [Component, System, API, Resource, Location, Template, User, Group]
+              locations: []
+            techdocs:
+              builder: local
+              publisher:
+                type: local
         ingress:
           enabled: false
         service:
           type: ClusterIP
           ports:
             backend: 7007
-        # appConfig overrides the image's default /app/app-config.yaml.  The
-        # upstream demo image's app-config initializes the Kubernetes plugin
-        # in a way that crashes ('Kubernetes configuration is missing') unless
-        # we provide a cluster locator config.  Empty clusters list satisfies
-        # the plugin: it initializes with zero clusters and Backstage starts.
-        # We also point the catalog at an in-cluster ConfigMap-mounted file
-        # so the catalog plugin has something to display.
-        appConfig:
-          app:
-            title: KCD Texas 2026 Workshop IDP
-            baseUrl: http://localhost:7007
-          backend:
-            baseUrl: http://localhost:7007
-            listen:
-              port: 7007
-            csp:
-              connect-src: ["'self'", 'http:', 'https:']
-            cors:
-              origin: http://localhost:7007
-              methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
-              credentials: true
-            database:
-              client: better-sqlite3
-              connection: ':memory:'
-          organization:
-            name: KCD Texas Workshop
-          auth:
-            providers: {}
-          kubernetes:
-            serviceLocatorMethod:
-              type: multiTenant
-            clusterLocatorMethods: []
-          catalog:
-            rules:
-              - allow: [Component, System, API, Resource, Location, Template, User, Group]
-            locations: []
-          techdocs:
-            builder: local
-            publisher:
-              type: local
   destination:
     server: https://kubernetes.default.svc
     namespace: backstage
