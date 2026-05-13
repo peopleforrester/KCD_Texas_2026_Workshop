@@ -193,7 +193,7 @@ kubectl get application -n argocd
 - AI time (wall clock): __ min
 - Correction cycles: __
 - Toil reduced (1–10): __
-- Integration (1–10) — did the four child Applications auto-discover and start installing cleanly?: __
+- Integration (1–10) — did the five child Applications auto-discover and start installing cleanly?: __
 - Tour or DIY: __ (circle one)
 - Notes: __
 

@@ -135,12 +135,16 @@ them.
    helm repo update
    helm install argocd argo/argo-cd \
      --namespace argocd \
-     --version "9.5.*" \
+     --version 9.5.11 \
      --set 'configs.cm.timeout\.reconciliation=30s' \
      --set controller.metrics.enabled=true \
      --set server.metrics.enabled=true \
      --set repoServer.metrics.enabled=true \
      --wait --timeout=10m
+
+   # Chart 9.5.11 deploys ArgoCD v3.3.9 (which matches the pre-pulled image).
+   # Newer 9.5.x patches (9.5.12+) deploy v3.4.x; using them is fine but the
+   # pre-pull cache won't help and first-install time will be ~30s slower.
    ```
 7. Runs `kubectl apply -f gitops/bootstrap/app-of-apps.yaml`
 8. Polls `kubectl get application -n argocd` every 30s until 5 child Applications appear
