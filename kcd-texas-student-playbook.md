@@ -335,7 +335,7 @@ kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
 
 Understand `gitops/apps/backstage.yaml` — how the Backstage Helm chart deploys, what image it runs, and why the Backstage chart is unusual in not having a default image. Then open the Backstage portal in your browser and look at the catalog.
 
-> The Application uses a community-built Backstage image (`roadiehq/community-backstage-image:1.50.4`). For a real workshop deliverable with software templates, the workshop maintainer would replace this with a workshop-specific image that bakes in the scaffolder plugin and a static catalog at `/app/catalog`. With the community image, you'll see a working Backstage with its default catalog — enough to demonstrate what a developer portal *is*, even if you can't run a custom template here.
+> The Application uses the upstream Backstage image (`ghcr.io/backstage/backstage:1.30.2`) — the last tagged release on the Backstage project's own image path. For a real workshop deliverable with software templates, the workshop maintainer would replace this with a workshop-specific image that bakes in the scaffolder plugin and a static catalog at `/app/catalog`. With the upstream image, you'll see a working Backstage with its default catalog — enough to demonstrate what a developer portal *is*, even if you can't run a custom template here.
 
 ### Prompt
 

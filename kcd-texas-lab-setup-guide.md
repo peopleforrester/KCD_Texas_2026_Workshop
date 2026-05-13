@@ -347,7 +347,7 @@ The post-provision script deploys an `image-prepull` DaemonSet that pulls (then 
 | Prometheus | `quay.io/prometheus/prometheus:v3.11.3` | `gitops/apps/kube-prometheus-stack.yaml` (chart `84.5.0`) |
 | Grafana | `docker.io/grafana/grafana:12.3.0` | Same |
 | Prometheus operator | `quay.io/prometheus-operator/prometheus-operator:v0.90.1` | Same |
-| Backstage | `roadiehq/community-backstage-image:1.50.4` | `gitops/apps/backstage.yaml` (chart `2.7.0`) |
+| Backstage | `ghcr.io/backstage/backstage:1.30.2` | `gitops/apps/backstage.yaml` (chart `2.7.0`) |
 
 Alertmanager is disabled in `gitops/apps/kube-prometheus-stack.yaml` and not pre-pulled. `node-exporter` and `kube-state-metrics` (~50 MB each) are also not pre-pulled — they pull at install time and add ~30 seconds to Phase 3 on first run.
 

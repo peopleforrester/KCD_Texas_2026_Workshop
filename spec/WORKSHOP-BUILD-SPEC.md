@@ -56,7 +56,7 @@ Each student walks in to a cluster where the workshop organizers have already:
    - `quay.io/prometheus/prometheus:v3.11.3`
    - `docker.io/grafana/grafana:12.3.0`
    - `quay.io/prometheus-operator/prometheus-operator:v0.90.1`
-   - `roadiehq/community-backstage-image:1.50.4`
+   - `ghcr.io/backstage/backstage:1.30.2`
 
 4. **Created a per-student IAM user** (`kcd-texas-student-NN`) with:
    - Permissions boundary (`kcd-texas-student-boundary`) scoping AWS access to EKS-related services
@@ -452,7 +452,7 @@ and verify it renders the community image's default catalog.
 ### What Claude does
 
 1. Reads `.claude/skills/backstage-templates.md` (CRITICAL VERSION WARNING about `createBackend()`, community image note)
-2. Reviews `gitops/apps/backstage.yaml` (image is `roadiehq/community-backstage-image:1.50.4`)
+2. Reviews `gitops/apps/backstage.yaml` (image is `ghcr.io/backstage/backstage:1.30.2`)
 3. Polls `kubectl get application backstage -n argocd` until `Synced/Healthy`
 4. Runs the verification block below
 5. Tells the student the port-forward command

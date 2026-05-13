@@ -172,11 +172,12 @@ spec:
             memory: 16Mi
           limits:
             memory: 32Mi
-      # Backstage: gitops/apps/backstage.yaml -> chart 2.7.0 with the
-      # roadiehq community image at 1.50.4.  Largest single image (~600MB)
+      # Backstage: gitops/apps/backstage.yaml -> chart 2.7.0 with
+      # ghcr.io/backstage/backstage:1.30.2 (the chart's default registry;
+      # last tagged release on that path).  Largest single image (~700MB)
       # so this pre-pull is the highest-leverage entry in the list.
       - name: pull-backstage
-        image: roadiehq/community-backstage-image:1.50.4
+        image: ghcr.io/backstage/backstage:1.30.2
         command: ["sh", "-c", "echo done"]
         resources:
           requests:

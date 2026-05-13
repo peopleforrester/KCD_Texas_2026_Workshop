@@ -4,7 +4,7 @@ Adapted from `kubeauto-ai-day/.claude/skills/backstage-templates.md` for the
 90-minute workshop scope.
 
 **Workshop scope:** the workshop deploys Backstage via Helm chart `backstage`
-2.7.x with the community image `roadiehq/community-backstage-image:1.50.4`
+2.7.x with the community image `ghcr.io/backstage/backstage:1.30.2`
 (set in `backstage.image.repository` / `backstage.image.tag`). Reference
 manifest at `gitops/apps/backstage.yaml`. Students inspecting the catalog and
 running a template is the Phase 4 goal; the index.ts / app-config patterns

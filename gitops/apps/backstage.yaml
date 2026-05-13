@@ -1,5 +1,5 @@
 # ABOUTME: ArgoCD Application that installs Backstage from the upstream Helm chart.
-# ABOUTME: Sync wave 5; image defaults to roadiehq/community-backstage-image -- swap for a workshop-specific image to enable scaffolder templates.
+# ABOUTME: Sync wave 5; image is ghcr.io/backstage/backstage:1.30.2 (the chart's default registry; last tagged release on that path).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -19,12 +19,17 @@ spec:
       valuesObject:
         backstage:
           image:
-            # Default community-built Backstage image. To enable software
-            # templates that produce Kyverno-compliant Deployments, replace
-            # with a workshop-specific image that bakes in the scaffolder
-            # plugin and a static catalog at /app/catalog.
-            repository: roadiehq/community-backstage-image
-            tag: "1.50.4"
+            # ghcr.io/backstage/backstage is the chart's default registry
+            # (so registry: ghcr.io, repository: backstage/backstage).
+            # 1.30.2 is the last tagged release on this image path -- the
+            # Backstage project stopped tagging this image after 1.30 in
+            # favor of users building their own. The image works fine for
+            # demo / workshop purposes.  A workshop maintainer can swap
+            # this for a custom image with the scaffolder plugin and
+            # workshop-specific catalog if needed.
+            registry: ghcr.io
+            repository: backstage/backstage
+            tag: "1.30.2"
         ingress:
           enabled: false
         service:
