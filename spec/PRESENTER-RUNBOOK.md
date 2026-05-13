@@ -51,7 +51,7 @@ Pause 3–5 minutes for setup. Be visible — walk between the rows once during 
 
 **You alone with 60 students is the operational reality.** Triage during this window is the most important thing you do in the first 15 minutes — once Phase 1 starts, you're driving Claude on the projector and can't simultaneously help individuals. Be honest with the room about this up front.
 
-## T+6–7 (10:36) — begin Phase 1
+## T+6–7 (10:36) — begin the autonomous build
 
 Show terminal full-screen briefly:
 
@@ -61,7 +61,7 @@ $ cat spec/BUILD-SPEC.md
 
 Scroll through it on the projector for ~15 seconds while saying:
 
-> "This is the spec. Plain Markdown. About 90 lines. It describes four phases, three scoring dimensions, the test gates, and the chart pins. I'm about to hand it to Claude."
+> "This is the spec. Plain Markdown. About 100 lines. It tells Claude how to execute the build autonomously — read each phase's reference, run the pytest test gate, emit a promise when all tests pass, pause for me to score. Single paste, autonomous run."
 
 Then:
 
@@ -69,69 +69,45 @@ Then:
 $ claude
 ```
 
-In Claude Code:
+In Claude Code, paste the autonomous-execution prompt from `spec/BUILD-SPEC.md` (the block under "How Claude executes this spec"). One paste, the whole workshop.
 
-```
-Read spec/BUILD-SPEC.md and then run /build-phase 1.
-```
+Claude will:
+1. Read Phase 1's reference + the ArgoCD skill
+2. Generate `~/my-app-of-apps.yaml`
+3. Diff against `gitops/bootstrap/app-of-apps.yaml` — walk you through the diff
+4. Apply the pre-committed bootstrap
+5. Run `pytest tests/test_phase_01_argocd.py -v`
+6. When all tests pass: output `<promise>PHASE_1_DONE</promise>` and pause
 
-Watch Claude read the spec, the Phase 1 file, and the ArgoCD skill. Narrate as it does: "Notice it's reading the skill file before it generates anything. That's the spec-driven loop."
+Score Phase 1 on the live scorecard with the room watching. Say "continue" — Claude moves to Phase 2 autonomously. Repeat for Phases 2, 3, 4.
 
-Walk through Claude's explanation of the bootstrap. When Claude reaches "I'll generate `~/my-app-of-apps.yaml` now," let it generate. Then diff:
+**You are the conductor, not the operator.** Claude is doing spec-driven dev live; you narrate the failures by name when they happen, score after each promise, and decide when to stop.
 
-```bash
-diff ~/my-app-of-apps.yaml gitops/bootstrap/app-of-apps.yaml
-```
+## T+22+ — autonomous phases continue
 
-Walk through every diff line out loud. Apply the pre-committed bootstrap:
+Same loop. Each phase ends with a promise; you score; you say "continue." Don't paste anything Claude can do from the spec — that defeats the demonstration.
 
-```bash
-kubectl apply -f gitops/bootstrap/app-of-apps.yaml
-```
+If a phase emits `<promise>PHASE_N_FAILED</promise>`: that's data, not catastrophe. Narrate why the tests failed using the phase spec's Known failure modes. Score Install based on what Claude got right, Integration/Usability based on what the gate revealed.
 
-Run the test gate commands one by one. As each passes, mark the live scorecard. Phase 1 done; score Install / Integration / Usability with the room watching.
+Check the clock when Claude reaches the Phase 3 promise. Two paths:
 
-**Say out loud:** "How far we get is how far we get. We landed Phase 1. If we stopped right now, the methodology lesson is complete. Let's keep going."
+- **>20 minutes left:** Let the autonomous loop continue into Phase 4. Say "continue."
+- **<10 minutes left:** Tell Claude `stop and emit ALL_PHASES_COMPLETE`. Switch to the pre-recorded Backstage segment during closing.
+- **10–20 minutes left:** Judgment call. If Phase 3 landed cleanly and the room is energized, let Claude continue; if Phase 3 was rough and the room is tired, switch to recording.
 
-## T+22 (10:52) — Phase 2
+### Path A — let Claude continue into Phase 4
 
-```
-Run /build-phase 2.
-```
+Say "continue." Claude reads the Phase 4 reference and the Backstage skill, generates `~/my-backstage.yaml`, diffs against ground truth. Watch the diff carefully — `backstage.image.repository` and `backstage.image.tag` are the no-default-image trap. If Claude's generated manifest is missing them, that's the moment. Name it.
 
-Same pattern: explain → generate → diff → apply gate → score. Phase 2 is two scoring rows (install + policies).
+When the pytest gate runs, watch `test_backstage_pod_running` specifically — that's the one that catches the image trap. If it fails, that failure (and the logs surfaced in the pytest output) is the talk's payoff.
 
-## T+38 (11:08) — Phase 3
+### Path B — pre-recorded fallback
 
-```
-Run /build-phase 3.
-```
+Tell Claude `stop and emit ALL_PHASES_COMPLETE`. Switch to the Phase 4 recording tab. Say:
 
-Port-forward Grafana on the projector during the gate. The "does the dashboard have real data?" moment is the talk's payoff for this phase — let the room see it land or not.
+> "We didn't get to Phase 4 live today. Here's the recording I made last night, no audience pressure, same spec, same Claude. Watch what AI did."
 
-## T+58 (11:28) — Phase 4 decision
-
-Check the clock. Two paths:
-
-- **>20 minutes left:** Drive Phase 4 live.
-- **<10 minutes left:** Switch to the pre-recorded Backstage segment during closing.
-- **10–20 minutes left:** Judgment call. If Phase 3 landed cleanly and the room is energized, go live; if Phase 3 was rough and the room is tired, switch to recording.
-
-### Path A (live)
-
-```
-Run /build-phase 4.
-```
-
-Watch the image config block carefully — that's the trap. If Claude omits the image config in `~/my-backstage.yaml`, name the trap on the diff out loud.
-
-### Path B (recorded)
-
-Switch to the recording tab. Say:
-
-> "We're going to switch to a recording of Phase 4 I made last night, with no audience pressure. Watch what happens — same spec, same Claude, same cluster type, just no time pressure."
-
-Play the recording. As it plays, narrate the failure modes the recording shows — image config, backend system mismatch, whatever happened. Score on the live scorecard.
+Play the recording. Narrate the failure modes it shows. Score on the live scorecard with the numbers from the recording.
 
 ## T+80–85 (11:50) — wrap-up
 

@@ -28,7 +28,7 @@ Plus a scorecard with three dimensions ([`scorecard/`](scorecard/)). Install, In
 ## Where to start
 
 **If you're presenting this on May 15:**
-Read **[`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md)** end-to-end. It's the T-30-through-T+90 run sheet — pre-room setup, the literal opening words ([`spec/OPENING-SCRIPT.md`](spec/OPENING-SCRIPT.md)), per-phase pacing, the Path A / Path B decision for Phase 4, what-can-go-wrong, and the rehearsal checklist at the bottom. Do the rehearsal once before the day. Before any cluster work, run `bash scripts/dry-run-validate.sh .` and expect 45/45.
+Read **[`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md)** end-to-end. It's the T-30-through-T+90 run sheet — pre-room setup, the literal opening words ([`spec/OPENING-SCRIPT.md`](spec/OPENING-SCRIPT.md)), the single-paste autonomous workflow that drives the whole 90 minutes, the Path A / Path B decision for Phase 4, what-can-go-wrong, and the rehearsal checklist at the bottom. Do the rehearsal once before the day. Before any cluster work, run `bash scripts/dry-run-validate.sh .` and expect a clean pass.
 
 **If you're an attendee at the workshop:**
 Open **[`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md)** and start at *"Before You Start."* You'll claim your cluster credentials at the door from a QR code → landing page (or a printed numbered card if the landing page is offline). Three commands from there gets you to a working `claude` session. From there you mirror Michael's prompts, run the same gate commands he runs, and score your own card.  Michael is solo — no TAs — so use the setup window before T+0 to flag any cluster problems; once the build starts you're driving your own Claude.
@@ -53,7 +53,10 @@ The Kyverno policies + admission controls students see today are server-side enf
 | [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md) | T-30 to T+90 run sheet, what-can-go-wrong, rehearsal checklist. |
 | [`spec/phases/`](spec/phases/) | Per-phase presenter voice: prompts, kubectl gates, known failure modes. |
 | [`.claude/skills/`](.claude/skills/) | Current-version patterns auto-loaded into Claude (4 skills, one per component). |
-| [`.claude/commands/`](.claude/commands/) | `/build-phase N`, `/score-component <name>`, `/validate-phase N` slash commands. |
+| [`.claude/commands/`](.claude/commands/) | `/build-phase N` (catch-up / fallback for a single phase), `/score-component <name>`, `/validate-phase N` slash commands. Primary workflow is single-paste autonomous execution from [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md). |
+| [`tests/`](tests/) | Pytest test gates per phase. Real `kubectl` calls, no mocks. Run during the build via `/build-phase` and during rehearsal via `pytest tests/test_phase_0N_*.py -v`. |
+| [`.pre-commit-config.yaml`](.pre-commit-config.yaml) | Local pre-commit hooks: gitleaks (secrets), yamllint, kubeconform (K8s schema), helm-lint, shellcheck, dry-run validator on pre-push, conventional commit format. |
+| [`spec/BRANCH-WORKFLOW.md`](spec/BRANCH-WORKFLOW.md) | Single-maintainer staging→main workflow doc. |
 | [`.claude/hooks/`](.claude/hooks/) | Stop hook keeps Claude on-phase until the gate passes. |
 | [`gitops/`](gitops/) | Pre-committed ground-truth GitOps source. ArgoCD on every student cluster reconciles from this directory. |
 | [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Per-attendee scorecard (4 phase rows × Install / Integration / Usability + wrap-up reflection). |

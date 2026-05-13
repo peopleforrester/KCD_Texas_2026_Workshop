@@ -2,6 +2,7 @@
 
 **Skill:** `.claude/skills/backstage-templates.md`
 **Ground truth:** `gitops/apps/backstage.yaml`
+**Test gate:** `tests/test_phase_04_backstage.py` (pytest — all must pass for promise)
 
 ---
 
@@ -17,11 +18,9 @@ Either path produces honest scorecard data. Both work.
 
 The Backstage Helm chart **has no default container image**. If Claude generates values without setting `backstage.image.repository` and `backstage.image.tag`, the Pod fails to start. This is the trap that defines the phase — it's the moment "AI ate my implementation" actually shows up in practice.
 
-The workshop image is **`ghcr.io/backstage/backstage:1.30.2`** — the last tagged release on the Backstage project's own GHCR image path.  It's the upstream demo image (create-app scaffold).  **One important catch**, validated against a live cluster on 2026-05-13: the upstream image's baked-in `app-config.yaml` initializes the Kubernetes plugin, which crashes at startup with `Plugin 'kubernetes' startup failed; caused by Error: Kubernetes configuration is missing` unless we provide a cluster locator.  The workshop ground truth at `gitops/apps/backstage.yaml` includes a `backstage.appConfig` override that sets `kubernetes.serviceLocatorMethod: multiTenant` and `clusterLocatorMethods: []`, which satisfies the plugin's init.  Watch for this in the diff — if Claude generates the manifest without the appConfig override, the Pod CrashLoopBackOffs and that IS the talk's payoff for this phase.
+The workshop image is **`ghcr.io/backstage/backstage:1.30.2`** — the upstream Backstage project's last tagged release on its own GHCR path.  **One important catch**, validated on a live cluster on 2026-05-13: the upstream image's baked-in `app-config.yaml` initializes the Kubernetes plugin, which crashes at startup with `Plugin 'kubernetes' startup failed; caused by Error: Kubernetes configuration is missing` unless we provide a cluster locator.  The workshop ground truth at `gitops/apps/backstage.yaml` includes a `backstage.appConfig` override that sets `kubernetes.serviceLocatorMethod: multiTenant` and `clusterLocatorMethods: []` — the plugin initializes with zero clusters and Backstage boots cleanly.  Watch for this in the diff — if Claude generates the manifest without the appConfig override, the Pod CrashLoopBackOffs and that IS the talk's payoff for this phase.
 
-The chart's `image.registry` defaults to `ghcr.io`, so `repository: backstage/backstage` is enough — the chart prepends `ghcr.io/` automatically.  We set `registry: ghcr.io` explicitly in the ground truth to make the path obvious.
-
-Earlier drafts of this spec pointed at `roadiehq/community-backstage-image:1.50.4`.  Live verification (HTTP 404 against GHCR) confirms that image does not exist at any registry.  The repository on Docker Hub has been abandoned since 2021-08-07.
+Earlier tarball drafts of this spec pointed at `ghcr.io/roadiehq/community-backstage-image:1.50.4`.  Live verification (HTTP 404 against GHCR + Docker Hub repo abandoned since 2021-08-07) confirms that image does not exist anywhere.  Don't go back to it.
 
 ## Path A — the live build
 
@@ -54,7 +53,7 @@ First, walk me through gitops/apps/backstage.yaml and explain:
   4. The ground truth includes a backstage.appConfig override.  Why?  What
      would happen at Pod startup without the override?  (Hint: the upstream
      image's baked-in app-config initializes the Kubernetes plugin, which
-     crashes on init without a cluster locator config.)
+     crashes on init without a cluster locator.)
 
 Second, generate the Application:
   - File: ~/my-backstage.yaml

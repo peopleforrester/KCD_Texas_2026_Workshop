@@ -32,7 +32,7 @@ The fix is a `backstage.appConfig` override that sets a minimal-but-valid Kubern
 
 `ghcr.io/backstage/backstage:1.30.2` is the last tagged release on the Backstage project's own GHCR image path. The Backstage project stopped tagging this image after 1.30 in favor of users building their own. The image works fine for demo / workshop purposes — it boots, shows a small example catalog, and demonstrates what a developer portal *is*.
 
-Earlier drafts of this workshop pointed at `roadiehq/community-backstage-image:1.50.4`. **That image does not exist** at any registry — verified via HTTP 404 against GHCR and the Docker Hub repo being abandoned since 2021-08-07. Don't go back to it; use the upstream image.
+Earlier tarball drafts of this workshop pointed at `roadiehq/community-backstage-image:1.50.4`. **That image does not exist** at any registry — verified via HTTP 404 against GHCR and the Docker Hub repo being abandoned since 2021-08-07. Don't go back to it; use the upstream image.
 
 ## Pattern 1 — Workshop Application values (matches `gitops/apps/backstage.yaml`)
 

@@ -2,6 +2,7 @@
 
 **Skill:** `.claude/skills/argocd-patterns.md`
 **Ground truth:** `gitops/bootstrap/app-of-apps.yaml`
+**Test gate:** `tests/test_phase_01_argocd.py` (pytest — all must pass for promise)
 
 ---
 

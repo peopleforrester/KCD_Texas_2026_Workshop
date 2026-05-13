@@ -2,6 +2,7 @@
 
 **Skill:** `.claude/skills/kube-prometheus-stack.md`
 **Ground truth:** `gitops/apps/kube-prometheus-stack.yaml`
+**Test gate:** `tests/test_phase_03_observability.py` (pytest — all must pass for promise)
 
 ---
 

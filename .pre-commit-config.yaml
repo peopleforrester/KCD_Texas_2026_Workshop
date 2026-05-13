@@ -1,0 +1,61 @@
+# ABOUTME: Pre-commit hook configuration for the KCD Texas 2026 workshop repo.
+# ABOUTME: Deterministic, local checks that Claude Code cannot bypass. Modeled on kubeauto-ai-day.
+
+repos:
+  # Secrets scanning — must run first; failure here blocks everything else
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.22.1
+    hooks:
+      - id: gitleaks
+
+  # Workshop-specific validation
+  - repo: local
+    hooks:
+      # YAML syntax + style
+      - id: yaml-lint
+        name: YAML Lint
+        entry: yamllint -d '{extends: default, rules: {line-length: disable, document-start: disable, comments: disable, comments-indentation: disable, truthy: {allowed-values: [''true'', ''false'', ''yes'', ''no'']}, indentation: {spaces: 2, indent-sequences: consistent}}}'
+        language: system
+        files: '\.ya?ml$'
+        exclude: '.git/|.venv/|.terraform/|node_modules/'
+
+      # Kubernetes schema validation against real CRDs
+      - id: kubeconform-validate
+        name: Kubeconform Schema Validation
+        entry: bash -c 'find gitops/ -name "*.yaml" -not -name "values.yaml" 2>/dev/null | xargs -r kubeconform -strict -ignore-missing-schemas -kubernetes-version 1.31.0 -skip CustomResourceDefinition,ClusterPolicy,Application,AppProject'
+        language: system
+        files: '\.yaml$'
+        pass_filenames: false
+
+      # Helm chart linting (if any local charts exist)
+      - id: helm-lint
+        name: Helm Lint
+        entry: bash -c 'FOUND=0; for chart in $(find gitops/ -name "Chart.yaml" 2>/dev/null); do FOUND=1; helm lint "$(dirname "$chart")" || exit 1; done; exit 0'
+        language: system
+        files: '\.yaml$'
+        pass_filenames: false
+
+      # Shell script correctness (workshop has scripts/dry-run-validate.sh and others)
+      - id: shellcheck
+        name: ShellCheck
+        entry: bash -c 'for f in $(find scripts/ -name "*.sh" 2>/dev/null); do shellcheck -e SC2086,SC2129,SC2046,SC2034,SC1091,SC1090,SC2050 --severity=error "$f" || exit 1; done'
+        language: system
+        files: '\.sh$'
+        pass_filenames: false
+
+      # Pre-push gate: the dry-run validator must pass
+      - id: dry-run-validate
+        name: Dry-Run Validator
+        entry: bash scripts/dry-run-validate.sh .
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+
+      # Conventional commit format (Layer 5: Immutable Audit Trail)
+      - id: commit-msg-validate
+        name: Conventional Commit Format
+        entry: bash -c 'head -1 "$1" | grep -qE "^(feat|fix|docs|chore|refactor|test|workshop)(\(.+\))?: .+" || (echo "Commit must start with feat:/fix:/docs:/chore:/refactor:/test:/workshop:"; exit 1)'
+        language: system
+        stages: [commit-msg]
+        always_run: true

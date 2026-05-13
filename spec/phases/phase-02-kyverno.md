@@ -5,6 +5,8 @@
 - `gitops/apps/kyverno.yaml` (admission controller chart)
 - `gitops/manifests/kyverno-policies/require-labels.yaml` (the one policy we generate live)
 
+**Test gate:** `tests/test_phase_02_kyverno.py` (pytest — all must pass for promise)
+
 The two other ClusterPolicies (`require-resource-limits`, `disallow-privileged`) are pre-committed and already deploying via ArgoCD from Phase 1. We don't regenerate them live — one is enough to demonstrate the pattern and there isn't time for three.
 
 ---

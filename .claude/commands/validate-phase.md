@@ -1,55 +1,40 @@
 # /validate-phase $ARGUMENTS
 
-Run the test gate for Phase $ARGUMENTS. Used in two contexts:
+Run the pytest test gate for Phase $ARGUMENTS. Used in two contexts:
 
-- **On the presenter's Claude:** to run the gate live so the audience sees pass/fail in real time
+- **On the presenter's Claude:** to run the gate live so the audience sees pass/fail with structured output
 - **On a student's Claude:** to verify their cluster is in the same state as Michael's before scoring
 
 ## Your job
 
-1. Open `spec/phases/phase-0$ARGUMENTS-*.md`
-2. Find the **"The test gate"** section
-3. Run each `kubectl` (or `helm`, `curl`) command in order
-4. Capture each output, compare to the **Expected** result in the spec
-5. Report in this format:
+1. Open `spec/phases/phase-0$ARGUMENTS-*.md` to find the **Test gate** reference
+2. Run: `pytest tests/test_phase_0$ARGUMENTS_*.py -v`
+3. Report the structured pytest output verbatim (or summarize if very long)
 
-```
-Phase $ARGUMENTS test gate:
+Pytest output is the gate. If pytest exits 0, every test passed and the user can output `<promise>PHASE_${ARGUMENTS}_DONE</promise>`. If pytest exits non-zero, name the failed tests and surface the assertion errors.
 
-✓ Gate 1: kubectl get pods -n <ns> — all Running
-✓ Gate 2: kubectl get application <name> -n argocd — Synced/Healthy
-✗ Gate 3: kubectl run test-bad ... — was accepted, expected admission denial
-✓ Gate 4: kubectl run test-good ... — accepted
+## Diagnosis when tests fail
 
-3/4 gates passed.
-```
+For each failing test:
+1. Read the assertion message — pytest test names are descriptive (e.g., `test_app_of_apps_targets_main_branch`)
+2. Pull additional state if useful: `kubectl describe`, `kubectl logs`, `kubectl get events --sort-by=.lastTimestamp`
+3. Match the failure to the phase spec's **Known failure modes** — most failures are listed there
+4. **Name the pattern out loud (if presenter mode).** "This is the no-default-image trap — let me show you in the values block what's missing." That's the talk.
 
-6. If all pass: confirm the user can output `<promise>PHASE_${ARGUMENTS}_DONE</promise>` and move to scoring with `/score-component`.
-7. If any fail: do not confirm the promise. Diagnose first.
+If the failure doesn't match a known pattern: say so honestly. "I haven't seen this one before. The assertion says X. Let me check Y." Don't guess wildly on stage.
 
-## Diagnosis (when running live on the presenter's Claude)
+## When a student's tests fail but the presenter's pass
 
-For each failed gate:
-1. Pull relevant state: `kubectl describe`, `kubectl logs`, `kubectl get events --sort-by=.lastTimestamp`
-2. Match the failure to a **Known failure mode** in the phase spec — most failures are listed there
-3. **Name the pattern out loud.** The audience is watching the projector. "This is the no-default-image trap — let me show you in the values block what's missing." That's the talk.
+Most likely causes (in order):
+1. Their cluster hasn't reconciled yet (wait 30–60s, re-run)
+2. Their AWS connectivity dropped briefly
+3. They ran the gate before applying the bootstrap
 
-If the failure doesn't match a known pattern, say so honestly. "I haven't seen this one before. Logs say X. Let me check Y." Don't guess wildly on stage.
-
-## Diagnosis (when run by a student catching up)
-
-Same diagnosis, less narration. If a student's gate fails when Michael's passed, the most likely cause is:
-
-- They're behind by a phase — their cluster hasn't reconciled yet (wait 30–60s)
-- Their AWS connectivity dropped briefly
-- They ran the gate before applying — re-check the bootstrap is in place
-
-Suggest those in order. If none apply and the student is dark on a cluster issue, they're an observer for the rest of the build — the workshop is solo-presenter and Michael can't break away mid-phase to debug a single cluster. After Phase 4 wraps, they can flag him for a post-workshop cluster swap if there's time.
+Suggest those in order, then raise the issue with Michael during the next gate pause if none apply. (Michael is alone for this workshop — no TAs — so the gate-pause windows are the only time individual troubleshooting can happen.)
 
 ## What this command does NOT do
 
 - Edit any manifest. Diagnosis is read-only.
-- Run pytest. Workshop gates are kubectl-only by design.
 - Push to git. Read-only repo.
 
 If a fix requires editing a manifest, that's a `/build-phase` action — surface the change and let the user decide.

@@ -24,11 +24,18 @@ done
 
 step "3. Required files exist"
 for f in spec/BUILD-SPEC.md \
+         spec/BRANCH-WORKFLOW.md \
+         spec/OPENING-SCRIPT.md \
+         spec/PRESENTER-RUNBOOK.md \
          spec/phases/phase-01-argocd.md spec/phases/phase-02-kyverno.md \
          spec/phases/phase-03-observability.md spec/phases/phase-04-backstage.md \
          .claude/skills/argocd-patterns.md .claude/skills/kyverno-policies.md \
          .claude/skills/kube-prometheus-stack.md .claude/skills/backstage-templates.md \
          .claude/commands/build-phase.md .claude/commands/score-component.md .claude/commands/validate-phase.md \
+         tests/conftest.py \
+         tests/test_phase_01_argocd.py tests/test_phase_02_kyverno.py \
+         tests/test_phase_03_observability.py tests/test_phase_04_backstage.py \
+         .pre-commit-config.yaml \
          gitops/bootstrap/app-of-apps.yaml \
          gitops/apps/kyverno.yaml gitops/apps/kyverno-policies.yaml \
          gitops/apps/kube-prometheus-stack.yaml gitops/apps/backstage.yaml \
@@ -134,7 +141,18 @@ case "$latest" in
   *)   bad "argo-cd current latest is $latest (expected 9.x line)" ;;
 esac
 
-step "10. Summary"
+step "10. Pytest tests collect cleanly (syntactic + import check, no cluster needed)"
+if command -v python3 >/dev/null 2>&1 && python3 -c "import pytest" >/dev/null 2>&1; then
+  cd "$REPO_ROOT/tests" 2>/dev/null && \
+    python3 -m pytest --collect-only -q >/tmp/pytest-collect.log 2>&1 && \
+    ok "pytest --collect-only on tests/ — clean" || \
+    bad "pytest --collect-only failed; see /tmp/pytest-collect.log"
+  cd "$REPO_ROOT"
+else
+  ok "pytest not installed locally — skipping collection check (will run in CI)"
+fi
+
+step "11. Summary"
 echo
 echo "  Passed: $PASS"
 echo "  Failed: $FAIL"
