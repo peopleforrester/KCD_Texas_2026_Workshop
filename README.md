@@ -29,7 +29,9 @@ The Kyverno policies and admission controls in this workshop are server-side enf
 
 | File | Purpose |
 |---|---|
-| [`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md) | The 90-minute walkthrough. Tour mode (default), DIY mode (optional), per-phase verification commands. |
+| [`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md) | The 90-minute walkthrough. Spec-driven build via `/workshop-phase 1..4`; Tour mode is the fallback. |
+| [`spec/WORKSHOP-BUILD-SPEC.md`](spec/WORKSHOP-BUILD-SPEC.md) | 4-phase condensed build spec the `/workshop-phase` command reads. Known correction patterns from the kubeauto reference build are documented here. |
+| [`.claude/`](.claude/) | Workshop-adapted skills (`argocd-patterns`, `kyverno-policies`, `backstage-templates`), the `/workshop-phase` command, and a stop hook that keeps Claude on-task per phase. |
 | [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Per-student scorecard. 4 phase rows × 6 columns plus a 6-question wrap-up reflection. Opt-in submission. |
 | [`scorecard/PRESENTER-SCORECARD.md`](scorecard/PRESENTER-SCORECARD.md) | Live on-stage scorecard. 6 rows × Install / Integration / Usability. Filled on the projector. |
 | [`gitops/`](gitops/) | ArgoCD source. App-of-apps + four pre-committed Application manifests + Kyverno ClusterPolicies. |
@@ -44,6 +46,13 @@ The Kyverno policies and admission controls in this workshop are server-side enf
 
 ```
 .
+├── .claude/                               # Workshop build system pulled in from kubeauto
+│   ├── commands/workshop-phase.md         # Defines /workshop-phase N
+│   ├── skills/                            # argocd-patterns, kyverno-policies, backstage-templates
+│   ├── hooks/cc-stop-deterministic.sh     # Stop hook keeps Claude on-phase
+│   └── settings.json                      # Registers the stop hook
+├── spec/
+│   └── WORKSHOP-BUILD-SPEC.md             # 4-phase build spec + correction patterns
 ├── assets/                                # Diagrams (.mmd sources + .svg renders)
 ├── gitops/                                # GitOps source: ArgoCD on each cluster watches this tree
 │   ├── bootstrap/

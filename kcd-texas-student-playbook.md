@@ -20,9 +20,22 @@ You don't type Kubernetes YAML from scratch. You **describe what you want to Cla
 
 > **About versions.** The prompts say "current stable GA chart" instead of pinned chart numbers. The Application manifests in `gitops/apps/` are pinned (workshop maintainers update them before each event), but you don't need to memorize those numbers — Claude can read the file when you ask.
 
-> **About the GitOps source.** All four IDP components (Kyverno, kube-prometheus-stack, Backstage, plus the Kyverno policies) are pre-committed as ArgoCD `Application` manifests in this workshop repo at `gitops/apps/`. Phase 1 has you bootstrap an **app-of-apps** root Application that points ArgoCD at that directory; ArgoCD then discovers and installs the four components automatically. Phases 2–4 are about *understanding* what just got installed and *testing* it — using Claude Code as your guide through the manifests and as your debugger when something looks off. You do **not** need to push to git during the workshop.
-
-> **Tour vs. DIY mode.** Each phase has a default **Tour** path (paste the prompt, explore the pre-committed manifest, verify the install) and an optional **DIY** path (write the manifest from scratch with Claude Code, then compare yours to the pre-committed one — or, in Phase 1 only, *replace* the pre-committed bootstrap with your own). DIY is the "I built this" path; Tour is the "I understand what I'm looking at" path. Both are legitimate. **Pick at most one phase to do in DIY mode** — doing all four in DIY won't fit in 90 minutes.
+> **How you'll build.** The workshop uses a **spec-driven build** modeled on the
+> kubeauto reference build (`github.com/peopleforrester/kubeauto-ai-day`).
+> Claude Code reads:
+> - `spec/WORKSHOP-BUILD-SPEC.md` — the 4-phase condensed spec
+> - `.claude/skills/{argocd-patterns,kyverno-policies,backstage-templates}.md` — encoded patterns, version pins, and known correction cycles
+> - `.claude/commands/workshop-phase.md` — defines the `/workshop-phase` slash command
+> - The reference manifests in `gitops/apps/` — what the end state should look like
+>
+> You invoke `/workshop-phase 1`, Claude Code reads everything above, builds the
+> component, verifies with `kubectl`, prompts you to score, and emits a phase
+> completion promise. The stop hook at `.claude/hooks/cc-stop-deterministic.sh`
+> keeps Claude on-task until each phase actually verifies.
+>
+> If you fall behind, every phase has a **Tour fallback**: open the pre-committed
+> manifest in `gitops/apps/` and have Claude walk you through it. Same end state,
+> less explanation of how you got there. Switching modes mid-phase is fine.
 
 ---
 
@@ -130,7 +143,23 @@ Install ArgoCD via Helm. Apply the **app-of-apps** root Application. Watch ArgoC
 
 ### Prompt
 
-> Open `gitops/bootstrap/app-of-apps.yaml` and explain what it does. Then install ArgoCD using the current stable GA Helm chart `argo-cd` from `https://argoproj.github.io/argo-helm` into the `argocd` namespace. Set `configs.cm."timeout.reconciliation"` to `30s` so demo syncs are fast (this writes to the `argocd-cm` ConfigMap — `configs.params` is a different sibling section, do not use that path). Also enable Prometheus metrics endpoints on the controller, server, and repo-server by setting `controller.metrics.enabled: true`, `server.metrics.enabled: true`, and `repoServer.metrics.enabled: true` — but leave `serviceMonitor.enabled: false` for each (the Prometheus Operator's ServiceMonitor CRD doesn't exist yet; the `argocd-servicemonitors` Application in `gitops/apps/` creates the ServiceMonitors at sync wave 2 after `kube-prometheus-stack` registers the CRD). Once ArgoCD is up, `kubectl apply` `gitops/bootstrap/app-of-apps.yaml`. Then poll `kubectl get application -n argocd` until you see five child Applications (`kyverno`, `kyverno-policies`, `kube-prometheus-stack`, `argocd-servicemonitors`, `backstage`) appear with sync wave annotations. Stop when the root `app-of-apps` Application is `Synced`/`Healthy` and the five children are at least `Progressing`.
+In Claude Code, type:
+
+```
+/workshop-phase 1
+```
+
+Claude reads `spec/WORKSHOP-BUILD-SPEC.md`, the `argocd-patterns` skill file, and
+`gitops/bootstrap/app-of-apps.yaml`, then bootstraps ArgoCD via Helm with the
+correct version pins and values paths (the skill file encodes the chart 9.x ↔
+ArgoCD 3.3.x mapping and the `configs.cm` vs `configs.params` correction), then
+applies the app-of-apps. The stop hook holds Claude on the phase until you see
+five child Applications progressing and Claude emits
+`<promise>WORKSHOP_PHASE_1_DONE</promise>`.
+
+**Tour fallback:** if `/workshop-phase 1` runs long or you want to skip ahead,
+say: *"Switch to Tour mode. Open `gitops/bootstrap/app-of-apps.yaml`, explain
+what it does, then I'll `kubectl apply` it manually."*
 
 ### Verify
 
@@ -159,14 +188,6 @@ kubectl get application -n argocd
 | Helm install fails with "chart not found" | Helm repo isn't refreshed. Tell Claude: "run `helm repo update` first, then retry the install." |
 | Children Applications show `OutOfSync` after a few minutes | Likely benign during initial install (CRDs racing pods). Watch for 2–3 minutes; if still `OutOfSync`, hard-refresh that Application in the ArgoCD UI. |
 
-### DIY: Build the bootstrap yourself (optional)
-
-If you want this phase to be the one where you *build* instead of *tour*, **don't `kubectl apply` the pre-committed `gitops/bootstrap/app-of-apps.yaml`**. Instead, paste this prompt:
-
-> Write me an ArgoCD `Application` named `root` in the `argocd` namespace pointing at `https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git`, branch `main`, path `gitops/apps`. Enable automated sync with `prune: true` and `selfHeal: true`. Add a retry policy of 5 attempts with exponential backoff starting at 5 seconds and capping at 3 minutes. Save it to `~/my-app-of-apps.yaml`, then `kubectl apply -f ~/my-app-of-apps.yaml`.
-
-Verify the same way (`kubectl get application -n argocd` should still show `app-of-apps` synced + five child Applications progressing). End state matches the Tour path; you wrote the bootstrap yourself instead of using the pre-committed copy.
-
 ### Scorecard for Phase 1
 
 - AI time (wall clock): __ min
@@ -186,13 +207,20 @@ Understand what `gitops/apps/kyverno.yaml` and `gitops/apps/kyverno-policies.yam
 
 ### Prompt
 
-> Read `gitops/apps/kyverno.yaml`, `gitops/apps/kyverno-policies.yaml`, and the three ClusterPolicy files under `gitops/manifests/kyverno-policies/`. Walk me through:
->
-> 1. Why `kyverno.yaml` uses sync wave `-5` and `kyverno-policies.yaml` uses `-4` — what would break if they swapped?
-> 2. Why the webhook `namespaceSelector` in `kyverno.yaml` excludes `kube-system`, `argocd`, `monitoring`, `backstage`, `kyverno`, `sample-app`. What would happen during install if `argocd` were *not* excluded?
-> 3. How the three ClusterPolicies' `match.any.resources.namespaces: [apps]` clause keeps system namespaces unaffected — and why we need that AND the webhook exclusion.
->
-> Then verify Kyverno is up and the three policies are loaded by running `kubectl get pods -n kyverno` and `kubectl get clusterpolicy`. Stop after the explanation.
+```
+/workshop-phase 2
+```
+
+Claude reads the `kyverno-policies` skill file (which encodes the webhook
+`namespaceSelector` map-vs-list correction and the `ServerSideApply=true`
+requirement for the policy CRDs), reviews `gitops/apps/kyverno.yaml`,
+`gitops/apps/kyverno-policies.yaml`, and the three ClusterPolicy files under
+`gitops/manifests/kyverno-policies/`, and verifies Kyverno admission is firing
+on real pods (a non-compliant pod gets rejected; a compliant one passes).
+
+**Tour fallback:** *"Switch to Tour mode. Walk me through `gitops/apps/kyverno.yaml`
++ the policies, explain sync wave -5 vs -4, and verify with `kubectl get
+clusterpolicy`."*
 
 ### Verify
 
@@ -239,14 +267,6 @@ EOF
 | Compliant pod also gets rejected | Check the policy's `match` block — `apps` should be the only listed namespace. If something else is matching unexpectedly, ask Claude to explain which rule fired. |
 | `test-bad` pod is *accepted* | Kyverno admission controller isn't actually enforcing yet (still warming up). Wait 30 seconds; if still accepted, check that the `validationFailureAction` is `Enforce` (not `Audit`). |
 
-### DIY: Write the Kyverno Application yourself (optional)
-
-If you'd rather *write* than *tour* this phase:
-
-> Write me two ArgoCD `Application` manifests, sync wave `-5` and `-4`. The first installs the Kyverno admission controller from the current stable GA Helm chart at `https://kyverno.github.io/kyverno`, into the `kyverno` namespace, with the webhook `namespaceSelector` excluding `kube-system, kube-public, kube-node-lease, argocd, monitoring, backstage, kyverno, sample-app`. The second is a directory-source Application pointing at this repo's `gitops/manifests/kyverno-policies/` directory on `main`, with `ServerSideApply=true`. Save both to `~/my-kyverno.yaml`. Don't apply them — instead, `diff ~/my-kyverno.yaml gitops/apps/kyverno.yaml` and walk me through the differences between what you wrote and what's pre-committed.
-
-This is the "show your work" path: you produce a manifest, then diff it against the canonical version. The pre-committed install is what's actually running on your cluster; your version is for understanding.
-
 ### Scorecard for Phase 2
 
 - AI time: __ min  •  Corrections: __  •  Toil reduced: __ /10  •  Integration (1–10, did Kyverno actually block bad pods + allow good?): __  •  Tour or DIY: __  •  Notes: __
@@ -261,13 +281,19 @@ Understand `gitops/apps/kube-prometheus-stack.yaml` — what `kube-prometheus-st
 
 ### Prompt
 
-> Read `gitops/apps/kube-prometheus-stack.yaml` and explain:
->
-> 1. What gets installed by this single chart — list every workload by Deployment / StatefulSet / DaemonSet.
-> 2. Why we set `alertmanager.enabled: false` for this workshop and what we'd lose vs. a real cluster.
-> 3. How Prometheus knows what to scrape — what's a `ServiceMonitor` and how does the chart create them automatically?
->
-> Then verify everything is up and tell me the exact `kubectl port-forward` command to open Grafana on `localhost:3000`. Stop after the explanation.
+```
+/workshop-phase 3
+```
+
+Claude reviews `gitops/apps/kube-prometheus-stack.yaml` and
+`gitops/apps/argocd-servicemonitors.yaml`, opens Grafana via `kubectl
+port-forward`, and verifies Prometheus is scraping ArgoCD's metrics endpoints
+(the Phase 3 Integration question on the scorecard).
+
+**Tour fallback:** *"Switch to Tour mode. Walk me through
+`gitops/apps/kube-prometheus-stack.yaml`, explain the
+`serviceMonitorSelectorNilUsesHelmValues: false` override, and tell me the
+port-forward command for Grafana."*
 
 ### Verify
 
@@ -297,12 +323,6 @@ kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
 | Grafana shows "no data" on every panel | Prometheus isn't scraping yet — wait 60s. If still empty, check that targets exist via the Prometheus UI: `kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090`, then visit Status → Targets. |
 | Helm install hangs > 3 min | Some sub-images may not be pre-pulled. Watch `kubectl get pods -n monitoring -w` for image-pull events. |
 
-### DIY: Write the kube-prometheus-stack Application yourself (optional)
-
-If you want this phase to be your build phase:
-
-> Write me an ArgoCD `Application` named `kube-prometheus-stack`, sync wave `1`, that installs the current stable GA `kube-prometheus-stack` Helm chart from `https://prometheus-community.github.io/helm-charts` into the `monitoring` namespace. Set Grafana admin password to `kcd-texas`, set Prometheus retention to 2 hours, and disable Alertmanager (workshop-lean). Save to `~/my-kube-prometheus-stack.yaml` and diff it against `gitops/apps/kube-prometheus-stack.yaml`. Walk me through any differences.
-
 ### Scorecard for Phase 3
 
 - AI time: __ min  •  Corrections: __  •  Toil reduced: __ /10  •  Integration (1–10, is Grafana actually showing populated dashboards?): __  •  Tour or DIY: __  •  Notes: __
@@ -319,13 +339,20 @@ Understand `gitops/apps/backstage.yaml` — how the Backstage Helm chart deploys
 
 ### Prompt
 
-> Read `gitops/apps/backstage.yaml` and explain:
->
-> 1. Why the Backstage Helm chart has no default image (unlike Kyverno or Prometheus charts) — what does it mean for the chart to be "infrastructure for an app you build"?
-> 2. What `backstage.image.repository` and `backstage.image.tag` are doing here — and what changes if we swap the community image for a workshop-built one.
-> 3. The difference between Backstage's legacy backend system (`createServiceBuilder()`, `@backstage/backend-common`) and the current backend system (`createBackend()` from `@backstage/backend-defaults`). Why does the chart not start at all if the image was built with the legacy backend?
->
-> Then tell me the `kubectl port-forward` command to open Backstage on `localhost:7007`. Stop after the explanation.
+```
+/workshop-phase 4
+```
+
+Claude reads the `backstage-templates` skill file (which encodes the
+legacy-backend-system correction — `createServiceBuilder()` and
+`@backstage/backend-common` are removed), reviews `gitops/apps/backstage.yaml`,
+and opens the portal via `kubectl port-forward`. Emits both
+`<promise>WORKSHOP_PHASE_4_DONE</promise>` and `<promise>WORKSHOP_COMPLETE</promise>`
+when verified.
+
+**Tour fallback:** *"Switch to Tour mode. Walk me through `gitops/apps/backstage.yaml`,
+explain why the chart has no default image, and tell me the port-forward command
+for the portal."*
 
 ### Verify
 
@@ -346,12 +373,6 @@ kubectl port-forward -n backstage svc/backstage 7007:7007
 | Backstage pod fails to start with `createServiceBuilder is not a function` or similar | The image was built against the legacy backend. The current chart will not run it. Tell a TA — this is a workshop maintainer issue, not something to fix in 20 minutes. |
 | Backstage pod stuck `CrashLoopBackOff` with database errors | The chart's default in-cluster Postgres may have raced startup. Tell Claude: "Backstage is crashing on database connection; check that the `backstage-postgresql` pod is Running and that Backstage's `app-config` is pointing at it correctly." |
 | Catalog page is empty | The community image has a small default catalog. If completely empty, the static-catalog ConfigMap mount may be missing — check `kubectl describe pod -n backstage <pod>` volume mounts. |
-
-### DIY: Write the Backstage Application yourself (optional)
-
-If you want this phase to be your build phase:
-
-> Write me an ArgoCD `Application` named `backstage`, sync wave `5`, that installs the current stable GA `backstage` Helm chart from `https://backstage.github.io/charts` into the `backstage` namespace. The chart has no default image — set `backstage.image.repository` and `backstage.image.tag` to a current Backstage image (the community one at `roadiehq/community-backstage-image:1.50.4` is a reasonable default). Disable the chart's ingress and use a ClusterIP service on port 7007. Save to `~/my-backstage.yaml` and diff against `gitops/apps/backstage.yaml`. Walk me through any differences — especially the image config, since that's where Backstage's chart is unusual compared to Kyverno or Prometheus.
 
 ### Scorecard for Phase 4
 
