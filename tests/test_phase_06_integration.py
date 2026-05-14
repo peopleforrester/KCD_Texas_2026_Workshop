@@ -11,27 +11,29 @@ pytestmark = pytest.mark.usefixtures("cluster_reachable")
 
 def test_argocd_drift_selfheals():
     """Scale a Deployment managed by an ArgoCD Application; selfHeal should revert it.
-    Uses kyverno-admission-controller (managed by the kyverno Application) because
-    argocd-redis is owned by Helm directly (ArgoCD's bootstrap install), not by an
-    ArgoCD Application — drift on argocd-redis does NOT trigger selfHeal.
-    The kyverno Application's helm valuesObject pins admissionController.replicas
-    to 1, so the manifest's source-of-truth is always 1 regardless of current state."""
-    SOURCE_OF_TRUTH = 1  # per gitops/apps/kyverno.yaml admissionController.replicas
+    Uses backstage (managed by the backstage Application) because:
+      - argocd-redis is owned by Helm directly, not by an ArgoCD Application
+      - kyverno-admission-controller is managed, but its parent App stays cosmetically
+        OutOfSync from the chronic CRD description drift, which de-prioritizes its
+        selfHeal cycle. selfHeal still happens but on a longer cadence.
+    The backstage Application is cleanly Synced + Healthy with chart-default
+    replicas: 1, so selfHeal kicks in promptly (live-measured ~10s)."""
+    SOURCE_OF_TRUTH = 1  # backstage chart default; per gitops/apps/backstage.yaml
 
-    # Drift it: scale to 3
-    kubectl("scale", "deployment", "kyverno-admission-controller", "-n", "kyverno",
+    # Drift it
+    kubectl("scale", "deployment", "backstage", "-n", "backstage",
             "--replicas=3")
     reverted = False
-    for _ in range(36):  # 36 × 5s = 3 min
+    for _ in range(24):  # 24 × 5s = 2 min (live-measured: usually <30s)
         time.sleep(5)
-        data = kubectl_json("get", "deployment", "kyverno-admission-controller", "-n", "kyverno")
+        data = kubectl_json("get", "deployment", "backstage", "-n", "backstage")
         if data["spec"]["replicas"] == SOURCE_OF_TRUTH:
             reverted = True
             break
     if not reverted:
-        kubectl("scale", "deployment", "kyverno-admission-controller", "-n", "kyverno",
+        kubectl("scale", "deployment", "backstage", "-n", "backstage",
                 f"--replicas={SOURCE_OF_TRUTH}")
-    assert reverted, f"ArgoCD did not selfHeal drift within 180s (current replicas={data['spec']['replicas']}, expected {SOURCE_OF_TRUTH})"
+    assert reverted, f"ArgoCD did not selfHeal drift within 120s (replicas={data['spec']['replicas']}, expected {SOURCE_OF_TRUTH})"
 
 
 def test_admission_denial_produces_visible_error():
