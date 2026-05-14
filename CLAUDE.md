@@ -8,10 +8,10 @@ The workshop is a worked example of one column of the **Agentic Covenants** fram
 
 ### Presenter-facing spec
 
-- `spec/BUILD-SPEC.md` — the spec Michael hands Claude on stage. 90 lines. Plain Markdown. Lists the 4 phases, the 3 scoring dimensions, the stack pins, the gate-pass promise format (`<promise>PHASE_N_DONE</promise>`).
+- `spec/BUILD-SPEC.md` — the spec Michael hands Claude on stage. **Single-paste autonomous execution for all 7 phases**, ~120 lines. Plain Markdown. Lists the 7 phases, the 3 scoring dimensions, the stack pins, the gate-pass promise format (`<promise>PHASE_N_DONE</promise>`).
 - `spec/OPENING-SCRIPT.md` — 60-second slide-1 opener (literal words to read), 5-minute pre-build framing (3 slides), closing script.
-- `spec/PRESENTER-RUNBOOK.md` — T-30 (pre-room) through T+90 (wrap-up) sequence, per-phase pacing, the Path A / Path B decision for Phase 4, what-can-go-wrong priority list, rehearsal checklist.
-- `spec/phases/phase-0[1-4]-*.md` — per-phase presenter voice: the literal prompt Michael pastes, the test gate commands, the known failure modes Claude tends to fall into without the skill file. Each phase's "Known failure modes" section is the script for narrating when a gate fails live.
+- `spec/PRESENTER-RUNBOOK.md` — T-30 (pre-room) through T+90 (wrap-up) sequence, per-phase pacing, the Path A / Path B decision for Phase 5 (Backstage), what-can-go-wrong priority list, rehearsal checklist.
+- `spec/phases/phase-0[1-7]-*.md` — per-phase presenter voice: the literal prompt Michael pastes, the test gate commands, the known failure modes Claude tends to fall into without the skill file. Each phase's "Known failure modes" section is the script for narrating when a gate fails live.
 
 ### Claude Code instrumentation (auto-loaded when `claude` runs from this repo root)
 
@@ -37,8 +37,8 @@ The workshop is a worked example of one column of the **Agentic Covenants** fram
 
 ### Scorecards
 
-- `scorecard/SCORECARD-TEMPLATE.md` — per-attendee scorecard. 4 phase rows × Install / Integration / Usability + AI time + correction cycles, plus a 6-question wrap-up reflection (manual-time estimate, toil-shifted question, usability rating, where AI helped/struggled, takeaway).
-- `scorecard/PRESENTER-SCORECARD.md` — the live on-stage scorecard. Three dimensions per row, six rows across the four phases. Fills in real time on the projector while the audience fills in their own.
+- `scorecard/SCORECARD-TEMPLATE.md` — per-attendee scorecard. **7 phase rows** × Install / Integration / Usability + AI time + correction cycles, plus a 6-question wrap-up reflection (manual-time estimate, toil-shifted question, usability rating, where AI helped/struggled, takeaway).
+- `scorecard/PRESENTER-SCORECARD.md` — the live on-stage scorecard. Three dimensions per row, **7 rows across the 7 phases**. Fills in real time on the projector while the audience fills in their own.
 
 ### Attendee + operator docs
 
@@ -66,7 +66,7 @@ Default branch is `staging`. All work goes to `staging` first; promote to `main`
 
 ## Live validation status (2026-05-13)
 
-Full end-to-end walkthrough on a real EKS cluster (`kcd-texas-spec-validate`, us-east-2). All four phases verified:
+Full end-to-end walkthrough on a real EKS cluster (`kcd-texas-spec-validate`, us-east-2). All seven phases verified:
 - Phase 1: 5 child Applications discovered from app-of-apps, all reached Synced/Healthy in ~90s
 - Phase 2: bad pod rejected (require-labels + require-resource-limits fired), good pod accepted, system pod allowed
 - Phase 3: all 3 ArgoCD scrape targets `up` in Prometheus (verified ServiceMonitor selectors + `http-metrics` port name)

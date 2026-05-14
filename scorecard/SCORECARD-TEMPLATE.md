@@ -25,29 +25,31 @@ Fill one row at the end of each phase, *as you go* — don't backfill from memor
 
 | Phase / Component | Install (1–10) | Integration (1–10) | Usability (1–10) | Cycles | AI time | Notes (1 line) |
 |---|---:|---:|---:|---:|---:|---|
-| Phase 1 — ArgoCD bootstrap + app-of-apps | | | | | | |
-| Phase 2 — Kyverno install | | | | | | |
-| Phase 2 — Kyverno policies | | | | | | |
-| Phase 3 — kube-prometheus-stack | | | | | | |
-| Phase 3 — Grafana dashboards | | | | | | |
-| Phase 4 — Backstage | | | | | | |
+| Phase 1 — Foundation (cluster + namespaces + metrics-server) | | | | | | |
+| Phase 2 — GitOps Bootstrap (ArgoCD + app-of-apps + 21 children) | | | | | | |
+| Phase 3 — Security Stack (Kyverno + Falco family + ESO + RBAC + NetPol) | | | | | | |
+| Phase 4 — Observability (Prom + Grafana + OTel + Loki/Tempo/Promtail) | | | | | | |
+| Phase 5 — Developer Portal (Backstage + catalog + templates) | | | | | | |
+| Phase 6 — Integration (drift selfHeal + admission events + Falco→Talon) | | | | | | |
+| Phase 7 — Hardening (cert-manager + ClusterIssuers + Quotas + PDBs) | | | | | | |
 | **Totals / Average** | | | | | | — |
 
 ### How to fill each column
 
 - **Install (1–10):** Did the manifest, after applying, bring the component up healthy? First try, no rewrites? That's a 10. Three correction cycles, image registry workaround, manual chart-version archaeology? That's a 4. Score what *happened*, not what the playbook implies should happen.
 - **Integration (1–10):** A *separate* dimension from Install. AI can install a component cleanly and still produce something that doesn't actually work end-to-end. Score whether the component does the thing it's supposed to do, in concert with everything around it. Per-phase examples:
-  - Phase 1: did the five child Applications auto-discover from your bootstrap and start installing without intervention?
-  - Phase 2 (install row): is the admission controller reachable / webhook firing?
-  - Phase 2 (policies row): did Kyverno actually reject a non-compliant pod *and* allow a compliant one? Not "did it install" — did the policy fire correctly at admission time?
-  - Phase 3 (kube-prom-stack row): are Prometheus + Grafana up and reachable; is Prometheus scraping ArgoCD?
-  - Phase 3 (Grafana dashboards row): are the dashboards actually populated with cluster metrics, or empty?
-  - Phase 4: did Backstage start, show a populated catalog, and stay up under poking?
+  - Phase 1: do the 9 workshop namespaces exist; does `kubectl top` work; are all kube-system pods healthy?
+  - Phase 2: did the 21 child Applications auto-discover from your bootstrap and reach Healthy without intervention?
+  - Phase 3: did Kyverno reject a non-compliant pod *and* allow a compliant one? Did Falco fire on shell-spawn? Did FalcoTalon terminate the offending pod? Note: ESO will be Degraded without IRSA — score Install high, Integration low. Honest data.
+  - Phase 4: are Prometheus + Grafana up and reachable; is Prometheus scraping ArgoCD via ServiceMonitors; are dashboards populated; are traces flowing through OTel → Tempo?
+  - Phase 5: did Backstage start, show a populated catalog (party apps + ecom + sample-app), and stay up under poking?
+  - Phase 6: does ArgoCD selfHeal drift within 60s? Does Falco → Talon auto-terminate fire end-to-end?
+  - Phase 7: did cert-manager install cleanly; are ClusterIssuers registered (Ready=False without DNS is honest — no real DNS-01 wired); are ResourceQuotas + PDBs in place?
 - **Usability (1–10):** Could a developer on your team drive *this component* on Monday morning?
   - `10` = production-ready as-is; junior engineer could pick it up tomorrow.
   - `5` = the bones are right but a half-day of plumbing to make it real.
   - `1` = installed-but-useless; nice toy, can't ship anything through it.
-  - Phase 4's Usability is almost always low for the workshop scorecard — community image catalog is read-only and not wired to your cluster. That's honest, not a failing.
+  - Phase 5's Usability (Backstage) is almost always low — the catalog is seed-only and the K8s plugin shows nothing without a per-team config. That's honest workshop data, not a failing.
 - **Cycles:** Count the number of **distinct corrective prompts** you sent Claude — not the number of issues addressed in a single prompt. Initial prompt + zero corrections = `0`. Initial prompt → "fix-the-labels-and-limits-and-probes" (one corrective prompt addressing three issues) → success = `1`. Initial prompt → fix-1 → fix-2 → success = `2`.
 - **AI time (min):** Wall-clock minutes from when you pasted the phase prompt to when the test gate passed. Round to the nearest minute; if unsure, round down. Don't count time you stepped away from the keyboard (bathroom, water, side conversations).
 - **Notes:** One line if anything stood out (a clever Claude move, a specific failure mode, a moment you almost gave up). Blank is fine.
@@ -64,7 +66,7 @@ If you'd had to build the same four components by hand, no AI, on a fresh cluste
 
 ____ hours / days
 
-(There is no right answer. The reference build was ~12 hours of estimated manual work for a 7-phase platform. Your 4-phase scope is smaller; pick a number that feels true.)
+(There is no right answer. The reference build was ~12 hours of estimated manual work for the same 7-phase platform built overnight, alone, without time pressure. The workshop attempted the same scope in 90 minutes live; pick a number that feels true to your manual-build estimate for what you saw.)
 
 ### 2. Did AI shift the toil?
 

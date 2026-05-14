@@ -1,5 +1,12 @@
 # KubeAuto AI Day Reference Repo Analysis
 
+> **STATUS: SUPERSEDED.** This document was written on 2026-04-24 as a
+> pre-design analysis when the KCD Texas workshop was scoped to 4 phases.
+> The workshop was extended on 2026-05-14 to the **full 7 phases / 27
+> components** matching the kubeauto reference. The current spec is at
+> `spec/BUILD-SPEC.md` and `spec/phases/phase-0[1-7]-*.md`. The body
+> below remains as a historical record of the earlier design rationale.
+
 Source: `github.com/peopleforrester/kubeauto-ai-day`
 
 Analysis date: 2026-04-24. Purpose: inform diagram creation for the KCD Texas

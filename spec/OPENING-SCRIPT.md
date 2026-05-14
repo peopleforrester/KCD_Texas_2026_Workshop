@@ -50,14 +50,17 @@ After the opener, before any prompts get pasted. Three quick slides.
 
 ### Slide 4 — "Today's scope, honestly"
 
-> Four phases, in order. We do them until we run out of time.
+> Seven phases, 27 components, in order. We do them until we run out of time. Phase 2 is the only "build" phase — it fans out to all 21 platform Applications in parallel. The other phases are score-and-narrate.
 >
-> 1. **ArgoCD bootstrap + app-of-apps** — GitOps foundation. Probably 15 minutes if Claude cooperates.
-> 2. **Kyverno + one policy** — admission control. Maybe 15 minutes. The policy I'm building today is `require-labels` — there are three pre-committed in the repo, I'm only writing one live.
-> 3. **kube-prometheus-stack** — Prometheus + Grafana. Probably 20 minutes. This is where Install scores tend to diverge from Integration scores.
-> 4. **Backstage** — developer portal. Most likely to faceplant. If we run out of time before we get here, I'll play a pre-recorded run during the closing five minutes — that's the "AI Ate My Implementation" moment from the talk title.
+> 1. **Foundation** — assert the cluster you got is healthy. ~30 seconds.
+> 2. **GitOps Bootstrap** — Helm-install ArgoCD, apply app-of-apps. ArgoCD then reconciles 21 Applications in sync-wave order. ~5 minutes wall-time for everything to reach Healthy.
+> 3. **Security Stack** — Kyverno + 3 policies, Falco + custom rules + Falcosidekick + FalcoTalon auto-response, ESO, RBAC, NetworkPolicies. We watch admission deny a bad pod live.
+> 4. **Observability** — Prometheus + Grafana + OTel + Loki + Promtail + Tempo + ArgoCD ServiceMonitors. We port-forward Grafana on the projector.
+> 5. **Developer Portal** — Backstage. Most likely to faceplant. If we run out of time before we get here, I'll play a pre-recorded run during the closing five minutes — that's the "AI Ate My Implementation" moment from the talk title.
+> 6. **End-to-End Integration** — drift detection, admission events, audit trail across components.
+> 7. **Hardening** — cert-manager + ClusterIssuers, ResourceQuotas, PDBs.
 >
-> If we land Phase 1, you've learned spec-driven development on a real platform component and you've got a scorecard data point. If we land all four, you've watched AI eat most of an IDP. Both are wins. We're not running this clock to "complete." We're running it to *demonstrate*.
+> If we land Phase 2, you've watched 21 components install themselves via GitOps in parallel and you've got real scorecard data. If we land all seven, you've watched AI eat most of an IDP. Both are wins. We're not running this clock to "complete." We're running it to *demonstrate*.
 
 ---
 

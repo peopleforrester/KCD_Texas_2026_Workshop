@@ -34,15 +34,16 @@ Fill in **per phase** as you build. Don't backfill at the end; the live capture 
 
 | Phase / Component | Install (1–10) | Integration (1–10) | Usability (1–10) | Cycles | AI time | Notes |
 |---|---:|---:|---:|---:|---:|---|
-| **Phase 1 — ArgoCD bootstrap + app-of-apps** |   |   |   |   |   |   |
-| **Phase 2 — Kyverno** (admission controller install) |   |   |   |   |   |   |
-| **Phase 2 — Kyverno policies** (3 ClusterPolicies fire on real pods) |   |   |   |   |   |   |
-| **Phase 3 — kube-prometheus-stack** (Prom, Grafana, kube-state-metrics) |   |   |   |   |   |   |
-| **Phase 3 — Grafana dashboards** (populated with cluster metrics) |   |   |   |   |   |   |
-| **Phase 4 — Backstage** (portal up, catalog visible, scaffolder reachable) |   |   |   |   |   |   |
+| **Phase 1 — Foundation** (cluster Ready, 9 namespaces, metrics-server) |   |   |   |   |   |   |
+| **Phase 2 — GitOps Bootstrap** (ArgoCD + app-of-apps → 21 children) |   |   |   |   |   |   |
+| **Phase 3 — Security Stack** (Kyverno + 3 policies, Falco + rules, Falcosidekick, FalcoTalon, ESO, RBAC, NetPol) |   |   |   |   |   |   |
+| **Phase 4 — Observability** (Prom + Grafana + OTel + Loki/Tempo/Promtail) |   |   |   |   |   |   |
+| **Phase 5 — Developer Portal** (Backstage, catalog, templates, demo apps in catalog) |   |   |   |   |   |   |
+| **Phase 6 — Integration** (drift selfHeal + admission events + Falco→Talon end-to-end) |   |   |   |   |   |   |
+| **Phase 7 — Hardening** (cert-manager, ClusterIssuers, Quotas + PDBs) |   |   |   |   |   |   |
 | **Totals / Average** |   |   |   |   |   | — |
 
-Six rows for six narrative beats. If Phase 4 (Backstage) goes sideways — and it's the most likely component to do so — you score what you got, narrate the failure honestly, and move on. A 4/10 Install with a frank explanation of why is more interesting data than a missing row.
+Seven rows, seven phases. Phase 5 (Backstage) is the most likely component to faceplant — score what you got, narrate the failure honestly, and move on. A 4/10 Install with a frank explanation of why is more interesting data than a missing row.
 
 ---
 

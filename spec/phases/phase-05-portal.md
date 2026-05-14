@@ -47,7 +47,7 @@ When the gate passes:
 ## Path A vs Path B
 
 - **Path A (we have time):** Drive Phase 5 live like the previous phases. Watch the diff and the logs on the projector. If Backstage faceplants, name the failure mode and score Install accordingly.
-- **Path B (we're short on time):** Skip live, play the pre-recorded Phase 5 segment from `assets/phase-04-backstage-recorded-run.mp4` (renamed for the new phase numbering — same content). Score from the recording.
+- **Path B (we're short on time):** Skip live, play the pre-recorded Phase 5 Backstage segment from `assets/phase-05-backstage-recorded-run.mp4`. Score from the recording.
 
 ## What students see on their cluster
 

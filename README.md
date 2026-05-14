@@ -15,13 +15,13 @@ Three artifacts make this work. They're how the methodology is replicable on Mon
 
 | Artifact | Lives at | Role |
 |---|---|---|
-| **The spec** | [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md) + [`spec/phases/`](spec/phases/) | The plain-Markdown source-of-truth Michael hands Claude on stage. Four phases, target manifests, completion criteria. |
+| **The spec** | [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md) + [`spec/phases/`](spec/phases/) | The plain-Markdown source-of-truth Michael hands Claude on stage. Seven phases, 27 components, target manifests, completion criteria. |
 | **The skills** | [`.claude/skills/`](.claude/skills/) | Current-version patterns Claude reads before generating each component. One per CNCF project — ArgoCD, Kyverno, kube-prometheus-stack, Backstage. Auto-loaded when `claude` runs from this repo root. |
 | **The test gates** | Per-phase `kubectl` blocks in [`spec/phases/`](spec/phases/) | Reliable checks that a phase actually worked. Not pytest, not synthetic. Just `kubectl get pods`, `kubectl run`, `curl localhost:7007`. |
 
 Plus a scorecard with three dimensions ([`scorecard/`](scorecard/)). Install, Integration, Usability — scored independently. The variance between dimensions across phases is what the talk hangs on.
 
-**How far we get is how far we get.** Four phases in 90 minutes is aspirational; completion is not the point. Demonstrating the spec-driven methodology and producing honest scorecard data is.
+**How far we get is how far we get.** Seven phases / 27 components in 90 minutes is aspirational; completion is not the point. Demonstrating the spec-driven methodology and producing honest scorecard data is.
 
 ---
 
@@ -34,7 +34,7 @@ Read **[`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md)** end-to-end. It
 Open **[`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md)** and start at *"Before You Start."* You'll claim your cluster credentials at the door from a QR code → landing page (or a printed numbered card if the landing page is offline). Three commands from there gets you to a working `claude` session. From there you mirror Michael's prompts, run the same gate commands he runs, and score your own card.  Michael is solo — no TAs — so use the setup window before T+0 to flag any cluster problems; once the build starts you're driving your own Claude.
 
 **If you're reviewing this beforehand** (Accenture, organizers, replicators):
-Read **[`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md)** (90 lines, this is the spec) → **[`spec/OPENING-SCRIPT.md`](spec/OPENING-SCRIPT.md)** (what Michael says first) → one phase file like [`spec/phases/phase-01-argocd.md`](spec/phases/phase-01-argocd.md) to see the build/diff/gate/score pattern in detail. The [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md) is the operational sequence on top.
+Read **[`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md)** (~120 lines, this is the spec) → **[`spec/OPENING-SCRIPT.md`](spec/OPENING-SCRIPT.md)** (what Michael says first) → one phase file like [`spec/phases/phase-02-gitops.md`](spec/phases/phase-02-gitops.md) to see the build/diff/gate/score pattern in detail. The [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md) is the operational sequence on top.
 
 **If you're running your own version of this workshop:**
 Repo is MIT-licensed. Fork freely. Engineer-facing setup is in **[`kcd-texas-lab-setup-guide.md`](kcd-texas-lab-setup-guide.md)** and the Terraform + provisioning scripts under **[`kcd-texas-provisioning/`](kcd-texas-provisioning/)**. Student IAM lifecycle scripts in **[`scripts/`](scripts/)**.
@@ -59,7 +59,7 @@ The Kyverno policies + admission controls students see today are server-side enf
 | [`spec/BRANCH-WORKFLOW.md`](spec/BRANCH-WORKFLOW.md) | Single-maintainer staging→main workflow doc. |
 | [`.claude/hooks/`](.claude/hooks/) | Stop hook keeps Claude on-phase until the gate passes. |
 | [`gitops/`](gitops/) | Pre-committed ground-truth GitOps source. ArgoCD on every student cluster reconciles from this directory. |
-| [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Per-attendee scorecard (4 phase rows × Install / Integration / Usability + wrap-up reflection). |
+| [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Per-attendee scorecard (7 phase rows × Install / Integration / Usability + wrap-up reflection). |
 | [`scorecard/PRESENTER-SCORECARD.md`](scorecard/PRESENTER-SCORECARD.md) | Live on-stage scorecard the audience watches fill in real time. |
 | [`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md) | Attendee-facing preflight, connection card, follow-along guide, troubleshooting. |
 | [`kcd-texas-lab-setup-guide.md`](kcd-texas-lab-setup-guide.md) | Engineer-facing setup guide — how the labs are provisioned end-to-end. |
@@ -78,10 +78,13 @@ The Kyverno policies + admission controls students see today are server-side enf
 │   ├── OPENING-SCRIPT.md                  # Opening words + framing slides + close
 │   ├── PRESENTER-RUNBOOK.md               # 90-min run sheet
 │   └── phases/
-│       ├── phase-01-argocd.md
-│       ├── phase-02-kyverno.md
-│       ├── phase-03-observability.md
-│       └── phase-04-backstage.md          # Path A live / Path B recorded fallback
+│       ├── phase-01-foundation.md        # assert pre-provisioned cluster
+│       ├── phase-02-gitops.md             # ArgoCD + app-of-apps → 21 children
+│       ├── phase-03-security.md           # Kyverno, Falco family, ESO, RBAC, NetPol
+│       ├── phase-04-observability.md      # Prom/Grafana/OTel/LGTM
+│       ├── phase-05-portal.md             # Backstage (Path A live / Path B recorded)
+│       ├── phase-06-integration.md        # end-to-end cross-component flows
+│       └── phase-07-hardening.md          # cert-manager, ResourceQuotas, PDBs
 ├── .claude/                               # Claude Code instrumentation
 │   ├── skills/                            # argocd, kyverno, kube-prometheus-stack, backstage
 │   ├── commands/                          # /build-phase, /score-component, /validate-phase
@@ -119,7 +122,7 @@ git push origin staging
 ## Sibling repos
 
 - **[github.com/peopleforrester/agentic-covenants](https://github.com/peopleforrester/agentic-covenants)** — the framework this workshop is a worked example of. Source of truth for the Agentic Covenants matrix.
-- **[github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day)** — the full 7-phase reference build (~10 hours) that the 4-phase 90-minute workshop is condensed from. Contains the 27-component scorecard the closing slide compares against.
+- **[github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day)** — the same 7-phase reference build (~10 hours overnight, from-zero terraform-apply). The workshop attempts the same 7-phase / 27-component build in 90 minutes against a pre-provisioned cluster. Contains the 27-component scorecard the closing slide compares against.
 
 ## License
 

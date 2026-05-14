@@ -8,9 +8,9 @@ This is the attendee-facing companion to a **presenter-led, audience follow-alon
 
 The point is **not** to finish the IDP in 90 minutes. The point is to demonstrate spec-driven development with Claude Code on a real platform-engineering build, score what AI does honestly across three dimensions, and walk out with a methodology you can apply Monday morning.
 
-**How far we get is how far we get.** Phase 4 might faceplant on stage — that's the talk title. If it does, Michael switches to a pre-recorded run for the closing 5 minutes; either way the scorecard fills in.
+**How far we get is how far we get.** Phase 5 (Backstage) might faceplant on stage — that's the talk title. If it does, Michael switches to a pre-recorded run for the closing 5 minutes; either way the scorecard fills in.
 
-The full spec Michael hands Claude is at [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md) (~90 lines). The on-stage sequence is at [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md). Per-phase prompts and gates are under [`spec/phases/`](spec/phases/). This playbook is what *you* the attendee do.
+The full spec Michael hands Claude is at [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md) (~120 lines) and covers **7 phases / 27 components**. The on-stage sequence is at [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md). Per-phase prompts and gates are under [`spec/phases/`](spec/phases/). This playbook walks you through the four most visually demonstrative phases (GitOps, Security, Observability, Portal); the spec covers the additional Foundation, Integration, and Hardening phases automatically.
 
 ---
 
@@ -23,7 +23,7 @@ You should arrive with:
 - Comfortable with kubectl basics (pods, deployments, services, namespaces) and a CLI
 - Helm and ArgoCD experience helpful but not required — you'll see both in action
 
-If Claude Code isn't installed before you walk in, you'll lose 10 minutes to install + auth and the workshop will already be in Phase 1. Install ahead of time.
+If Claude Code isn't installed before you walk in, you'll lose 10 minutes to install + auth and the workshop will already be past Phase 2 (the GitOps bootstrap). Install ahead of time.
 
 ---
 
@@ -78,7 +78,7 @@ cd ~/kcd-texas-workshop
 claude
 ```
 
-If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand during the setup window** — Michael has spare cluster credentials in his pocket and will swap you in 30 seconds. Once Phase 1 starts he can't break away to help individuals.
+If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand during the setup window** — Michael has spare cluster credentials in his pocket and will swap you in 30 seconds. Once the build starts (Phase 2) he can't break away to help individuals.
 
 ### Bring your own cluster (BYOC)
 
@@ -120,13 +120,13 @@ You do **not** push to git. The repo is the canonical ground truth on `main`. Yo
 
 ---
 
-## Phase 1 — Bootstrap ArgoCD + app-of-apps (~20 min)
+## Phase 2 — GitOps Bootstrap: ArgoCD + app-of-apps (~20 min)
 
 ### What Michael will do on stage
 
-Show `spec/BUILD-SPEC.md` briefly on the projector, then start `claude`, then paste a prompt that tells Claude to read the spec and run `/build-phase 1`. Claude:
+Show `spec/BUILD-SPEC.md` briefly on the projector, then start `claude`, then paste a prompt that tells Claude to read the spec and run `/build-phase 2`. Claude:
 
-1. Reads `.claude/skills/argocd-patterns.md`, `spec/phases/phase-01-argocd.md`, and `gitops/bootstrap/app-of-apps.yaml`
+1. Reads `.claude/skills/argocd-patterns.md`, `spec/phases/phase-02-gitops.md`, and `gitops/bootstrap/app-of-apps.yaml`
 2. Walks through the architecture out loud
 3. Generates `~/my-app-of-apps.yaml`
 4. Diffs that against the pre-committed ground truth
@@ -139,7 +139,7 @@ Show `spec/BUILD-SPEC.md` briefly on the projector, then start `claude`, then pa
 In your `claude` (already running from `~/kcd-texas-workshop`):
 
 ```
-/build-phase 1
+/build-phase 2
 ```
 
 Claude reads the same files, generates `~/my-app-of-apps.yaml` on your laptop, and walks you through the same diff. The gate commands you run yourself:
@@ -162,7 +162,7 @@ kubectl get application -n argocd
 #   backstage               Synced  Healthy / Progressing
 ```
 
-### Score Phase 1 on your scorecard
+### Score Phase 2 on your scorecard
 
 Row: **ArgoCD bootstrap + app-of-apps**
 - **Install** (1–10): did Claude's generated manifest, after the apply, bring ArgoCD up healthy?
@@ -171,20 +171,20 @@ Row: **ArgoCD bootstrap + app-of-apps**
 - Cycles (count of corrective prompts you sent Claude)
 - AI time (wall clock from paste to gate-passing)
 
-If any gate fails: the playbook's per-phase Known Failure Modes are in [`spec/phases/phase-01-argocd.md`](spec/phases/phase-01-argocd.md) — Claude reads them too. Most likely cause is `configs.params.timeout.reconciliation` at the wrong path (should be `configs.cm`).
+If any gate fails: the playbook's per-phase Known Failure Modes are in [`spec/phases/phase-02-gitops.md`](spec/phases/phase-02-gitops.md) — Claude reads them too. Most likely cause is `configs.params.timeout.reconciliation` at the wrong path (should be `configs.cm`).
 
 ---
 
-## Phase 2 — Kyverno + a policy (~20 min)
+## Phase 3 — Security Stack: Kyverno emphasis (~20 min)
 
 ### What Michael will do on stage
 
-`/build-phase 2`. Claude reads `.claude/skills/kyverno-policies.md`, the phase file, and the ground-truth manifests. Generates `~/my-kyverno.yaml` (the install) and `~/my-require-labels.yaml` (one of three policies), diffs both, has Michael verify Kyverno is admission-firing on real pods.
+`/build-phase 3`. Claude reads `.claude/skills/kyverno-policies.md`, the phase file, and the ground-truth manifests. Generates `~/my-kyverno.yaml` (the install) and `~/my-require-labels.yaml` (one of three policies), diffs both, has Michael verify Kyverno is admission-firing on real pods.
 
 ### What you do
 
 ```
-/build-phase 2
+/build-phase 3
 ```
 
 Gate commands:
@@ -218,7 +218,7 @@ kubectl delete pod test-good -n apps
 kubectl delete pod test-system -n kube-system
 ```
 
-### Score Phase 2
+### Score Phase 3
 
 Two rows in this phase: **Kyverno install** and **Kyverno policies**. Integration is the interesting score — did the policies *actually fire correctly*? Bad rejected, good accepted, system allowed. All three must hold.
 
@@ -226,16 +226,16 @@ Known traps Claude tends to fall into (from the skill file): webhook `namespaceS
 
 ---
 
-## Phase 3 — kube-prometheus-stack + ArgoCD ServiceMonitors (~20 min)
+## Phase 4 — Observability: kube-prometheus-stack + ServiceMonitors (~20 min)
 
 ### What Michael will do on stage
 
-`/build-phase 3`. Claude reads `.claude/skills/kube-prometheus-stack.md`. Generates `~/my-kube-prometheus-stack.yaml`, diffs against ground truth, has Michael port-forward Grafana on the projector — the *"does the dashboard have real data?"* moment is the talk's payoff for this phase.
+`/build-phase 4`. Claude reads `.claude/skills/kube-prometheus-stack.md`. Generates `~/my-kube-prometheus-stack.yaml`, diffs against ground truth, has Michael port-forward Grafana on the projector — the *"does the dashboard have real data?"* moment is the talk's payoff for this phase.
 
 ### What you do
 
 ```
-/build-phase 3
+/build-phase 4
 ```
 
 Gate commands:
@@ -262,7 +262,7 @@ kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
 # Dashboards → Browse → "Kubernetes / Compute Resources / Cluster" — should be populated
 ```
 
-### Score Phase 3
+### Score Phase 4
 
 Integration is the interesting score: is Prometheus *actually scraping* ArgoCD's metrics endpoints, AND is Grafana showing real cluster data? Both must hold.
 
@@ -270,23 +270,23 @@ Known trap (from the skill file): `ServerSideApply=true` is mandatory because th
 
 ---
 
-## Phase 4 — Backstage (~20 min, or pre-recorded if time is tight)
+## Phase 5 — Developer Portal: Backstage (~20 min, or pre-recorded if time is tight)
 
 ### What Michael will do on stage
 
-Two paths into Phase 4:
+Two paths into Phase 5 (Backstage):
 
-- **Path A (>20 min left, Phase 3 landed clean):** drive Phase 4 live. `/build-phase 4`. Watch the image config block in the diff — that's THE trap.
-- **Path B (<10 min left, Phase 3 was rough):** play the pre-recorded Phase 4 video during the closing 5 minutes. Score it on the live scorecard from the recording.
+- **Path A (>20 min left, Phase 4 landed clean):** drive Phase 4 live. `/build-phase 5`. Watch the image config block in the diff — that's THE trap.
+- **Path B (<10 min left, Phase 4 was rough):** play the pre-recorded Phase 5 Backstage video during the closing 5 minutes. Score it on the live scorecard from the recording.
 
-Either path produces honest scorecard data. The trap that defines Phase 4: the Backstage chart has no default image. If Claude omits the image config, the Pod CrashLoopBackOffs. Plus the upstream image's baked-in app-config crashes the Kubernetes plugin without a cluster locator override — so `backstage.appConfig` with `kubernetes.clusterLocatorMethods: []` is required.
+Either path produces honest scorecard data. The trap that defines Phase 5: the Backstage chart has no default image. If Claude omits the image config, the Pod CrashLoopBackOffs. Plus the upstream image's baked-in app-config crashes the Kubernetes plugin without a cluster locator override — so `backstage.appConfig` with `kubernetes.clusterLocatorMethods: []` is required.
 
 ### What you do
 
 If Path A:
 
 ```
-/build-phase 4
+/build-phase 5
 ```
 
 Gate commands:
@@ -311,7 +311,7 @@ curl -s http://localhost:7007/api/catalog/entities | python3 -c "import sys,json
 
 If Path B: watch the recording. Score what you see.
 
-### Score Phase 4
+### Score Phase 5
 
 **Usability score for Backstage will be low.** That's not a failing — it's honest. The workshop image has a small static catalog and no working software templates. Production Backstage requires a custom-built image with org-specific catalog providers, plugins, and templates. That gap — *installed-but-not-shippable* — is the talk's closing line.
 
@@ -364,7 +364,7 @@ For comparison, the kubeauto reference build (single experienced engineer, overn
 
 ## If something is really stuck
 
-**Michael is alone** — there are no TAs. Once Phase 1 starts he's driving Claude on the projector; he can't break away to debug individual clusters mid-build. Triage paths:
+**Michael is alone** — there are no TAs. Once the build starts (Phase 2) he's driving Claude on the projector; he can't break away to debug individual clusters mid-build. Triage paths:
 
 1. **During the setup window before T+0:** flag Michael by raising your hand. Cluster swaps happen here (30-second handoff from his pocket-spare credentials) or never.
 2. **After Phase 1 starts, if your cluster is broken:** you're an observer for the rest of the build. Still take notes; still score what you see Claude do on the projector. The methodology lesson lands either way.

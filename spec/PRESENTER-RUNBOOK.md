@@ -41,7 +41,7 @@ Read approximately verbatim. The bridge from "I've already built this end-to-end
 
 - Slide 2: spec + skills + test gates (the three artifacts)
 - Slide 3: the three scoring dimensions (Install / Integration / Usability)
-- Slide 4: today's scope (4 phases, how far we get is how far we get)
+- Slide 4: today's scope (7 phases / 27 components, how far we get is how far we get)
 
 ### "Open your terminals" pause
 
@@ -76,10 +76,10 @@ Claude will:
 2. Generate `~/my-app-of-apps.yaml`
 3. Diff against `gitops/bootstrap/app-of-apps.yaml` — walk you through the diff
 4. Apply the pre-committed bootstrap
-5. Run `pytest tests/test_phase_01_argocd.py -v`
+5. Run `pytest tests/test_phase_01_foundation.py -v`
 6. When all tests pass: output `<promise>PHASE_1_DONE</promise>` and pause
 
-Score Phase 1 on the live scorecard with the room watching. Say "continue" — Claude moves to Phase 2 autonomously. Repeat for Phases 2, 3, 4.
+Score Phase 1 on the live scorecard with the room watching. Say "continue" — Claude moves to Phase 2 autonomously. Repeat for Phases 2 through 7.
 
 **You are the conductor, not the operator.** Claude is doing spec-driven dev live; you narrate the failures by name when they happen, score after each promise, and decide when to stop.
 
