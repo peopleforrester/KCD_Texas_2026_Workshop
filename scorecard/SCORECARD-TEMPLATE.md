@@ -39,7 +39,7 @@ Fill one row at the end of each phase, *as you go* — don't backfill from memor
 - **Install (1–10):** Did the manifest, after applying, bring the component up healthy? First try, no rewrites? That's a 10. Three correction cycles, image registry workaround, manual chart-version archaeology? That's a 4. Score what *happened*, not what the playbook implies should happen.
 - **Integration (1–10):** A *separate* dimension from Install. AI can install a component cleanly and still produce something that doesn't actually work end-to-end. Score whether the component does the thing it's supposed to do, in concert with everything around it. Per-phase examples:
   - Phase 1: do the 9 workshop namespaces exist; does `kubectl top` work; are all kube-system pods healthy?
-  - Phase 2: did the 21 child Applications auto-discover from your bootstrap and reach Healthy without intervention?
+  - Phase 2: did the 32 child Applications auto-discover from your bootstrap and reach Healthy without intervention?
   - Phase 3: did Kyverno reject a non-compliant pod *and* allow a compliant one? Did Falco fire on shell-spawn? Did FalcoTalon terminate the offending pod? Note: ESO will be Degraded without IRSA — score Install high, Integration low. Honest data.
   - Phase 4: are Prometheus + Grafana up and reachable; is Prometheus scraping ArgoCD via ServiceMonitors; are dashboards populated; are traces flowing through OTel → Tempo?
   - Phase 5: did Backstage start, show a populated catalog (party apps + ecom + sample-app), and stay up under poking?

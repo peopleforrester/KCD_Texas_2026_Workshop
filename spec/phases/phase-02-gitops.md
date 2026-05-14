@@ -8,7 +8,7 @@
 
 ## Goal
 
-Install ArgoCD on the cluster, then apply the app-of-apps Application that points at `gitops/apps/`. ArgoCD discovers **21 child Applications** and starts reconciling them in sync-wave order in parallel. By the end of Phase 2, the entire platform is *deploying*. Phases 3 → 7 are about waiting for each band of components to reach Healthy and scoring them.
+Install ArgoCD on the cluster, then apply the app-of-apps Application that points at `gitops/apps/`. ArgoCD discovers **32 child Applications** and starts reconciling them in sync-wave order in parallel. By the end of Phase 2, the entire platform is *deploying*. Phases 3 → 7 are about waiting for each band of components to reach Healthy and scoring them.
 
 This is the highest-leverage phase of the workshop. One paste, one `kubectl apply`, and ArgoCD is doing all the work for the rest of the 90 minutes.
 
@@ -58,7 +58,7 @@ kubectl get pods -n argocd
 # Gate 2: Apply the bootstrap
 kubectl apply -f gitops/bootstrap/app-of-apps.yaml
 
-# Gate 3: app-of-apps + 21 child Applications discovered
+# Gate 3: app-of-apps + 32 child Applications discovered
 kubectl get application -n argocd
 # Expected within 30-60s: 33 Applications, app-of-apps + 32 children
 
@@ -78,7 +78,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 ## What students see on their cluster
 
-Same paste, same `kubectl apply`. Their ArgoCD also discovers the same 21 child Applications because the bootstrap points at the *public canonical* `gitops/apps/` on `main` of this repo.
+Same paste, same `kubectl apply`. Their ArgoCD also discovers the same 32 child Applications because the bootstrap points at the *public canonical* `gitops/apps/` on `main` of this repo.
 
 ## Score on the live scorecard
 

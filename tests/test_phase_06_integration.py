@@ -91,7 +91,7 @@ def test_backstage_catalog_api_reachable():
 
 
 def test_argocd_total_app_health_status():
-    """At least 80% of the 21 child Applications should be Healthy (some may legitimately be Degraded if their prereqs aren't met)."""
+    """At least 80% of the 32 child Applications should be Healthy (some may legitimately be Degraded if their prereqs aren't met)."""
     data = kubectl_json("get", "applications", "-n", "argocd")
     apps = [item for item in data["items"]
             if item["metadata"]["name"] != "app-of-apps"]
