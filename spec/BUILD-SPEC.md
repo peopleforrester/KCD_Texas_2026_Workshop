@@ -52,7 +52,7 @@ That's it. Single paste. Claude executes autonomously, pausing only for me to sc
 |---|---|---|---|---|
 | 1 | Foundation (assert pre-provisioned) | Cluster, nodes, namespaces, addons | `spec/phases/phase-01-foundation.md` | `tests/test_phase_01_foundation.py` |
 | 2 | GitOps Bootstrap | ArgoCD, app-of-apps, sync waves | `spec/phases/phase-02-gitops.md` | `tests/test_phase_02_gitops.py` |
-| 3 | Security Stack | Kyverno + 3 policies, Falco + rules, Falcosidekick, ESO + Secrets, RBAC, NetworkPolicies | `spec/phases/phase-03-security.md` | `tests/test_phase_03_security.py` |
+| 3 | Security Stack | Kyverno + 3 policies, Falco + rules, Falcosidekick, **FalcoTalon (auto-response)**, ESO + Secrets, RBAC, NetworkPolicies | `spec/phases/phase-03-security.md` | `tests/test_phase_03_security.py` |
 | 4 | Observability | kube-prometheus-stack, Grafana dashboards, ArgoCD ServiceMonitors, OTel Collector, Loki, Promtail, Tempo, Alert rules | `spec/phases/phase-04-observability.md` | `tests/test_phase_04_observability.py` |
 | 5 | Developer Portal | Backstage, software templates, plugin wiring, backstage-resources | `spec/phases/phase-05-portal.md` | `tests/test_phase_05_portal.py` |
 | 6 | Integration | End-to-end: drift→sync, policy fires while metrics scrape, audit trail across components | `spec/phases/phase-06-integration.md` | `tests/test_phase_06_integration.py` |
@@ -72,7 +72,7 @@ Phase 2 applies `gitops/bootstrap/app-of-apps.yaml` which references `gitops/app
 | 1   | cert-manager, kube-prometheus-stack | 4, 7 |
 | 2   | argocd-servicemonitors, otel-collector, cert-manager-issuers | 4, 7 |
 | 3   | grafana-dashboards, loki, tempo, resource-quotas | 4, 7 |
-| 4   | promtail | 4 |
+| 4   | promtail, **falco-talon** | 4, 3 |
 | 5   | backstage, backstage-resources | 5 |
 
 Each Application points at either an upstream Helm chart (Kyverno, Falco, cert-manager, Prometheus, OTel, etc.) or at a manifest path in this repo or in `github.com/peopleforrester/kubeauto-ai-day` (the source of truth for shared pre-built config).
@@ -113,8 +113,9 @@ The variance between Install (usually high) and Usability (usually low) across p
 | Kyverno | `kyverno/kyverno` | `3.8.0` | Kyverno v1.18.0 |
 | kube-prometheus-stack | `prometheus-community/kube-prometheus-stack` | `84.5.0` | Prometheus operator v0.90.x |
 | Backstage | `backstage/backstage` | `2.7.0` | `ghcr.io/backstage/backstage:1.30.2` + appConfig override |
-| Falco | `falcosecurity/falco` | `8.0.0` | modern_ebpf driver |
-| Falcosidekick | `falcosecurity/falcosidekick` | (chart default) | Forwards to Prometheus + Slack/Teams (if wired) |
+| Falco | `falcosecurity/falco` | `8.0.5` | modern_ebpf driver (app v0.43.1) |
+| Falcosidekick | `falcosecurity/falcosidekick` | `0.13.1` | Forwards to Prometheus + Talon (wired); Slack/Teams optional |
+| **FalcoTalon** | `falcosecurity/falco-talon` | `0.4.0` | Auto-response engine; default action `kubernetes:terminate` on shell-spawn |
 | cert-manager | `jetstack/cert-manager` | `v1.19.3` | CRDs managed by chart |
 | External Secrets | `external-secrets/external-secrets` | `1.3.2` | IRSA role required for actual secret pulls |
 | OTel Collector | `open-telemetry/opentelemetry-collector` | (chart default in `otel-collector.yaml`) | DaemonSet mode |

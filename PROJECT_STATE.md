@@ -10,7 +10,7 @@
 
 The workshop is now the **full 7-phase / 27-component build PLUS 10 demo workloads** matching the kubeauto-ai-day reference. Everything is vendored into this repo — no cross-repo dependencies. Workshop demo runs as far as Claude gets in 90 minutes; whatever doesn't land in the room, attendees finish from the plane home using this same spec.
 
-**Live validation result on kcd-clust-1:** 45/45 pytest gates passing. **31/32 ArgoCD Applications Healthy** (1 Degraded by design — ESO without IRSA, the central scorecard variance point). **11/11 demo Pods Running in apps namespace** (sample-app × 2 + 5 party apps + ecom-api/frontend/worker + load-generator).
+**Live validation result on kcd-clust-1:** 47/47 pytest gates passing. **32/33 ArgoCD Applications Healthy** (1 Degraded by design — ESO without IRSA, the central scorecard variance point). **11/11 demo Pods Running in apps namespace** (sample-app × 2 + 5 party apps + ecom-api/frontend/worker + load-generator).
 
 **Wall-time on a fresh-ish ArgoCD:**
 - Bootstrap to all 21 Applications discovered: ~48 seconds
