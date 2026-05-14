@@ -12,9 +12,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/peopleforrester/kubeauto-ai-day.git
-    targetRevision: staging
-    path: gitops/namespaces
+    repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+    targetRevision: main
+    path: gitops/manifests/namespaces
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:

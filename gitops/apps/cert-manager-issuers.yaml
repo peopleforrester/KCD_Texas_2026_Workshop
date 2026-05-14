@@ -14,9 +14,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/peopleforrester/kubeauto-ai-day.git
-    targetRevision: staging
-    path: security/cert-manager
+    repoURL: https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+    targetRevision: main
+    path: gitops/manifests/cert-manager-issuers
     directory:
       recurse: true
   destination:
