@@ -27,14 +27,19 @@ for f in spec/BUILD-SPEC.md \
          spec/BRANCH-WORKFLOW.md \
          spec/OPENING-SCRIPT.md \
          spec/PRESENTER-RUNBOOK.md \
-         spec/phases/phase-01-argocd.md spec/phases/phase-02-kyverno.md \
-         spec/phases/phase-03-observability.md spec/phases/phase-04-backstage.md \
+         spec/phases/phase-01-foundation.md spec/phases/phase-02-gitops.md \
+         spec/phases/phase-03-security.md spec/phases/phase-04-observability.md \
+         spec/phases/phase-05-portal.md spec/phases/phase-06-integration.md \
+         spec/phases/phase-07-hardening.md \
          .claude/skills/argocd-patterns.md .claude/skills/kyverno-policies.md \
          .claude/skills/kube-prometheus-stack.md .claude/skills/backstage-templates.md \
+         .claude/skills/falco-rules.md .claude/skills/otel-wiring.md \
          .claude/commands/build-phase.md .claude/commands/score-component.md .claude/commands/validate-phase.md \
          tests/conftest.py \
-         tests/test_phase_01_argocd.py tests/test_phase_02_kyverno.py \
-         tests/test_phase_03_observability.py tests/test_phase_04_backstage.py \
+         tests/test_phase_01_foundation.py tests/test_phase_02_gitops.py \
+         tests/test_phase_03_security.py tests/test_phase_04_observability.py \
+         tests/test_phase_05_portal.py tests/test_phase_06_integration.py \
+         tests/test_phase_07_hardening.py \
          .pre-commit-config.yaml \
          gitops/bootstrap/app-of-apps.yaml \
          gitops/apps/kyverno.yaml gitops/apps/kyverno-policies.yaml \

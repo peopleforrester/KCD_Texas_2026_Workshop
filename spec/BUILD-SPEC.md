@@ -1,8 +1,10 @@
-# Build Spec — "The 90-Minute IDP"
+# Build Spec — "The 90-Minute IDP" (Full 27-component build)
 
 This is the spec I (Michael) hand Claude Code on stage at KCD Texas. **Single paste, autonomous execution, deliberate pauses for scoring.**
 
-Same pattern as `kubeauto-ai-day/spec/BUILD-SPEC.md`: Claude reads this spec, reads each phase's reference doc, reads the relevant skill, executes, runs the pytest test gate, emits a promise *only when all tests pass*, and waits for me to score before continuing. Same rigor, compressed to 90 minutes.
+The build follows the same 7-phase / 27-component shape as the [kubeauto-ai-day reference build](https://github.com/peopleforrester/kubeauto-ai-day) — same battle-tested methodology, executed against a pre-provisioned EKS cluster instead of a from-zero terraform-apply.
+
+**No artificial scope ceiling.** The workshop is 90 minutes; Claude executes the spec autonomously and gets as far as it gets. If we land Phase 4 in 90 min, that's data. If we land Phase 7, even better. Whatever doesn't finish in the room, the audience finishes on the plane home using this same spec.
 
 ## How Claude executes this spec
 
@@ -11,112 +13,148 @@ Open Claude Code in the cloned workshop repo. Paste this entire prompt — that'
 ```
 Read spec/BUILD-SPEC.md and execute it autonomously.
 
-Workflow per phase, in order (Phase 1 → 4):
-  1. Read spec/phases/phase-0N-*.md (the phase reference)
-  2. Read the skill file the phase points to in .claude/skills/
-  3. Generate the manifest the phase asks for, saved to ~/my-<component>.yaml
-  4. Diff ~/my-<component>.yaml against the pre-committed ground truth in
-     gitops/apps/<component>.yaml (or wherever the phase spec says)
-  5. Walk me through the diff out loud
-  6. Run the pytest test gate: pytest tests/test_phase_0N_*.py -v
-  7. ALL tests must pass. Not most. Not "good enough." All.
-  8. When all tests pass, output: <promise>PHASE_N_DONE</promise>
-     Then PAUSE. Wait for me to score and say "continue".
-  9. If any test fails, narrate the failure honestly using the phase spec's
-     "Known failure modes" section. Attempt ONE diagnostic fix. If the gate
-     still fails, output <promise>PHASE_N_FAILED</promise> with notes — do
-     not fake a pass. The failure is part of the talk.
+The build is 7 phases (1 → 7). Phase 1 asserts the pre-provisioned cluster
+foundation. Phase 2 bootstraps ArgoCD + the app-of-apps that fans out to ALL
+21 platform Applications. ArgoCD then reconciles them in sync-wave order in
+parallel. Phases 3 → 7 are score-and-narrate phases: wait for the relevant
+components to reach Healthy, run the pytest gate, score, promise, continue.
 
-After all four phases (or after I say "stop"), output:
+Per phase, in order:
+  1. Read spec/phases/phase-0N-*.md (the phase reference)
+  2. Read the skill file the phase points to in .claude/skills/ (if any)
+  3. For Phase 1 & 2: generate the manifest the phase asks for, saved to
+     ~/my-<component>.yaml. Diff against the pre-committed ground truth in
+     gitops/. Walk me through the diff out loud.
+  4. For Phase 3 → 7: the components are already reconciling from Phase 2's
+     app-of-apps. Wait for the phase's components to reach Healthy
+     (Application + underlying Pods). Surface failures honestly.
+  5. Run the pytest test gate: pytest tests/test_phase_0N_*.py -v
+  6. ALL tests must pass. Not most. Not "good enough." All.
+  7. When all tests pass, output: <promise>PHASE_N_DONE</promise>
+     Then PAUSE. Wait for me to score and say "continue".
+  8. If any test fails: narrate the failure using the phase spec's "Known
+     failure modes" section. Attempt ONE diagnostic fix. If the gate still
+     fails, output <promise>PHASE_N_FAILED</promise> with notes — do not
+     fake a pass. The failure is part of the talk.
+
+When all 7 phases complete (or I say "stop"), output:
 <promise>ALL_PHASES_COMPLETE</promise>
 
-Always read the skill file BEFORE generating config. Never skip the diff step.
-Never fake a promise. The audience is watching the projector.
+Always read the skill file BEFORE generating config. Never skip the diff
+step. Never fake a promise. The audience is watching the projector.
 ```
 
 That's it. Single paste. Claude executes autonomously, pausing only for me to score after each promise.
 
-## The four phases (executed in order)
+## The seven phases
 
-| Phase | Component | Phase reference | Skill | Test gate |
+| Phase | Theme | Components | Phase reference | Test gate |
 |---|---|---|---|---|
-| 1 | ArgoCD + app-of-apps | `spec/phases/phase-01-argocd.md` | `argocd-patterns.md` | `tests/test_phase_01_argocd.py` |
-| 2 | Kyverno + 1 ClusterPolicy | `spec/phases/phase-02-kyverno.md` | `kyverno-policies.md` | `tests/test_phase_02_kyverno.py` |
-| 3 | kube-prometheus-stack | `spec/phases/phase-03-observability.md` | `kube-prometheus-stack.md` | `tests/test_phase_03_observability.py` |
-| 4 | Backstage | `spec/phases/phase-04-backstage.md` | `backstage-templates.md` | `tests/test_phase_04_backstage.py` |
+| 1 | Foundation (assert pre-provisioned) | Cluster, nodes, namespaces, addons | `spec/phases/phase-01-foundation.md` | `tests/test_phase_01_foundation.py` |
+| 2 | GitOps Bootstrap | ArgoCD, app-of-apps, sync waves | `spec/phases/phase-02-gitops.md` | `tests/test_phase_02_gitops.py` |
+| 3 | Security Stack | Kyverno + 3 policies, Falco + rules, Falcosidekick, ESO + Secrets, RBAC, NetworkPolicies | `spec/phases/phase-03-security.md` | `tests/test_phase_03_security.py` |
+| 4 | Observability | kube-prometheus-stack, Grafana dashboards, ArgoCD ServiceMonitors, OTel Collector, Loki, Promtail, Tempo, Alert rules | `spec/phases/phase-04-observability.md` | `tests/test_phase_04_observability.py` |
+| 5 | Developer Portal | Backstage, software templates, plugin wiring, backstage-resources | `spec/phases/phase-05-portal.md` | `tests/test_phase_05_portal.py` |
+| 6 | Integration | End-to-end: drift→sync, policy fires while metrics scrape, audit trail across components | `spec/phases/phase-06-integration.md` | `tests/test_phase_06_integration.py` |
+| 7 | Hardening | cert-manager + ClusterIssuers, ResourceQuotas + PDBs, OIDC auth, documentation/ADRs | `spec/phases/phase-07-hardening.md` | `tests/test_phase_07_hardening.py` |
 
-How far we get is how far we get. Phase 4 is most likely to faceplant; if it does, that's the talk.
+## How the 27 components are deployed
+
+Phase 2 applies `gitops/bootstrap/app-of-apps.yaml` which references `gitops/apps/` containing **21 ArgoCD Applications**. ArgoCD reconciles them in this sync-wave order:
+
+| Wave | Application(s) | Phase |
+|---|---|---|
+| -10 | namespaces | 1 |
+| -5  | kyverno | 3 |
+| -4  | kyverno-policies, external-secrets, rbac, network-policies | 3 |
+| -3  | falco, eso-resources | 3 |
+| -2  | falcosidekick | 3 |
+| 1   | cert-manager, kube-prometheus-stack | 4, 7 |
+| 2   | argocd-servicemonitors, otel-collector, cert-manager-issuers | 4, 7 |
+| 3   | grafana-dashboards, loki, tempo, resource-quotas | 4, 7 |
+| 4   | promtail | 4 |
+| 5   | backstage, backstage-resources | 5 |
+
+Each Application points at either an upstream Helm chart (Kyverno, Falco, cert-manager, Prometheus, OTel, etc.) or at a manifest path in this repo or in `github.com/peopleforrester/kubeauto-ai-day` (the source of truth for shared pre-built config).
+
+The 6 components that aren't ArgoCD Applications are scored differently:
+- **4 Foundation components** (VPC, EKS, IAM, Pod Identity) — pre-provisioned by Accenture; scored as "infra existed Healthy" in Phase 1
+- **2 Pattern components** (App-of-Apps pattern, Sync Wave Ordering) — scored as "the pattern worked" in Phase 2
+
+That brings us to 21 + 4 + 2 = **27 components** matching kubeauto-ai-day's SCORECARD.
 
 ## Promise discipline (strict)
 
 ```
-<promise>PHASE_N_DONE</promise>
+<promise>PHASE_N_DONE</promise>      ← only when every pytest gate passes
+<promise>PHASE_N_FAILED</promise>    ← real failure after one diagnostic round; honest
+<promise>ALL_PHASES_COMPLETE</promise>  ← at end of Phase 7 or when I say stop
 ```
 
-Emitted **only when every pytest in the phase's test gate passes**. Not when "the chart installed but one assertion is a little off." Not "let me waive the integration check." All tests. Pass. Period.
+Faked passes undermine the workshop's central claim and will be visible to anyone watching the pytest output on the projector.
 
-```
-<promise>PHASE_N_FAILED</promise>
-```
-
-Emitted when a real failure happens that one diagnostic round didn't fix. The failure is captured in the scorecard and we move on. Faked passes undermine the workshop's central claim and will be visible to anyone watching the pytest output on the projector.
-
-```
-<promise>ALL_PHASES_COMPLETE</promise>
-```
-
-Emitted at the end of Phase 4 (or when I say "stop"), regardless of how many phases passed vs failed.
-
-## The three scoring dimensions
-
-For each component, scored independently after the phase promise:
+## The three scoring dimensions (applied per-component, not per-phase)
 
 | Dimension | What it measures | A 10 looks like |
 |---|---|---|
-| **Install** | Did Claude generate a manifest that, after applying, brought the component up healthy on the first try? | Pods Running, no rewrites, manifest correct first try, diff against ground truth shows only stylistic differences |
-| **Integration** | Does it work *with* the other components? | Sync waves right, ArgoCD discovers/syncs/heals, webhooks scoped correctly, scrape working, no cross-component breakage |
-| **Usability** | Could a developer drive this Monday morning? | Clear UI, sensible defaults, the right things are discoverable, dashboards/catalog/policies actually usable |
+| **Install** | Did the component come up Healthy on the first try? | Pods Running, manifest correct first try, no rewrites |
+| **Integration** | Does it work *with* the other components? | Sync waves right, webhooks scoped, scrape working, secrets pulled, etc. |
+| **Usability** | Could a developer drive this Monday morning? | Clear UI, sensible defaults, the right things discoverable |
 
-Plus **correction cycles** (how many follow-up prompts I sent Claude) and **AI wall-clock time** (paste-of-spec to phase-promise).
+Plus **correction cycles** (follow-up prompts) and **AI wall-clock time** (paste-of-spec to component-Healthy).
 
 The variance between Install (usually high) and Usability (usually low) across phases is the talk's anchor.
 
 ## Stack pins (committed in `gitops/`, render-validated upstream)
 
-| Component | Helm chart | Version | App version |
+| Component | Helm chart | Version | Notes |
 |---|---|---|---|
-| ArgoCD | `argo/argo-cd` | current stable GA (chart 9.x line) | ArgoCD v3.4.x |
+| ArgoCD | `argo/argo-cd` | 9.x line (current stable GA) | ArgoCD v3.4.x app version |
 | Kyverno | `kyverno/kyverno` | `3.8.0` | Kyverno v1.18.0 |
 | kube-prometheus-stack | `prometheus-community/kube-prometheus-stack` | `84.5.0` | Prometheus operator v0.90.x |
-| Backstage | `backstage/backstage` | `2.7.0` | `ghcr.io/backstage/backstage:1.30.2` (with `backstage.appConfig` override -- the upstream image's Kubernetes plugin crashes on init without it; see Phase 4 + skill.  `roadiehq/community-backstage-image:1.50.4` -- referenced in earlier tarballs -- does not exist) |
+| Backstage | `backstage/backstage` | `2.7.0` | `ghcr.io/backstage/backstage:1.30.2` + appConfig override |
+| Falco | `falcosecurity/falco` | `8.0.0` | modern_ebpf driver |
+| Falcosidekick | `falcosecurity/falcosidekick` | (chart default) | Forwards to Prometheus + Slack/Teams (if wired) |
+| cert-manager | `jetstack/cert-manager` | `v1.19.3` | CRDs managed by chart |
+| External Secrets | `external-secrets/external-secrets` | `1.3.2` | IRSA role required for actual secret pulls |
+| OTel Collector | `open-telemetry/opentelemetry-collector` | (chart default in `otel-collector.yaml`) | DaemonSet mode |
+| Loki / Tempo / Promtail | `grafana/*` | (chart defaults pinned in each Application) | Log aggregation + tracing |
 
-Skill files have the exact `valuesObject` blocks. Each skill file leads with the trap Claude tends to fall into without it.
+Skill files have the exact `valuesObject` blocks and lead with the trap Claude tends to fall into without them.
 
-## Repository discipline (matches kubeauto's local rigor)
+## Caveats specific to the Accenture workshop cluster context
+
+These don't break the build but produce honest scorecard variance:
+
+- **ESO + AWS Secrets Manager.** Workshop cluster doesn't have the IRSA role provisioned. ESO will deploy and reach Healthy, but its `ClusterSecretStore` will fail to authenticate. Integration scores low. To wire up, set a real IRSA role ARN in `gitops/apps/external-secrets.yaml`.
+- **cert-manager + ClusterIssuers.** Workshop uses port-forward, not real TLS. ClusterIssuers will sync but `Order` resources won't complete without real DNS-01 or HTTP-01 wiring.
+- **OIDC Authentication.** Requires a real GitHub OAuth app. Skipped unless that's pre-provisioned for the cluster.
+
+This is exactly the kind of honest "AI did the install, but ops still need to wire prerequisites" variance the workshop is built to expose.
+
+## Repository discipline
 
 - **All edits on `staging` branch.** See `spec/BRANCH-WORKFLOW.md`.
 - **Pre-commit hooks** run locally on every commit: gitleaks, yamllint, kubeconform schema validation, helm lint, shellcheck.
-- **Pre-push hook** runs `scripts/dry-run-validate.sh` locally — must pass 55/55 before the push lands on staging.
-- **Promotion staging → main** is a local fast-forward merge (`git merge --ff-only staging` from main, then push). No remote gates; the local pre-push validator is the gate.
-- **ArgoCD reads `main`.** Anything on staging is in-flight; nothing reaches a cluster until it's on main.
-- **Manifests must be applied via ArgoCD after Phase 1.** No `kubectl apply` to production namespaces post-bootstrap. ArgoCD is the deployer.
+- **Pre-push hook** runs `scripts/dry-run-validate.sh` locally before the push lands on staging.
+- **Promotion staging → main** is a local fast-forward merge. ArgoCD reads `main`.
+- **Manifests are applied via ArgoCD after Phase 2 bootstrap.** No `kubectl apply` to production namespaces post-bootstrap. ArgoCD is the deployer.
 
 ## Slash commands (fallback / catch-up use)
 
-The primary mode is single-paste autonomous execution. The slash commands exist for:
-
-- **`/build-phase N`** — students who fell behind during a phase can catch up by re-running just that phase
-- **`/score-component <name>`** — opens the scorecard, walks through Install/Integration/Usability
+- **`/build-phase N`** — re-run just one phase, useful if a student falls behind
+- **`/score-component <name>`** — opens the scorecard, walks Install/Integration/Usability
 - **`/validate-phase N`** — runs the pytest gate for that phase only
 
 I don't use them on stage in the default flow. They're audience escape valves.
 
 ## What everyone takes home
 
-The platform gets destroyed an hour after the workshop ends. The repo is public.
+The cluster gets destroyed an hour after the workshop ends. The repo is public.
 
 What goes home:
 
-1. **The filled scorecard.** Honest numbers across however many phases we landed.
-2. **The methodology.** Spec + skills + pytest gates + three-dimension scorecard. Apply to whatever you build with AI on Monday.
-3. **A reference build.** [`github.com/peopleforrester/kubeauto-ai-day`](https://github.com/peopleforrester/kubeauto-ai-day) — same methodology, 7 phases, 27 components, ~10 hours overnight. The variance between today's "live under pressure" scorecard and that "alone overnight" scorecard is the data the closing slide hangs on.
+1. **The filled scorecard.** Honest numbers across however many phases we landed live.
+2. **The methodology.** Spec + skills + pytest gates + three-dimension scorecard. Apply it to anything you build with AI on Monday.
+3. **The full 27-component spec.** This file. Battle-tested. Run it yourself on a fresh EKS cluster overnight and you'll land all 27 in ~3 hours. We're trying to do it in 90 minutes live.
+4. **A reference build.** [`github.com/peopleforrester/kubeauto-ai-day`](https://github.com/peopleforrester/kubeauto-ai-day) — same methodology, same 27 components, ~10 hours overnight (the original AI-assisted run). The variance between today's "live under pressure" scorecard and that "alone overnight" scorecard is the closing slide.
