@@ -1,6 +1,6 @@
 # PROJECT_STATE.md — KCD Texas 2026 Workshop
 
-**Last updated:** 2026-05-14 (post-extension to full 27-component build)
+**Last updated:** 2026-05-14 (full 7-phase + 10 demo workloads, all self-contained)
 **Branch:** `staging` (in sync with `main`)
 **Workshop date:** 2026-05-15, 10:30 AM CDT
 
@@ -8,9 +8,9 @@
 
 ## Current state
 
-The workshop has been extended from a 4-phase / 4-component live demo to the **full 7-phase / 27-component build** matching the kubeauto-ai-day reference. Workshop demo still runs as far as Claude gets in 90 minutes; whatever doesn't land in the room, attendees finish from the plane home using this same spec.
+The workshop is now the **full 7-phase / 27-component build PLUS 10 demo workloads** matching the kubeauto-ai-day reference. Everything is vendored into this repo — no cross-repo dependencies. Workshop demo runs as far as Claude gets in 90 minutes; whatever doesn't land in the room, attendees finish from the plane home using this same spec.
 
-**Live validation result on kcd-clust-1:** 45/45 pytest gates passing. 21/22 ArgoCD Applications Healthy (1 Degraded by design — ESO without IRSA, the central scorecard variance point).
+**Live validation result on kcd-clust-1:** 45/45 pytest gates passing. **31/32 ArgoCD Applications Healthy** (1 Degraded by design — ESO without IRSA, the central scorecard variance point). **11/11 demo Pods Running in apps namespace** (sample-app × 2 + 5 party apps + ecom-api/frontend/worker + load-generator).
 
 **Wall-time on a fresh-ish ArgoCD:**
 - Bootstrap to all 21 Applications discovered: ~48 seconds
