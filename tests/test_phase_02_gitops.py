@@ -1,4 +1,4 @@
-# ABOUTME: Phase 2 test gate — ArgoCD bootstrap + app-of-apps + 21 children.
+# ABOUTME: Phase 2 test gate — ArgoCD bootstrap + app-of-apps + 32 children.
 # ABOUTME: All tests hit real infrastructure. Promise PHASE_2_DONE only after these pass.
 
 import pytest
