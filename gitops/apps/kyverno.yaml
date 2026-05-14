@@ -45,12 +45,21 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
       - RespectIgnoreDifferences=true
-  # Kubernetes API server defaults conversion strategy on the policies.kyverno.io
-  # CRD group, causing perpetual OutOfSync on the new policy types
-  # (deletingpolicies, generatingpolicies, mutatingpolicies, etc.). The legacy
-  # kyverno.io CRDs don't drift. Discovered during live validation on 2026-05-14.
+  # Kubernetes API server defaults multiple fields on the policies.kyverno.io
+  # CRDs (conversion.strategy, additionalPrinterColumns, schema details), causing
+  # perpetual OutOfSync on the 11 new policy types (deletingpolicies,
+  # generatingpolicies, mutatingpolicies, etc.). The legacy kyverno.io CRDs
+  # don't drift. Discovered during live validation on 2026-05-14.
+  #
+  # This is a chronic Kyverno + ArgoCD interop issue documented across many
+  # community installs. Ignoring spec.conversion + spec.versions[].schema
+  # entirely is the workshop's pragmatic resolution.
   ignoreDifferences:
     - group: apiextensions.k8s.io
       kind: CustomResourceDefinition
       jsonPointers:
         - /spec/conversion
+      jqPathExpressions:
+        - .spec.versions[].schema
+        - .spec.versions[].additionalPrinterColumns
+        - .spec.versions[].selectableFields
