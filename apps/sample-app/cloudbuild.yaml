@@ -1,0 +1,41 @@
+# ABOUTME: Cloud Build config that builds sample-app once and pushes to both registries.
+# ABOUTME: Artifact Registry is workshop primary; Docker Hub is documented fallback.
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    args:
+      - 'build'
+      - '-t'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/workshop/sample-app:1.0.0'
+      - '-t'
+      - 'docker.io/peopleforrester/kcd-texas-sample-app:1.0.0'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-artifact-registry
+    args:
+      - 'push'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/workshop/sample-app:1.0.0'
+    waitFor: ['build']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-docker-hub
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        echo "$$DOCKERHUB_PAT" | docker login --username peopleforrester --password-stdin
+        docker push docker.io/peopleforrester/kcd-texas-sample-app:1.0.0
+    secretEnv: ['DOCKERHUB_PAT']
+    waitFor: ['build']
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_NUMBER/secrets/dockerhub-pat/versions/latest
+      env: DOCKERHUB_PAT
+
+# Cloud Build also auto-pushes anything in `images:` — explicit for clarity.
+images:
+  - 'us-east4-docker.pkg.dev/$PROJECT_ID/workshop/sample-app:1.0.0'

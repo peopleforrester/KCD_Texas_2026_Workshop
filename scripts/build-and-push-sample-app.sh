@@ -1,43 +1,39 @@
 #!/usr/bin/env bash
-# ABOUTME: Build the sample-app image from apps/sample-app/ and push to a public registry.
-# ABOUTME: Default target is ghcr.io/peopleforrester/kcd-texas-sample-app:1.0.0.
+# ABOUTME: Build sample-app via Cloud Build and publish to BOTH Artifact Registry + Docker Hub.
+# ABOUTME: Uses apps/sample-app/cloudbuild.yaml; no local docker daemon required.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Defaults — override via env vars or args
-readonly DEFAULT_REGISTRY="ghcr.io"
-readonly DEFAULT_REPO="peopleforrester/kcd-texas-sample-app"
-readonly DEFAULT_TAG="1.0.0"
-
-REGISTRY="${REGISTRY:-${DEFAULT_REGISTRY}}"
-REPO="${REPO:-${DEFAULT_REPO}}"
-TAG="${TAG:-${DEFAULT_TAG}}"
-FULL_IMAGE="${REGISTRY}/${REPO}:${TAG}"
+readonly PROJECT="${PROJECT:-mrf-overall}"
+readonly AR_IMAGE="us-east4-docker.pkg.dev/${PROJECT}/workshop/sample-app:1.0.0"
+readonly DH_IMAGE="docker.io/peopleforrester/kcd-texas-sample-app:1.0.0"
 
 usage() {
     cat <<EOF
-Build and push the workshop sample-app image.
+Build sample-app and publish to both registries.
 
-Usage: ${0##*/} [--push]
+Usage: ${0##*/}
 
-Environment variables (optional):
-  REGISTRY   default: ${DEFAULT_REGISTRY}
-  REPO       default: ${DEFAULT_REPO}
-  TAG        default: ${DEFAULT_TAG}
+Targets (both pushed from a single Cloud Build run):
+  Primary :  ${AR_IMAGE}
+  Fallback:  ${DH_IMAGE}
 
-Steps:
-  1. docker build apps/sample-app/ → \${FULL_IMAGE}
-  2. (if --push) docker push \${FULL_IMAGE}
-  3. Print sed command to point gitops/manifests/sample-app/deployment.yaml
-     at the new image instead of nginxinc/nginx-unprivileged.
+Why two registries:
+  - GCP Artifact Registry has no anonymous-pull rate limit (safer for 60
+    student clusters pulling from the same conference NAT IP)
+  - Docker Hub is the universally-known registry; documented fallback for
+    forkers without GCP access
 
 Prerequisites:
-  - docker daemon running
-  - For GHCR: gh auth login (workshop already has this for peopleforrester)
-    then: echo "\$(gh auth token)" | docker login ghcr.io -u peopleforrester --password-stdin
+  - gcloud CLI authenticated with access to project ${PROJECT}
+  - Secret Manager secret 'dockerhub-pat' with a Docker Hub PAT (workshop
+    repo:write scope) — already created
+  - Cloud Build SA has secretmanager.secretAccessor + artifactregistry.writer
+
+Output: both registries will have the new :1.0.0 image after ~45 seconds.
 
 EOF
 }
@@ -47,28 +43,13 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     exit 0
 fi
 
-push_flag=0
-if [[ "${1:-}" == "--push" ]]; then
-    push_flag=1
-fi
-
 cd "${REPO_ROOT}"
 
-if ! command -v docker >/dev/null 2>&1; then
-    printf "ERROR: docker not on PATH\n" >&2
-    exit 1
-fi
+printf "Submitting Cloud Build (builds once, pushes to both registries)...\n" >&2
+gcloud builds submit apps/sample-app/ \
+    --config=apps/sample-app/cloudbuild.yaml \
+    --project="${PROJECT}"
 
-printf "Building %s from apps/sample-app/Dockerfile...\n" "${FULL_IMAGE}" >&2
-docker build -t "${FULL_IMAGE}" apps/sample-app/
-
-if [[ "${push_flag}" -eq 1 ]]; then
-    printf "Pushing %s ...\n" "${FULL_IMAGE}" >&2
-    docker push "${FULL_IMAGE}"
-    printf "\nImage pushed. To wire the workshop manifest to use it:\n\n" >&2
-    printf "  sed -i 's|nginxinc/nginx-unprivileged:alpine|%s|' \\\\\n" "${FULL_IMAGE}" >&2
-    printf "    gitops/manifests/sample-app/deployment.yaml\n\n" >&2
-    printf "Then: git add gitops/manifests/sample-app/deployment.yaml && git commit + push.\n" >&2
-else
-    printf "\nImage built locally (not pushed). Re-run with --push when ready.\n" >&2
-fi
+printf "\nDone. Images live at:\n" >&2
+printf "  %s\n" "${AR_IMAGE}" >&2
+printf "  %s\n" "${DH_IMAGE}" >&2

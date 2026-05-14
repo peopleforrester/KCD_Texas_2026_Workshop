@@ -30,6 +30,12 @@ spec:
         fsGroup: 1000
       containers:
         - name: sample-app
+          # Image is published to BOTH registries from a single Cloud Build run
+          # (see apps/sample-app/cloudbuild.yaml). Primary is Artifact Registry
+          # because it has no anonymous-pull rate limits — important when 60
+          # student clusters pull from the same conference NAT IP.
+          # Fallback if AR is unreachable for some reason:
+          #   docker.io/peopleforrester/kcd-texas-sample-app:1.0.0
           image: us-east4-docker.pkg.dev/mrf-overall/workshop/sample-app:1.0.0
           ports:
             - containerPort: 8080
