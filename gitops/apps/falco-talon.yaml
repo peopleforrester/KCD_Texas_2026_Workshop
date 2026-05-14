@@ -1,0 +1,78 @@
+# ABOUTME: ArgoCD Application for FalcoTalon — automated response engine for Falco alerts.
+# ABOUTME: Sync wave 4 places it after observability is live and right before the sample apps land.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: falco-talon
+  namespace: argocd
+  annotations:
+    # Wave 4: after observability (wave 3) is up so Talon's responses
+    # are visible in Grafana, and immediately before sample-app (wave 5)
+    # so the demo workloads have a remediation engine ready when they
+    # start running.
+    argocd.argoproj.io/sync-wave: "4"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: falco-talon
+    repoURL: https://falcosecurity.github.io/charts
+    targetRevision: "0.4.0"
+    helm:
+      valuesObject:
+        # Workshop runs ephemerally — one replica is enough, two is the
+        # chart default for production HA.
+        replicaCount: 1
+
+        extraEnv:
+          - name: LOG_LEVEL
+            value: info   # info > the chart default 'warning' so workshop
+                          # logs show action firing on the projector
+
+        service:
+          type: ClusterIP
+          port: 2803      # matches falcosidekick output address
+
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+
+        config:
+          listenAddress: 0.0.0.0
+          listenPort: 2803
+
+          # Surface every alert in logs during the workshop so the audience
+          # can see what's flowing through Sidekick → Talon, not only the
+          # matched-rule ones.
+          printAllEvents: true
+
+          # Notify on k8s Events so kubectl events shows Talon actions
+          # (visible in the standard 'kubectl get events' demo flow).
+          defaultNotifiers:
+            - k8sevents
+
+          # Chart-default response rule: terminate any pod that triggers a
+          # matching Falco alert, with safety guards. Demo will surface this
+          # in Phase 6 (Integration) — fire a shell-exec on a pod and watch
+          # Talon terminate it.
+          rulesOverride: |
+            - action: Terminate Pod
+              actionner: kubernetes:terminate
+              parameters:
+                ignore_daemonsets: true
+                ignore_statefulsets: true
+                grace_period_seconds: 20
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: security
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
