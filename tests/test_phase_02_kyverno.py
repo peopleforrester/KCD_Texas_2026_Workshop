@@ -55,13 +55,13 @@ def test_all_policies_ready():
 
 def test_admission_blocks_noncompliant_pod():
     """A pod without required labels in apps namespace must be REJECTED at admission."""
+    # --rm is incompatible with --dry-run; server-side dry-run never creates the pod
+    # so no cleanup is needed either.
     result = kubectl_returns_error(
         "run", "test-bad-admission", "--image=nginx",
         "-n", "apps", "--restart=Never",
-        "--rm", "--dry-run=server",
+        "--dry-run=server",
     )
-    # Cleanup just in case dry-run somehow created it
-    kubectl_returns_error("delete", "pod", "test-bad-admission", "-n", "apps", "--ignore-not-found")
     assert result.returncode != 0, "Non-compliant pod was accepted; admission should have denied"
     assert "denied" in result.stderr.lower() or "policy" in result.stderr.lower(), \
         f"Pod rejected but not by policy: {result.stderr}"

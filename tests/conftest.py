@@ -50,8 +50,9 @@ def cluster_reachable():
 
 
 def all_pods_running(namespace: str, label_selector: str = None) -> tuple[bool, list]:
-    """Return (True, []) if every pod in the namespace (optionally filtered) is Running.
-    Else (False, [list of (pod_name, phase) for non-running pods])."""
+    """Return (True, []) if every pod in the namespace (optionally filtered) is Running
+    or Succeeded (e.g., finished Job pods like kyverno-migrate-resources).
+    Else (False, [list of (pod_name, phase) for unhealthy pods])."""
     args = ["get", "pods", "-n", namespace]
     if label_selector:
         args += ["-l", label_selector]
@@ -59,6 +60,6 @@ def all_pods_running(namespace: str, label_selector: str = None) -> tuple[bool, 
     bad = []
     for item in data["items"]:
         phase = item["status"].get("phase", "Unknown")
-        if phase != "Running":
+        if phase not in ("Running", "Succeeded"):
             bad.append((item["metadata"]["name"], phase))
     return (len(bad) == 0, bad)

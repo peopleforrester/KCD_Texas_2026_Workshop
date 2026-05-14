@@ -41,13 +41,16 @@ def test_backstage_service_has_endpoints():
 
 
 def test_backstage_image_is_pinned():
-    """The Pod's image must be ghcr.io/roadiehq/community-backstage-image:1.50.4 (the trap-avoiding pin)."""
+    """The Pod's image must be ghcr.io/backstage/backstage:1.30.2 — the chart has no
+    default image; this pin is what stops the Pod from CrashLoopBackOff at start.
+    The earlier roadiehq/community-backstage-image:1.50.4 reference doesn't exist
+    anywhere (HTTP 404 on GHCR; Docker Hub repo abandoned since 2021-08-07)."""
     data = kubectl_json("get", "deployment", "backstage", "-n", "backstage")
     containers = data["spec"]["template"]["spec"]["containers"]
     images = [c["image"] for c in containers]
-    expected = "ghcr.io/roadiehq/community-backstage-image:1.50.4"
+    expected = "ghcr.io/backstage/backstage:1.30.2"
     assert expected in images, \
-        f"Backstage image not pinned to community-backstage-image:1.50.4. Got: {images}"
+        f"Backstage image not pinned to {expected}. Got: {images}"
 
 
 def test_argocd_application_healthy():
