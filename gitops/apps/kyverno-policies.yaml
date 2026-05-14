@@ -26,3 +26,17 @@ spec:
       selfHeal: true
     syncOptions:
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  # Kyverno's admission webhook fills in defaulted spec fields that aren't in the
+  # git manifest. Without this, ArgoCD flags every ClusterPolicy OutOfSync forever
+  # even though the actual policy behavior is correct. Discovered during live
+  # validation on 2026-05-14.
+  ignoreDifferences:
+    - group: kyverno.io
+      kind: ClusterPolicy
+      jsonPointers:
+        - /spec/admission
+        - /spec/emitWarning
+      jqPathExpressions:
+        - .spec.rules[].skipBackgroundRequests
+        - .spec.rules[].validate.allowExistingViolations

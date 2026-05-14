@@ -44,3 +44,13 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  # Kubernetes API server defaults conversion strategy on the policies.kyverno.io
+  # CRD group, causing perpetual OutOfSync on the new policy types
+  # (deletingpolicies, generatingpolicies, mutatingpolicies, etc.). The legacy
+  # kyverno.io CRDs don't drift. Discovered during live validation on 2026-05-14.
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /spec/conversion
