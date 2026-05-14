@@ -66,6 +66,24 @@ def test_falco_pods_running():
     assert ok, f"Falco pods not Running: {bad}"
 
 
+def test_falco_talon_pod_running():
+    """FalcoTalon automated response engine Pod is Running.
+    Sits between Falcosidekick and the cluster: receives forwarded alerts
+    and executes response actions (terminate pod, label, isolate)."""
+    ok, bad = all_pods_running("security", "app.kubernetes.io/name=falco-talon")
+    assert ok, f"FalcoTalon pods not Running: {bad}"
+
+
+def test_falco_talon_service_reachable():
+    """FalcoTalon Service exists on port 2803 — Falcosidekick output target."""
+    data = kubectl_json("get", "endpoints", "falco-talon", "-n", "security")
+    subsets = data.get("subsets", [])
+    addresses = [a for s in subsets for a in s.get("addresses", [])]
+    ports = {p["port"] for s in subsets for p in s.get("ports", [])}
+    assert addresses, "falco-talon Service has no ready endpoints"
+    assert 2803 in ports, f"falco-talon Service ports {ports} do not include 2803"
+
+
 def test_external_secrets_pod_running():
     """ESO controller Pod is Running (Integration may still fail without IRSA)."""
     ok, bad = all_pods_running("platform", "app.kubernetes.io/name=external-secrets")
