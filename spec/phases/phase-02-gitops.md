@@ -40,7 +40,7 @@ After both files exist, diff my generated file against the pre-committed one:
   diff ~/my-app-of-apps.yaml gitops/bootstrap/app-of-apps.yaml
 
 Walk me through every difference. Then I'll apply the pre-committed bootstrap
-and we'll verify ArgoCD discovers all 21 children.
+and we'll verify ArgoCD discovers all 32 children.
 
 When the gate below passes, emit:
 <promise>PHASE_2_DONE</promise>
@@ -60,7 +60,7 @@ kubectl apply -f gitops/bootstrap/app-of-apps.yaml
 
 # Gate 3: app-of-apps + 21 child Applications discovered
 kubectl get application -n argocd
-# Expected within 30-60s: 22 Applications, app-of-apps + 21 children
+# Expected within 30-60s: 33 Applications, app-of-apps + 32 children
 
 # Gate 4: UI reachable (so we can show drift detection later)
 kubectl port-forward -n argocd svc/argocd-server 8080:443 &
@@ -84,7 +84,7 @@ Same paste, same `kubectl apply`. Their ArgoCD also discovers the same 21 child 
 
 **Components covered:** ArgoCD Install + Config, App-of-Apps Pattern, Sync Waves + Ordering (3 of 27)
 
-- **Install** — Did ArgoCD come up Healthy on first chart install? Did the bootstrap discover the 21 children?
+- **Install** — Did ArgoCD come up Healthy on first chart install? Did the bootstrap discover the 32 children?
 - **Integration** — Are the sync waves firing in order? Repo creds resolving? UI reachable?
 - **Usability** — Can I log in? Can I see drift if I edit a Deployment? Are the Application states understandable?
 

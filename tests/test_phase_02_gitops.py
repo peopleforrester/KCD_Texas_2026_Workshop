@@ -7,10 +7,11 @@ from conftest import kubectl_json, all_pods_running
 pytestmark = pytest.mark.usefixtures("cluster_reachable")
 
 EXPECTED_CHILDREN = {
+    # 22 platform Applications
     "argocd-servicemonitors", "backstage", "backstage-resources",
     "cert-manager", "cert-manager-issuers",
     "eso-resources", "external-secrets",
-    "falco", "falcosidekick",
+    "falco", "falcosidekick", "falco-talon",
     "grafana-dashboards",
     "kube-prometheus-stack",
     "kyverno", "kyverno-policies",
@@ -19,6 +20,12 @@ EXPECTED_CHILDREN = {
     "otel-collector", "promtail",
     "rbac", "resource-quotas",
     "tempo",
+    # 10 demo workloads
+    "sample-app",
+    "ecom-api", "ecom-frontend", "ecom-worker",
+    "hedgehog-party", "unicorn-party", "spider-party",
+    "wombat-party", "mantis-shrimp-party",
+    "load-generator",
 }
 
 
@@ -59,7 +66,7 @@ def test_app_of_apps_healthy():
     assert health == "Healthy", f"app-of-apps health='{health}', expected 'Healthy'"
 
 
-def test_all_21_children_discovered():
+def test_all_32_children_discovered():
     """app-of-apps must discover all 21 platform Applications under gitops/apps/."""
     data = kubectl_json("get", "applications", "-n", "argocd")
     names = {item["metadata"]["name"] for item in data["items"]}

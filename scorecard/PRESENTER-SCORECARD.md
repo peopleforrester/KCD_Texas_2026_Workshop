@@ -35,7 +35,7 @@ Fill in **per phase** as you build. Don't backfill at the end; the live capture 
 | Phase / Component | Install (1–10) | Integration (1–10) | Usability (1–10) | Cycles | AI time | Notes |
 |---|---:|---:|---:|---:|---:|---|
 | **Phase 1 — Foundation** (cluster Ready, 9 namespaces, metrics-server) |   |   |   |   |   |   |
-| **Phase 2 — GitOps Bootstrap** (ArgoCD + app-of-apps → 21 children) |   |   |   |   |   |   |
+| **Phase 2 — GitOps Bootstrap** (ArgoCD + app-of-apps → 32 children) |   |   |   |   |   |   |
 | **Phase 3 — Security Stack** (Kyverno + 3 policies, Falco + rules, Falcosidekick, FalcoTalon, ESO, RBAC, NetPol) |   |   |   |   |   |   |
 | **Phase 4 — Observability** (Prom + Grafana + OTel + Loki/Tempo/Promtail) |   |   |   |   |   |   |
 | **Phase 5 — Developer Portal** (Backstage, catalog, templates, demo apps in catalog) |   |   |   |   |   |   |
