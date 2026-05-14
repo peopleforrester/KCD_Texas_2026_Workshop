@@ -35,9 +35,11 @@ spec:
                   period: 24h
         singleBinary:
           replicas: 1
+          # Workshop runs ephemerally — Accenture cluster has no CSI driver
+          # provisioner for gp2, so PVCs would Pend. emptyDir works fine
+          # for the workshop's 90-minute lifespan.
           persistence:
-            size: 5Gi
-            storageClass: gp2
+            enabled: false
         backend:
           replicas: 0
         read:
