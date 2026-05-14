@@ -42,12 +42,12 @@ The workshop is a worked example of one column of the **Agentic Covenants** fram
 
 ### Attendee + operator docs
 
-- `kcd-texas-student-playbook.md` — attendee-facing preflight + connection-card example + follow-along guide + preflight troubleshooting. Aligned with the presenter-led model: attendees mirror Michael's prompts, score their own card, run `/build-phase N` themselves if they fall behind.
+- `kcd-tx-attendee-playbook.md` — attendee-facing preflight + connection-card example + follow-along guide + preflight troubleshooting. Aligned with the presenter-led model: attendees mirror Michael's prompts, score their own card, run `/build-phase N` themselves if they fall behind.
 - `kcd-texas-lab-setup-guide.md` — engineer-facing setup runbook (the canonical "how it all works" doc for operators).
 - `kcd-texas-provisioning-README.md` — cluster-provisioning detail (Terraform + EKS, cost breakdown).
 - `lab-requirements-may-2026-events.md` — lab requirements across the May 2026 speaking events.
 - `kcd-texas-provisioning/` — Terraform modules under `terraform/` + batch provision/teardown + IAM policy JSON. Note: scripts here handle cluster creation; the root `scripts/` directory handles student IAM lifecycle (different concern).
-- `scripts/create-permissions-boundary.sh`, `create-student-users.sh`, `delete-student-users.sh` — student IAM lifecycle.
+- `scripts/create-permissions-boundary.sh`, `create-attendee-users.sh`, `delete-attendee-users.sh` — student IAM lifecycle.
 - `scripts/dry-run-validate.sh` — 45-check static validator (no cluster needed). Verifies file structure, chart versions exist upstream, every Application's `helm template` renders cleanly, sync waves match between specs and `gitops/apps/`, ArgoCD chart 9.x is current GA. Run before any cluster work or before pushing spec changes.
 - `assets/` — Mermaid sources (`.mmd`) and rendered SVGs for the four core diagrams.
 

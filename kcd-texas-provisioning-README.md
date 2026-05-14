@@ -249,8 +249,8 @@ After provisioning completes, the `attendee-configs/` directory contains one fil
 
 ```
 attendee-configs/
-  kcd-texas-student-01-connection.txt
-  kcd-texas-student-02-connection.txt
+  kcd-tx-attendee-01-connection.txt
+  kcd-tx-attendee-02-connection.txt
   ...
 ```
 

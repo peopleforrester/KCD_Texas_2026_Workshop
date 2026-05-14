@@ -11,7 +11,7 @@ Fill this in **as you go**, not after the workshop. Reconstructing scores from m
 You can leave any of these blank. Submission is opt-in.
 
 - **Name (or handle):** ___________________________
-- **Cluster:** kcd-texas-student-___
+- **Cluster:** kcd-tx-attendee-___
 - **Workshop repo URL:** ___________________________
 - **Years of Kubernetes experience:** ___________________________
 - **Have you used Claude Code before today?** Yes / No

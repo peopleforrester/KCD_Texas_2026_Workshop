@@ -43,7 +43,7 @@ module "eks" {
     workshop = {
       # Node group name must NOT include the cluster name -- the EKS module
       # appends "-eks-node-group-<random>" to derive the IAM role name_prefix,
-      # which has a 38-char limit.  cluster_name="kcd-texas-student-NN" (20
+      # which has a 38-char limit.  cluster_name="kcd-tx-attendee-NN" (20
       # chars) + "-workers" + "-eks-node-group-" already busts that limit
       # before the random suffix is even added.  Keep the node group name short.
       name           = "workers"
@@ -75,7 +75,7 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
 
   # Per-student access entries are created post-provision by
-  # scripts/create-student-users.sh using `aws eks create-access-entry` and
+  # scripts/create-attendee-users.sh using `aws eks create-access-entry` and
   # `aws eks associate-access-policy AmazonEKSClusterAdminPolicy`.
   access_entries = {}
 }

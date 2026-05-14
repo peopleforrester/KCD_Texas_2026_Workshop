@@ -31,7 +31,7 @@ Plus a scorecard with three dimensions ([`scorecard/`](scorecard/)). Install, In
 Read **[`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md)** end-to-end. It's the T-30-through-T+90 run sheet — pre-room setup, the literal opening words ([`spec/OPENING-SCRIPT.md`](spec/OPENING-SCRIPT.md)), the single-paste autonomous workflow that drives the whole 90 minutes, the Path A / Path B decision for Phase 4, what-can-go-wrong, and the rehearsal checklist at the bottom. Do the rehearsal once before the day. Before any cluster work, run `bash scripts/dry-run-validate.sh .` and expect a clean pass.
 
 **If you're an attendee at the workshop:**
-Open **[`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md)** and start at *"Before You Start."* You'll claim your cluster credentials at the door from a QR code → landing page (or a printed numbered card if the landing page is offline). Three commands from there gets you to a working `claude` session. From there you mirror Michael's prompts, run the same gate commands he runs, and score your own card.  Michael is solo — no TAs — so use the setup window before T+0 to flag any cluster problems; once the build starts you're driving your own Claude.
+Open **[`kcd-tx-attendee-playbook.md`](kcd-tx-attendee-playbook.md)** and start at *"Before You Start."* You'll claim your cluster credentials from a QR code at the door → web app at https://bubbly-harmony-production-574d.up.railway.app/. Six commands from there gets you to a working `claude` session. From there you mirror Michael's prompts, run the same gate commands he runs, and score your own card. Michael is solo — no TAs — so use the setup window before T+0 to flag any cluster problems; once the build starts you're driving your own Claude.
 
 **If you're reviewing this beforehand** (Accenture, organizers, replicators):
 Read **[`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md)** (~120 lines, this is the spec) → **[`spec/OPENING-SCRIPT.md`](spec/OPENING-SCRIPT.md)** (what Michael says first) → one phase file like [`spec/phases/phase-02-gitops.md`](spec/phases/phase-02-gitops.md) to see the build/diff/gate/score pattern in detail. The [`spec/PRESENTER-RUNBOOK.md`](spec/PRESENTER-RUNBOOK.md) is the operational sequence on top.
@@ -61,7 +61,7 @@ The Kyverno policies + admission controls students see today are server-side enf
 | [`gitops/`](gitops/) | Pre-committed ground-truth GitOps source. ArgoCD on every student cluster reconciles from this directory. |
 | [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Per-attendee scorecard (7 phase rows × Install / Integration / Usability + wrap-up reflection). |
 | [`scorecard/PRESENTER-SCORECARD.md`](scorecard/PRESENTER-SCORECARD.md) | Live on-stage scorecard the audience watches fill in real time. |
-| [`kcd-texas-student-playbook.md`](kcd-texas-student-playbook.md) | Attendee-facing preflight, connection card, follow-along guide, troubleshooting. |
+| [`kcd-tx-attendee-playbook.md`](kcd-tx-attendee-playbook.md) | Attendee-facing preflight, connection card, follow-along guide, troubleshooting. |
 | [`kcd-texas-lab-setup-guide.md`](kcd-texas-lab-setup-guide.md) | Engineer-facing setup guide — how the labs are provisioned end-to-end. |
 | [`kcd-texas-provisioning-README.md`](kcd-texas-provisioning-README.md) | Cluster-provisioning detail (Terraform + EKS, cost breakdown). |
 | [`kcd-texas-provisioning/`](kcd-texas-provisioning/) | Terraform modules + cluster lifecycle scripts. |
@@ -98,7 +98,7 @@ The Kyverno policies + admission controls students see today are server-side enf
 ├── scripts/                               # IAM lifecycle + dry-run-validate.sh
 ├── kcd-texas-provisioning/                # Terraform + cluster lifecycle scripts
 ├── assets/                                # Diagrams
-├── kcd-texas-student-playbook.md          # Attendee follow-along guide
+├── kcd-tx-attendee-playbook.md          # Attendee follow-along guide
 ├── kcd-texas-lab-setup-guide.md           # Engineer-facing setup runbook
 ├── kcd-texas-provisioning-README.md       # Cluster provisioning detail
 ├── lab-requirements-may-2026-events.md

@@ -7,8 +7,8 @@ set -euo pipefail
 STUDENT_COUNT="${1:?Usage: $0 <student_count> <region>}"
 REGION="${2:?Usage: $0 <student_count> <region>}"
 ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-BOUNDARY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/kcd-texas-student-boundary"
-CLUSTER_PREFIX="kcd-texas-student"
+BOUNDARY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/kcd-tx-attendee-boundary"
+CLUSTER_PREFIX="kcd-tx-attendee"
 OUTPUT_DIR="attendee-configs"
 
 mkdir -p "$OUTPUT_DIR"

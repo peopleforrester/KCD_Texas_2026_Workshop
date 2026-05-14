@@ -100,7 +100,7 @@ The presenter runs a separate, identical lab environment with:
 
 The workshop's public Git repository (this repository) contains:
 - `README.md` and `CLAUDE.md` — repo overview and project context
-- `kcd-texas-student-playbook.md` — the 90-minute student walkthrough (covers 4 most-demonstrative phases out of the spec's 7, with copy-paste prompts and verification commands)
+- `kcd-tx-attendee-playbook.md` — the 90-minute student walkthrough (covers 4 most-demonstrative phases out of the spec's 7, with copy-paste prompts and verification commands)
 - `scorecard/SCORECARD-TEMPLATE.md` — scorecard each student fills in during the workshop
 - `assets/` — Mermaid sources and rendered SVG diagrams (cluster topology, GitOps flow, access model, teardown checklist)
 - Post-workshop links to the full 10-hour production build spec at [github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day)

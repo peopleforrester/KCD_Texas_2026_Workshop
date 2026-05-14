@@ -7,7 +7,7 @@ set -euo pipefail
 STUDENT_COUNT="${1:?Usage: $0 <student_count> [--delete-boundary]}"
 DELETE_BOUNDARY="${2:-}"
 ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-CLUSTER_PREFIX="kcd-texas-student"
+CLUSTER_PREFIX="kcd-tx-attendee"
 
 echo "============================================"
 echo "Deleting $STUDENT_COUNT student IAM users"
@@ -47,7 +47,7 @@ echo "Deleted: $DELETED  |  Not found: $NOT_FOUND"
 
 # Optionally delete the permissions boundary policy
 if [ "$DELETE_BOUNDARY" = "--delete-boundary" ]; then
-    BOUNDARY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/kcd-texas-student-boundary"
+    BOUNDARY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/kcd-tx-attendee-boundary"
     echo ""
     echo "Deleting permissions boundary: $BOUNDARY_ARN"
     aws iam delete-policy --policy-arn "$BOUNDARY_ARN" 2>/dev/null && \
@@ -57,4 +57,4 @@ fi
 
 echo ""
 echo "Done. Verify with:"
-echo "  aws iam list-users --query 'Users[?starts_with(UserName, \`kcd-texas-student\`)].UserName' --output text"
+echo "  aws iam list-users --query 'Users[?starts_with(UserName, \`kcd-tx-attendee\`)].UserName' --output text"

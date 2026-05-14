@@ -71,7 +71,7 @@ Run the script once:
 ./scripts/create-permissions-boundary.sh
 ```
 
-This creates the `kcd-texas-student-boundary` managed policy with the following allowlist:
+This creates the `kcd-tx-attendee-boundary` managed policy with the following allowlist:
 
 ```json
 {
@@ -213,7 +213,7 @@ This creates the `kcd-texas-student-boundary` managed policy with the following 
 - IAM user/role/policy creation (no privilege escalation)
 - Organizations, billing, account management
 
-The boundary is a single managed policy, attached to all student users at creation time. The `create-student-users.sh` script handles this automatically.
+The boundary is a single managed policy, attached to all student users at creation time. The `create-attendee-users.sh` script handles this automatically.
 
 ---
 
@@ -233,7 +233,7 @@ The SCP (or boundary) is the ceiling. Each student also needs an IAM policy that
             "Sid": "EKSFullAccessOwnCluster",
             "Effect": "Allow",
             "Action": "eks:*",
-            "Resource": "arn:aws:eks:us-east-2:ACCOUNT_ID:cluster/kcd-texas-student-NN"
+            "Resource": "arn:aws:eks:us-east-2:ACCOUNT_ID:cluster/kcd-tx-attendee-NN"
         },
         {
             "Sid": "EKSList",
@@ -269,21 +269,21 @@ Grant each student cluster-admin via the **EKS Access Entries API** (the modern,
 
 ```bash
 aws eks create-access-entry \
-  --cluster-name kcd-texas-student-NN \
-  --principal-arn arn:aws:iam::ACCOUNT_ID:user/kcd-texas-student-NN \
+  --cluster-name kcd-tx-attendee-NN \
+  --principal-arn arn:aws:iam::ACCOUNT_ID:user/kcd-tx-attendee-NN \
   --type STANDARD \
-  --username kcd-texas-student-NN
+  --username kcd-tx-attendee-NN
 
 aws eks associate-access-policy \
-  --cluster-name kcd-texas-student-NN \
-  --principal-arn arn:aws:iam::ACCOUNT_ID:user/kcd-texas-student-NN \
+  --cluster-name kcd-tx-attendee-NN \
+  --principal-arn arn:aws:iam::ACCOUNT_ID:user/kcd-tx-attendee-NN \
   --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
   --access-scope type=cluster
 ```
 
 `AmazonEKSClusterAdminPolicy` is the AWS-managed access policy that maps to `system:masters` in the cluster. Full cluster admin — students can create namespaces, install CRDs, modify RBAC, deploy anything. It's their cluster.
 
-The API-based path is idempotent (DescribeAccessEntry → CreateAccessEntry), works without kubectl access from the provisioner laptop, and doesn't depend on patching a YAML-as-string field in a ConfigMap. `scripts/create-student-users.sh` runs these calls automatically for each student.
+The API-based path is idempotent (DescribeAccessEntry → CreateAccessEntry), works without kubectl access from the provisioner laptop, and doesn't depend on patching a YAML-as-string field in a ConfigMap. `scripts/create-attendee-users.sh` runs these calls automatically for each student.
 
 ### Connection Card
 
@@ -292,14 +292,14 @@ Each student receives (printed or digital):
 ```
 KCD Texas 2026 — Your Lab Cluster
 
-Cluster:          kcd-texas-student-NN
+Cluster:          kcd-tx-attendee-NN
 Region:           us-east-2
 AWS Access Key:   AKIAxxxxxxxxxxxx
 AWS Secret Key:   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Commands:
   aws configure          (keys above, region: us-east-2, format: json)
-  aws eks update-kubeconfig --name kcd-texas-student-NN --region us-east-2
+  aws eks update-kubeconfig --name kcd-tx-attendee-NN --region us-east-2
   kubectl get nodes      (should show 3 Ready nodes)
 ```
 
@@ -395,7 +395,7 @@ bash post-provision-setup.sh kcd-texas-presenter us-east-2
 
 **Create student IAM users — after clusters are up:**
 ```bash
-./scripts/create-student-users.sh 60 us-east-2
+./scripts/create-attendee-users.sh 60 us-east-2
 ```
 
 For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, creates an EKS Access Entry + associates `AmazonEKSClusterAdminPolicy` at cluster scope, writes connection card to `attendee-configs/`.
@@ -410,7 +410,7 @@ Before the workshop starts, verify every cluster:
 
 ```bash
 for i in $(seq -w 1 64); do
-  CLUSTER="kcd-texas-student-$i"
+  CLUSTER="kcd-tx-attendee-$i"
   aws eks update-kubeconfig --name $CLUSTER --region us-east-2
 
   NODE_COUNT=$(kubectl get nodes --no-headers | grep -c Ready)
@@ -442,7 +442,7 @@ All 64 clusters should show 3 Ready nodes and 6 workshop namespaces.
 ### Delete IAM Users and Permissions Boundary
 
 ```bash
-./scripts/delete-student-users.sh 64 --delete-boundary
+./scripts/delete-attendee-users.sh 64 --delete-boundary
 ```
 
 Deletes all student access keys, inline policies, IAM users, and the permissions boundary policy in one pass.
@@ -465,7 +465,7 @@ aws ec2 describe-nat-gateways --region us-east-2 --filter "Name=state,Values=ava
 aws ec2 describe-addresses --region us-east-2 --query 'Addresses[?AssociationId==null]'
 
 # No remaining IAM users
-aws iam list-users --query 'Users[?starts_with(UserName, `kcd-texas-student`)].UserName' --output text
+aws iam list-users --query 'Users[?starts_with(UserName, `kcd-tx-attendee`)].UserName' --output text
 ```
 
 Every check should return empty. If anything is left, delete it manually.

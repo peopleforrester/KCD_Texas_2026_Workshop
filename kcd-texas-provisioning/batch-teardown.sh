@@ -29,7 +29,7 @@ DESTROYED=0
 FAILED=0
 
 for i in $(seq -w 1 "${ATTENDEE_COUNT}"); do
-  CLUSTER_NAME="kcd-texas-student-${i}"
+  CLUSTER_NAME="kcd-tx-attendee-${i}"
   WORKSPACE="student-${i}"
   
   echo ""

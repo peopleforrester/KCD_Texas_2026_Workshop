@@ -21,7 +21,7 @@ This is single-maintainer discipline, not multi-developer collaboration tooling.
 | `.claude/commands/*.md` | staging | Claude Code (from main) |
 | `tests/test_phase_*.py` | staging | Maintainer in rehearsal (run locally via pytest) |
 | `scripts/dry-run-validate.sh` | staging | Maintainer (run locally) |
-| `kcd-texas-student-playbook.md` | staging | Attendees during the workshop (from main) |
+| `kcd-tx-attendee-playbook.md` | staging | Attendees during the workshop (from main) |
 
 ## The local workflow
 

@@ -5,7 +5,7 @@ variable "region" {
 }
 
 variable "cluster_name" {
-  description = "EKS cluster name.  Each student cluster gets a unique name (e.g., kcd-texas-student-01); batch-provision.sh sets this per-iteration."
+  description = "EKS cluster name.  Each student cluster gets a unique name (e.g., kcd-tx-attendee-01); batch-provision.sh sets this per-iteration."
   type        = string
   default     = "kcd-texas-workshop"
 }

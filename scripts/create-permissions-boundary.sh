@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-POLICY_NAME="kcd-texas-student-boundary"
+POLICY_NAME="kcd-tx-attendee-boundary"
 ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
 
 echo "============================================"
@@ -152,4 +152,4 @@ echo ""
 echo "Created: $ARN"
 echo ""
 echo "This boundary will be attached to every student IAM user."
-echo "Next: run create-student-users.sh"
+echo "Next: run create-attendee-users.sh"

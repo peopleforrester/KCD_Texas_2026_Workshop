@@ -43,7 +43,7 @@ FAILURES=0
 FAILED_CLUSTERS=""
 
 for i in $(seq -w 1 "${ATTENDEE_COUNT}"); do
-  CLUSTER_NAME="kcd-texas-student-${i}"
+  CLUSTER_NAME="kcd-tx-attendee-${i}"
   WORKSPACE="student-${i}"
   
   echo ""
@@ -84,7 +84,7 @@ Workshop repo:  https://github.com/peopleforrester/KCD_Texas_2026_Workshop
 
 Start the workshop:
   claude
-  # Then follow kcd-texas-student-playbook.md, starting at "Before You Start".
+  # Then follow kcd-tx-attendee-playbook.md, starting at "Before You Start".
 
 If you get stuck, raise your hand.  TAs are circulating.
 ================================================================
