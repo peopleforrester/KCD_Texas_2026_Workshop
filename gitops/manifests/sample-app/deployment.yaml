@@ -30,7 +30,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: sample-app
-          image: nginxinc/nginx-unprivileged:alpine
+          image: us-east4-docker.pkg.dev/mrf-overall/workshop/sample-app:1.0.0
           ports:
             - containerPort: 8080
               protocol: TCP
@@ -56,13 +56,13 @@ spec:
               memory: 128Mi
           readinessProbe:
             httpGet:
-              path: /
+              path: /ready
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
