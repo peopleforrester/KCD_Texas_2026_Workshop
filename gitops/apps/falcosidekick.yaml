@@ -14,12 +14,20 @@ spec:
   source:
     chart: falcosidekick
     repoURL: https://falcosecurity.github.io/charts
-    targetRevision: "0.12.1"
+    targetRevision: "0.13.1"
     helm:
       valuesObject:
         config:
           prometheus:
             extralabels: ""
+          # Forward Falco alerts to FalcoTalon for automated response.
+          # falco-talon (gitops/apps/falco-talon.yaml, sync wave 4) listens on
+          # port 2803 in the security namespace. minimumpriority=notice flows
+          # everything informational+ through so the workshop demo can show
+          # end-to-end remediation on a low-severity event.
+          talon:
+            address: "http://falco-talon.security.svc.cluster.local:2803"
+            minimumpriority: "notice"
         webui:
           enabled: false
         podAnnotations:
