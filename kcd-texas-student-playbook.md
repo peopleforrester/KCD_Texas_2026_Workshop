@@ -29,56 +29,56 @@ If Claude Code isn't installed before you walk in, you'll lose 10 minutes to ins
 
 ## Before You Start (5 min)
 
-**You claim your cluster credentials at the door.** A QR code on the projector (or by the door) points at a self-service landing page that hands you a unique pre-provisioned cluster. If the landing page is offline, fall back to the numbered cards in a stack at the door. Same content either way — it looks like this:
+**Claim your cluster from the registration web app:**
+
+> **https://bubbly-harmony-production-574d.up.railway.app/**
+
+A QR code on the projector and on a sign at the door points at the same URL. Open it on your phone or laptop, enter your email, and the app atomically assigns you one pre-provisioned EKS cluster from the pool. You'll land on a success page that shows your AWS credentials and the six commands to run.
+
+The success page looks like:
 
 ```
 ================================================================
-KCD Texas 2026 — "The 90-Minute IDP"
+Cluster assigned:  kcd-tx-attendee-23
+Region:            <region shown on your page>
 
-Cluster:        kcd-texas-student-23
-Region:         us-east-2
+AWS Access Key:    AKIAxxxxxxxxxxxxxxxx
+AWS Secret Key:    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-AWS Access Key: AKIAxxxxxxxxxxxxxxxx
-AWS Secret Key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-Workshop repo:  https://github.com/peopleforrester/KCD_Texas_2026_Workshop
-
-Michael is solo today — no TAs.  Use the setup window before T+0
-to flag any problems.  After the build starts he's driving the
-projector and can't help individuals.
+Six commands to run in your terminal (also copyable from the page).
 ================================================================
 ```
 
-**On your laptop, in your terminal:**
+Michael is solo today — no TAs. Use the setup window before T+0 to flag any problems. After the build starts he's driving Claude on the projector and can't help individuals.
+
+**On your laptop, in your terminal, run the six commands from your success page:**
 
 ```bash
-# 1. Configure AWS with the keys on your connection card
+# 1. Configure AWS with the keys shown on your success page
 aws configure
-# AWS Access Key ID:     (from card)
-# AWS Secret Access Key: (from card)
-# Default region:        us-east-2
+# AWS Access Key ID:     (from your success page)
+# AWS Secret Access Key: (from your success page)
+# Default region:        (the region shown on your success page)
 # Default output format: json
 
 # 2. Connect kubectl to your cluster
-aws eks update-kubeconfig --name kcd-texas-student-NN --region us-east-2
+aws eks update-kubeconfig --name kcd-tx-attendee-NN --region <region>
 
 # 3. Verify the cluster is alive
 kubectl get nodes
 # Expected: 3 nodes, all Ready
 
-# 4. Verify the workshop namespaces are pre-created
-kubectl get ns argocd kyverno monitoring backstage apps sample-app
-# Expected: all 6 namespaces, status Active
+# 4. Clone the workshop repo
+git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
 
-# 5. Clone the workshop repo locally
-git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git ~/kcd-texas-workshop
-cd ~/kcd-texas-workshop
+# 5. Enter the repo directory
+cd KCD_Texas_2026_Workshop
 
 # 6. Start Claude Code in that directory
 claude
 ```
 
-If `kubectl get nodes` fails or shows fewer than 3 nodes, **raise your hand during the setup window** — Michael has spare cluster credentials in his pocket and will swap you in 30 seconds. Once the build starts (Phase 2) he can't break away to help individuals.
+If `kubectl get nodes` fails, shows fewer than 3 nodes, or the success page never loaded — **raise your hand during the setup window**. Michael will reassign you a fresh cluster row from the pool by re-submitting your email on the admin page. Once the build starts (Phase 2) he can't break away to help individuals.
 
 ### Bring your own cluster (BYOC)
 
@@ -86,9 +86,9 @@ If you brought your own cluster, skip the AWS configure + kubeconfig steps. Thre
 
 - `kubectl get nodes` returns at least **3 Ready nodes** with roughly **16 GB total spare RAM**
 - You have **`cluster-admin`** (installing CRDs and admission webhooks needs it)
-- The six workshop namespaces exist: `kubectl create ns argocd kyverno monitoring backstage apps sample-app`
+- No conflicts with the 9 namespaces the workshop creates (the `namespaces` ArgoCD Application will create them): `argocd, apps, kyverno, monitoring, backstage, security, platform, cert-manager, falco`
 
-Then jump to step 5 (clone the workshop repo) and continue normally.
+Then jump to step 4 (clone the workshop repo) and continue normally.
 
 ### Preflight troubleshooting (during the setup window before T+0)
 
@@ -96,11 +96,13 @@ Fix yourself first; flag Michael only if it's not a 30-second fix.
 
 | Symptom | First-pass fix |
 |---|---|
-| `aws configure` rejects the keys | Re-enter carefully — secrets often paste with leading/trailing whitespace. Confirm region is `us-east-2`, format `json`. |
+| Web app `/` page doesn't load | Try the QR again on your phone. If still down, flag Michael — the registration backend went sideways. |
+| Submitting your email returns "pool exhausted" | More attendees showed up than clusters provisioned. Flag Michael — he has spare rows. |
+| `aws configure` rejects the keys | Re-enter carefully — secrets often paste with leading/trailing whitespace. Use the success page's copy button. Confirm region matches the page. |
 | `aws sts get-caller-identity` fails | Your keys aren't reaching AWS. Check `~/.aws/credentials` actually got written. |
-| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — flag Michael, ask for a spare. |
-| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — flag Michael, ask for a spare. |
-| `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, ask for a spare. |
+| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — flag Michael, ask for a reassign. |
+| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — flag Michael, ask for a reassign. |
+| `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, flag Michael. |
 
 ---
 
