@@ -1,5 +1,5 @@
 # ABOUTME: Kubernetes namespace definitions for all platform components.
-# ABOUTME: Creates 8 namespaces with PSS labels on apps namespace for defense-in-depth.
+# ABOUTME: Creates 9 namespaces with PSS labels on apps namespace for defense-in-depth.
 ---
 apiVersion: v1
 kind: Namespace
@@ -60,3 +60,17 @@ metadata:
   name: cert-manager
   labels:
     app.kubernetes.io/part-of: kubeauto-idp
+---
+# FalcoTalon's leader-election controller writes its Lease to a namespace
+# named 'falco' (chart default; not configurable via values without a
+# fork). The Talon Pods themselves run in 'security' alongside Falco +
+# Falcosidekick; this namespace exists only to hold the coordination
+# Lease. Without it, Talon spams 'namespaces "falco" not found' in logs
+# every reconciliation cycle. Empty namespace, zero workload cost.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: falco
+  labels:
+    app.kubernetes.io/part-of: kubeauto-idp
+    app.kubernetes.io/purpose: falco-talon-leader-election

@@ -24,7 +24,9 @@ else
 fi
 
 section "Workshop namespaces exist"
-for ns in argocd apps kyverno monitoring backstage security; do
+# 9 platform namespaces. 'falco' is intentionally empty — it holds
+# FalcoTalon's leader-election Lease; chart hardcodes the name.
+for ns in argocd apps kyverno monitoring backstage security platform cert-manager falco; do
     if kubectl get ns "${ns}" >/dev/null 2>&1; then
         allow "namespace ${ns} present"
     else

@@ -53,6 +53,7 @@ When the gate passes:
 - **Falco fails to load eBPF driver.** EKS nodes need a recent enough kernel. Workshop uses Bottlerocket/AL2023 which works; older AMIs may need a different driver. Skill file pins `modern_ebpf`.
 - **Falco custom rules don't fire on `kubectl exec`.** Common cause: rule's `condition` filter excludes the process tree. Skill file shows the correct `proc.pname in (runc:[2:INIT], cri-o, containerd-shim)` filter.
 - **ESO Pod Running but ExternalSecret status `SecretSyncError`.** Expected on Accenture: the `eks.amazonaws.com/role-arn` annotation in `gitops/apps/external-secrets.yaml` is a `PLACEHOLDER` because there's no IRSA role provisioned. Score Install 8 (ESO Pod healthy), Integration 2 (can't actually pull secrets). This is exactly the kind of variance the workshop is built to expose.
+- **FalcoTalon spams `namespaces "falco" not found`.** Talon's leader-election controller hardcodes the `falco` namespace for its coordination Lease, even though the Pods themselves run in `security`. The workshop creates an empty `falco` namespace specifically to hold this Lease (see `gitops/manifests/namespaces/namespaces.yaml`). If you see this error after the workshop spec applies cleanly, the namespaces Application didn't sync — check `kubectl get application namespaces -n argocd`. Discovered during live validation on 2026-05-14.
 
 ## What students see on their cluster
 

@@ -6,7 +6,12 @@ from conftest import kubectl_json, all_pods_running
 
 pytestmark = pytest.mark.usefixtures("cluster_reachable")
 
-REQUIRED_NAMESPACES = {"argocd", "apps", "kyverno", "monitoring", "backstage", "kube-system"}
+REQUIRED_NAMESPACES = {
+    "argocd", "apps", "kyverno", "monitoring", "backstage",
+    "security", "platform", "cert-manager",
+    "falco",       # holds FalcoTalon's leader-election Lease; empty by design
+    "kube-system",
+}
 
 
 def test_node_count_at_least_two():
