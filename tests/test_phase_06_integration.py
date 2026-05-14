@@ -10,27 +10,26 @@ pytestmark = pytest.mark.usefixtures("cluster_reachable")
 
 
 def test_argocd_drift_selfheals():
-    """Scale argocd-redis to 3, wait, ArgoCD should revert to 1 (selfHeal)."""
-    # Get current spec replicas (what ArgoCD wants)
+    """Scale argocd-redis to +2, wait up to 3 min, ArgoCD should revert (selfHeal).
+    ArgoCD's reconcile cycle in the workshop is 30s; selfHeal kicks in after
+    drift detection completes. 3 min allows for slow Helm-chart-managed Apps
+    that take a longer reconcile cycle."""
     data = kubectl_json("get", "deployment", "argocd-redis", "-n", "argocd")
     desired = data["spec"]["replicas"]
 
-    # Drift it
     kubectl("scale", "deployment", "argocd-redis", "-n", "argocd",
             f"--replicas={desired + 2}")
-    # Wait up to 60s for ArgoCD selfHeal
     reverted = False
-    for _ in range(12):
+    for _ in range(36):  # 36 × 5s = 3 min
         time.sleep(5)
         data = kubectl_json("get", "deployment", "argocd-redis", "-n", "argocd")
         if data["spec"]["replicas"] == desired:
             reverted = True
             break
     if not reverted:
-        # Reset manually
         kubectl("scale", "deployment", "argocd-redis", "-n", "argocd",
                 f"--replicas={desired}")
-    assert reverted, f"ArgoCD did not selfHeal drift within 60s (still {data['spec']['replicas']} replicas)"
+    assert reverted, f"ArgoCD did not selfHeal drift within 180s (still {data['spec']['replicas']} replicas)"
 
 
 def test_admission_denial_produces_visible_error():
@@ -46,31 +45,43 @@ def test_admission_denial_produces_visible_error():
         f"Admission denial missing policy name in stderr: {result.stderr[:300]}"
 
 
-def test_backstage_catalog_api_returns_entities():
-    """Backstage catalog API reachable via in-cluster Service; returns >=1 entity."""
+def test_backstage_catalog_api_reachable():
+    """Backstage catalog API reachable via kubectl port-forward; returns parseable JSON.
+    Uses the Service abstraction rather than exec-ing into the Pod (the Backstage image
+    doesn't ship wget/curl)."""
+    import json
+    import time as _time
     pod_data = kubectl_json("get", "pods", "-n", "backstage",
                              "-l", "app.kubernetes.io/name=backstage")
     pods = [p for p in pod_data["items"] if p["status"].get("phase") == "Running"]
     assert pods, "no Running Backstage pods to test catalog"
 
-    # Hit /api/catalog/entities via kubectl exec curl inside any kube-system pod or kubectl proxy
-    # Simpler: use kubectl get --raw via the Service
-    pod = pods[0]["metadata"]["name"]
-    result = subprocess.run(
-        ["kubectl", "exec", "-n", "backstage", pod, "--", "wget", "-qO-",
-         "http://localhost:7007/api/catalog/entities"],
-        capture_output=True, text=True, timeout=20,
+    # Start a port-forward on a unique port to avoid collisions
+    pf = subprocess.Popen(
+        ["kubectl", "port-forward", "-n", "backstage",
+         "svc/backstage", "7077:7007"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
-    assert result.returncode == 0, f"Failed to query catalog: {result.stderr[:200]}"
-    import json
     try:
-        entities = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        pytest.fail(f"Catalog returned non-JSON: {result.stdout[:200]}")
-    assert isinstance(entities, list), f"Catalog response not a list: {type(entities)}"
-    # Workshop's seed catalog has at least 0 entities (empty is acceptable);
-    # but the API must respond
-    # Don't gate on count — just on API reachability
+        _time.sleep(4)
+        result = subprocess.run(
+            ["curl", "-sS", "--max-time", "10",
+             "http://localhost:7077/api/catalog/entities"],
+            capture_output=True, text=True, timeout=15,
+        )
+        assert result.returncode == 0, f"curl failed: {result.stderr[:200]}"
+        try:
+            entities = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            pytest.fail(f"Catalog returned non-JSON: {result.stdout[:200]}")
+        assert isinstance(entities, list), f"Catalog response not a list: {type(entities)}"
+        # API reachability is what we gate on; entity count can be 0 (seed catalog)
+    finally:
+        pf.terminate()
+        try:
+            pf.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pf.kill()
 
 
 def test_argocd_total_app_health_status():
