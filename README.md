@@ -79,7 +79,7 @@ The Kyverno policies + admission controls students see today are server-side enf
 │   ├── PRESENTER-RUNBOOK.md               # 90-min run sheet
 │   └── phases/
 │       ├── phase-01-foundation.md        # assert pre-provisioned cluster
-│       ├── phase-02-gitops.md             # ArgoCD + app-of-apps → 21 children
+│       ├── phase-02-gitops.md             # ArgoCD + app-of-apps → 32 Applications
 │       ├── phase-03-security.md           # Kyverno, Falco family, ESO, RBAC, NetPol
 │       ├── phase-04-observability.md      # Prom/Grafana/OTel/LGTM
 │       ├── phase-05-portal.md             # Backstage (Path A live / Path B recorded)
@@ -92,7 +92,7 @@ The Kyverno policies + admission controls students see today are server-side enf
 │   └── settings.json
 ├── gitops/                                # Pre-committed ground truth (ArgoCD source)
 │   ├── bootstrap/app-of-apps.yaml         # Root Application
-│   ├── apps/                              # 5 child Applications (with sync waves)
+│   ├── apps/                              # 32 Applications: 22 platform + 10 demo (sync waves)
 │   └── manifests/                         # ClusterPolicies, ServiceMonitors
 ├── scorecard/                             # Per-attendee + presenter scorecards
 ├── scripts/                               # IAM lifecycle + dry-run-validate.sh
@@ -121,6 +121,7 @@ git push origin staging
 
 ## Sibling repos
 
+- **`../kcd-website/`** — the Flask app at [bubbly-harmony-production-574d.up.railway.app](https://bubbly-harmony-production-574d.up.railway.app/) that hands attendees their cluster credentials. Reads `pool.csv` (cluster + AWS keys + region per row), atomically claims one per email submission, shows a success page with the 6 setup commands + the pacing prompt to paste into Claude. Lives on Railway; not in this repo.
 - **[github.com/peopleforrester/agentic-covenants](https://github.com/peopleforrester/agentic-covenants)** — the framework this workshop is a worked example of. Source of truth for the Agentic Covenants matrix.
 - **[github.com/peopleforrester/kubeauto-ai-day](https://github.com/peopleforrester/kubeauto-ai-day)** — the same 7-phase reference build (~10 hours overnight, from-zero terraform-apply). The workshop attempts the same 7-phase / 27-component build in 90 minutes against a pre-provisioned cluster. Contains the 27-component scorecard the closing slide compares against.
 
