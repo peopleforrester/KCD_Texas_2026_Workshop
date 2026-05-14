@@ -36,10 +36,19 @@ spec:
         singleBinary:
           replicas: 1
           # Workshop runs ephemerally — Accenture cluster has no CSI driver
-          # provisioner for gp2, so PVCs would Pend. emptyDir works fine
-          # for the workshop's 90-minute lifespan.
+          # provisioner for gp2, so PVCs would Pend. The chart's
+          # persistence.enabled:false drops the volumeClaimTemplate but
+          # doesn't add an emptyDir at /var/loki, so Loki crashes with
+          # 'mkdir /var/loki: read-only file system'. Mount an emptyDir
+          # at /var/loki explicitly.
           persistence:
             enabled: false
+          extraVolumes:
+            - name: storage
+              emptyDir: {}
+          extraVolumeMounts:
+            - name: storage
+              mountPath: /var/loki
         backend:
           replicas: 0
         read:
