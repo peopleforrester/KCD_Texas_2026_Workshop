@@ -32,3 +32,8 @@ Thumbs.db
 *.log
 .scratch/
 tmp/
+
+# Pytest bytecode cache (per-Python-version, should not be tracked)
+tests/__pycache__/
+**/__pycache__/
+*.pyc
