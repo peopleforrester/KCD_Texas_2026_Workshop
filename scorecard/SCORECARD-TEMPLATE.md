@@ -2,7 +2,7 @@
 
 **Workshop:** "The 90-Minute IDP" • **Date:** May 15, 2026
 
-Fill this in **as you go**, not after the workshop. Reconstructing scores from memory at the end is the kind of thing that makes the data useless. Each phase's row should take ~30 seconds to fill in once you've finished that phase's verification step.
+**You don't hand-edit this file.** After each phase, run `/score-component phase-N` in your Claude (e.g. `/score-component phase-2`). Claude asks you the five numbers and writes the row. At the end, run `/score-component wrap-up` and Claude walks you through the six reflection questions and fills those in too. The whole scorecard is built by Claude from your spoken answers — no typing into the markdown.
 
 ---
 
@@ -21,7 +21,7 @@ You can leave any of these blank. Submission is opt-in.
 
 ## Per-Phase Scores
 
-Fill one row at the end of each phase, *as you go* — don't backfill from memory at the end. Same dimensions as the live presenter scorecard you'll see on the projector; your numbers and the room's will be visible side by side at the close.
+After each phase, run `/score-component phase-N` in your Claude. Claude finds the row, asks you for the five values, writes them in. Don't backfill from memory at the end — score in the 30-second window right after the phase's gate output is fresh. Same dimensions as the live presenter scorecard you'll see on the projector; your numbers and the room's will be visible side by side at the close.
 
 | Phase / Component | Install (1–10) | Integration (1–10) | Usability (1–10) | Cycles | AI time | Notes (1 line) |
 |---|---:|---:|---:|---:|---:|---|
@@ -34,7 +34,7 @@ Fill one row at the end of each phase, *as you go* — don't backfill from memor
 | Phase 7 — Hardening (cert-manager + ClusterIssuers + Quotas + PDBs) | | | | | | |
 | **Totals / Average** | | | | | | — |
 
-### How to fill each column
+### What each column means (Claude will recite these when you run `/score-component`)
 
 - **Install (1–10):** Did the manifest, after applying, bring the component up healthy? First try, no rewrites? That's a 10. Three correction cycles, image registry workaround, manual chart-version archaeology? That's a 4. Score what *happened*, not what the playbook implies should happen.
 - **Integration (1–10):** A *separate* dimension from Install. AI can install a component cleanly and still produce something that doesn't actually work end-to-end. Score whether the component does the thing it's supposed to do, in concert with everything around it. Per-phase examples:
@@ -58,7 +58,7 @@ Fill one row at the end of each phase, *as you go* — don't backfill from memor
 
 ## Wrap-Up Reflection
 
-Fill this in **once**, after Phase 4. Keep it short — one or two sentences per prompt is enough.
+Run `/score-component wrap-up` once at the end of the workshop. Claude asks you the six questions below in order and writes your answers into this section. Keep each answer short — one or two sentences is enough.
 
 ### 1. Manual time estimate
 

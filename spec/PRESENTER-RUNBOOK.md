@@ -6,7 +6,7 @@ This is the sequence Michael executes on workshop day. Rough timing is suggested
 
 ## T-30 min (10:00 AM) — pre-room
 
-- Plug in laptop, mirror to projector. Left half: terminal. Right half: `scorecard/PRESENTER-SCORECARD.md` open in a Markdown previewer.
+- Plug in laptop, mirror to projector. Left half: terminal (the build Claude). Right half: `scorecard/PRESENTER-SCORECARD.md` open in a Markdown previewer that auto-reloads. **You will NOT edit the markdown by hand on stage.** After each phase's promise, type `/score-component phase-N` in your stage Claude — Claude asks you the five values out loud, the audience hears the answers, the previewer refreshes with the new row.
 - Open `claude` in the cloned workshop repo. Confirm `.claude/skills/*.md` and `.claude/commands/*.md` are loaded (run `/build-phase 1` to dry-run, then close without executing).
 - Spin up the pre-recorded Phase 4 video in a separate browser tab, ready to switch to if needed.
 - Pull up the closing-slide QR codes in a separate tab: workshop repo, kubeauto reference, agentic-covenants framework, scorecard submission URL.
@@ -14,9 +14,9 @@ This is the sequence Michael executes on workshop day. Rough timing is suggested
 
 ## Credential distribution
 
-**Direction (for the PowerPoint, not yet spec'd):** QR code at the door → self-service landing page that hands each student a unique pre-provisioned cluster credential. Single source of truth, no manual handoff, no clipboard tracking. The detailed design (landing page architecture, credential pool management, claim-tracking) is a separate deliverable; for now, the runbook assumes the QR-and-landing-page flow exists by workshop day.
+QR code at the door → Railway-hosted landing page ([bubbly-harmony-production-574d.up.railway.app](https://bubbly-harmony-production-574d.up.railway.app/)) that hands each EKS-path attendee a unique pre-provisioned cluster credential row from `pool.csv`. Single source of truth, no manual handoff, no clipboard tracking, **no paper.** KodeKloud attendees skip this entirely — their lab launches credentials inside the browser shell.
 
-Until that's built, fallback is printed numbered cards in a stack at the door. Same content either way: cluster name, region, AWS keys, repo URL, three setup commands.
+If the landing page is down at T-15, the workshop's EKS path is down too. There is no paper fallback. (`CLAUDE.md` calls this out explicitly: "No paper-card fallback — if the web app is down, the workshop is down.") The realistic recovery is: tell EKS attendees to switch to the KodeKloud path while the web app is brought back up.
 
 ## T-15 min (10:15) — students arrive
 
@@ -79,7 +79,7 @@ Claude will:
 5. Run `pytest tests/test_phase_01_foundation.py -v`
 6. When all tests pass: output `<promise>PHASE_1_DONE</promise>` and pause
 
-Score Phase 1 on the live scorecard with the room watching. Say "continue" — Claude moves to Phase 2 autonomously. Repeat for Phases 2 through 7.
+Score Phase 1 by running `/score-component phase-1` in your stage Claude. The room watches you say the five values out loud; Claude writes the row into `scorecard/PRESENTER-SCORECARD.md` in real time on the projector. Then say "continue" to your build-spec Claude — it moves to Phase 2 autonomously. Repeat the `/score-component phase-N` rhythm after each phase's promise.
 
 **You are the conductor, not the operator.** Claude is doing spec-driven dev live; you narrate the failures by name when they happen, score after each promise, and decide when to stop.
 
@@ -107,7 +107,7 @@ Tell Claude `stop and emit ALL_PHASES_COMPLETE`. Switch to the Phase 4 recording
 
 > "We didn't get to Phase 4 live today. Here's the recording I made last night, no audience pressure, same spec, same Claude. Watch what AI did."
 
-Play the recording. Narrate the failure modes it shows. Score on the live scorecard with the numbers from the recording.
+Play the recording. Narrate the failure modes it shows. Score it via `/score-component phase-5` (or whichever phase the recording covers) using the numbers from the recording — same flow, just sourced from playback instead of live build.
 
 ## T+80–85 (11:50) — wrap-up
 
@@ -139,12 +139,12 @@ You're alone with 60 students. Triage decisions are blunt: keep the room moving,
 1. **A student's credentials don't work / `kubectl get nodes` fails.** During the setup window only: walk over, look at the screen, common fix is usually region typo or stale `~/.aws/credentials`. **If it's not a 30-second fix, hand them a spare cluster's credentials from your pocket and move on.** Pre-provision 5–10 spare clusters expressly for this. After Phase 1 starts, students with broken setups become observers, not participants — they still see the methodology, they just can't run alongside.
 2. **My Claude Code locks up mid-build.** Restart `claude`, paste the spec again, resume from the last `<promise>PHASE_N_DONE>` we saw. Don't apologize at length — narrate it as "this is what AI tools look like when they're at the edge of context windows."
 3. **A test gate fails on stage.** Narrate by name using the phase spec's Known Failure Modes. The failure is the talk.
-4. **Setup pause runs long.** If at T+8 minutes (10:38) you've still got more than ~5 students dark, *don't push to T+15*. Start Phase 1 anyway. Dark students keep watching, score on the connection-card scorecard based on what they see Claude do on the projector. Honest framing: "If your setup didn't land, you're in observer mode for the build — still take notes, still score what you see."
+4. **Setup pause runs long.** If at T+8 minutes (10:38) you've still got more than ~5 students dark, *don't push to T+15*. Start Phase 1 anyway. Dark students keep watching the projector and the live presenter scorecard fill in — they're in observer mode for the build, no personal scorecard unless they get connected later and resume. Honest framing: "If your setup didn't land, you're in observer mode — still take notes, still see how Claude scores it."
 5. **The projector mirroring breaks.** Backup HDMI cable in your bag. Worst case, students follow along from the playbook on their own laptops — they have the same Claude, same prompts, same repo.
-6. **The QR landing page is down at T-15.** Fall back to printed numbered cards (which you should also have in your bag, even when the QR flow is "working"). This is your insurance policy and the reason the cards-direction is in this runbook even though the QR flow is the plan.
+6. **The Railway landing page is down at T-15.** EKS path is down. Tell EKS attendees to switch to the KodeKloud browser path on the slide — there are 50+ slots available there. There is no paper fallback; the workshop is digital-only by design.
 7. **Time runs short before Phase 4.** Switch to the pre-recorded Backstage segment. Don't try to rush Phase 4 live in 5 minutes.
 
-The single highest-leverage thing to do for "Michael alone" mode: **pre-provision spare clusters and have spare credentials physically with you.** The cost is 5–10 unused EKS clusters for a day. The value is being able to swap a broken cluster in 30 seconds instead of debugging it in 5 minutes during a workshop you're also running.
+The single highest-leverage thing to do for "Michael alone" mode: **have spare credentials a tap away.** The Railway pool.csv already includes the spare EKS clusters; the web app hands them out atomically. If a student's first claim is broken, point them at the web app to claim another row. If KodeKloud's pool has spare slots, that's the lower-friction redirect. No paper, no pocket cards, no folder — all digital, all atomic.
 
 ## Rehearsal checklist (do this once before workshop day)
 
@@ -159,7 +159,7 @@ The single highest-leverage thing to do for "Michael alone" mode: **pre-provisio
 - [ ] Practice the opener out loud, three times. Especially the "there are no TAs today, just me" line — it's a real constraint and the room needs to hear it.
 - [ ] Practice the closing script out loud, twice.
 - [ ] Confirm the projector mirroring works with your typical terminal font sizes (audience needs to read it from the back of the room).
-- [ ] Print ~70 numbered credential cards as a fallback even if the QR landing page is ready. Carry them in your bag. They cost nothing and they're the insurance policy if the landing page misbehaves.
-- [ ] Pre-provision 5–10 spare clusters with their credentials on extra cards. Keep those cards in your pocket — not in a folder, not in a bag, in your pocket. Walking-distance access matters when you have 60 seconds to swap a broken cluster.
+- [ ] Confirm the Railway landing page is up and serving from the current `pool.csv` (T-30 sanity check at the venue: open the page on your phone, submit a test email, confirm you get a real cluster row back). Smoke-test with a `kubectl get nodes` from one of the spare credential rows.
+- [ ] Confirm the KodeKloud course link works in an incognito browser. The redirect path if EKS bombs is "switch to KodeKloud," so verify that path is alive.
 
 If anything in rehearsal surfaces a spec/skill bug, edit the relevant Markdown file. Re-run `dry-run-validate.sh`. Commit.

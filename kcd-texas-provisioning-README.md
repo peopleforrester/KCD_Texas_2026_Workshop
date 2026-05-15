@@ -254,9 +254,9 @@ attendee-configs/
   ...
 ```
 
-Each file contains the cluster name, region, endpoint, and the kubectl command to connect. Distribute these to attendees via printed cards, email, or a shared doc.
+Each file contains the cluster name, region, endpoint, and the AWS credentials. **Distribution is digital, not on paper.** The per-attendee files feed `../kcd-website/pool.csv`, which the Railway-hosted Flask app at [bubbly-harmony-production-574d.up.railway.app](https://bubbly-harmony-production-574d.up.railway.app/) reads to hand a single row out per attendee email submission. No printed cards, no email, no shared doc — the QR-and-web-app flow is the only distribution channel.
 
-**Important:** Attendees need AWS CLI credentials configured to run `aws eks update-kubeconfig`. If attendees don't have their own AWS credentials, you'll need to provide temporary credentials or a pre-configured kubeconfig file. Talk to Michael Forrester about attendee access strategy before the event.
+If the Railway page is down on workshop day, the EKS path is down with it (per `CLAUDE.md`: *"No paper-card fallback — if the web app is down, the workshop is down"*); redirect EKS attendees to the KodeKloud browser path.
 
 ### Post-Workshop: Destroy Everything
 

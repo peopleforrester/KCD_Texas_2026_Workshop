@@ -2,10 +2,10 @@
 
 **Workshop:** "The 90-Minute IDP" • **Date:** May 15, 2026
 
-This is the live, on-stage scorecard the presenter fills in **on the projector** as the build progresses. Different artifact from the per-attendee `SCORECARD-TEMPLATE.md`:
+This is the live, on-stage scorecard. **The presenter doesn't hand-edit this file either.** After each phase, Michael runs `/score-component phase-N` from the projector terminal — Claude asks him the five values and writes the row in real time, visible to the room. Different artifact from the per-attendee `SCORECARD-TEMPLATE.md`:
 
-- **Student scorecard** = each attendee's personal record. Two scoring dimensions per phase (Toil Reduced, Integration), plus a wrap-up reflection that includes a one-time Usability rating. ~60 of these get filled out independently in the room.
-- **Presenter scorecard** (this file) = single canonical scorecard the presenter fills live, **three** dimensions per component (Install, Integration, Usability), visible to the room. The room sees one scorecard fill in real time while filling their own private one alongside.
+- **Student scorecard** = each attendee's personal record. Three scoring dimensions per phase (Install, Integration, Usability), plus a wrap-up reflection. ~60 of these get filled out independently in the room via `/score-component` running in each attendee's Claude.
+- **Presenter scorecard** (this file) = single canonical scorecard Claude writes for the presenter via `/score-component`, live on stage, same three dimensions, visible to the room. The room watches Michael speak the five values out loud and Claude writes the row into this file in real time — each attendee runs `/score-component` in their own Claude on the same beat.
 
 Both feed the wrap-up discussion. The student scorecards are aggregable for a follow-on talk; this presenter scorecard is the talk's anchor artifact.
 
@@ -30,7 +30,7 @@ Plus operational metrics:
 
 ## Live Scorecard
 
-Fill in **per phase** as you build. Don't backfill at the end; the live capture is the point.
+After each phase's promise emits, run `/score-component phase-N` from the projector Claude. The room watches you walk through the five values out loud; Claude writes the row. Don't backfill at the end — the live capture is the point.
 
 | Phase / Component | Install (1–10) | Integration (1–10) | Usability (1–10) | Cycles | AI time | Notes |
 |---|---:|---:|---:|---:|---:|---|
@@ -81,4 +81,4 @@ Whichever pattern shows up, that's the talk's payoff: the implementation layer d
 
 ## After the talk
 
-This file is a *single canonical record*. Save the filled-in version (with date, the actual scores) into `scorecard/results/presenter-2026-05-15.md` (create the `results/` directory if needed) and commit. Future replicators (Accenture, others running this workshop format) can compare their results against yours to see whether the patterns repeat across rooms.
+This file is a *single canonical record*. After the workshop, ask Claude to copy this file to `scorecard/results/presenter-2026-05-15.md` (create the `results/` directory if needed) and commit. Future replicators (Accenture, others running this workshop format) can compare their results against yours to see whether the patterns repeat across rooms.

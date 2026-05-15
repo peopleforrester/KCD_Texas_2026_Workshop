@@ -160,7 +160,7 @@ Fix yourself first; flag Michael only if it's not a 30-second fix.
 
 ## How this works (the follow-along model)
 
-Michael drives Claude on stage. **You drive your own Claude on your own cluster.** The same prompts go in, the same `kubectl` commands come out the other side. The scorecard fills in on the projector and on your card simultaneously.
+Michael drives Claude on stage. **You drive your own Claude on your own cluster.** The same prompts go in, the same `kubectl` commands come out the other side. After each phase you run `/score-component phase-N` in your Claude — yours and his fill in parallel, his on the projector, yours in your repo. No paper, no hand-editing.
 
 You have three options for participation:
 
@@ -216,14 +216,21 @@ kubectl get application -n argocd
 #   backstage               Synced  Healthy / Progressing
 ```
 
-### Score Phase 2 on your scorecard
+### Score Phase 2
 
-Row: **ArgoCD bootstrap + app-of-apps**
+In your Claude:
+
+```
+/score-component phase-2
+```
+
+Claude opens [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md), finds the Phase 2 row, asks you for five values, writes the row. You don't open the file yourself. The five values:
+
 - **Install** (1–10): did Claude's generated manifest, after the apply, bring ArgoCD up healthy?
 - **Integration** (1–10): did the bootstrap discover the five child Applications cleanly?
 - **Usability** (1–10): can you reach the ArgoCD UI, log in, see drift if you edit something?
-- Cycles (count of corrective prompts you sent Claude)
-- AI time (wall clock from paste to gate-passing)
+- **Cycles** (count of corrective prompts you sent Claude)
+- **AI time** (wall clock minutes from paste to gate-passing)
 
 If any gate fails: the playbook's per-phase Known Failure Modes are in [`spec/phases/phase-02-gitops.md`](spec/phases/phase-02-gitops.md) — Claude reads them too. Most likely cause is `configs.params.timeout.reconciliation` at the wrong path (should be `configs.cm`).
 
@@ -274,9 +281,13 @@ kubectl delete pod test-system -n kube-system
 
 ### Score Phase 3
 
-Two rows in this phase: **Kyverno install** and **Kyverno policies**. Integration is the interesting score — did the policies *actually fire correctly*? Bad rejected, good accepted, system allowed. All three must hold.
+```
+/score-component phase-3
+```
 
-Known traps Claude tends to fall into (from the skill file): webhook `namespaceSelector` as a YAML list instead of a map; Kyverno policies Application without `ServerSideApply=true`. If a gate fails, name the trap.
+Phase 3 has multiple components (Kyverno, Falco, ESO, RBAC, NetworkPolicies) folded into one Phase 3 row in the student scorecard. Integration is the interesting score — did the policies *actually fire correctly*? Bad rejected, good accepted, system allowed. All three must hold. Claude will recall what happened during the phase as it asks you the five values.
+
+Known traps Claude tends to fall into (from the skill file): webhook `namespaceSelector` as a YAML list instead of a map; Kyverno policies Application without `ServerSideApply=true`. If a gate fails, name the trap when Claude asks for your Install/Integration scores.
 
 ---
 
@@ -317,6 +328,10 @@ kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
 ```
 
 ### Score Phase 4
+
+```
+/score-component phase-4
+```
 
 Integration is the interesting score: is Prometheus *actually scraping* ArgoCD's metrics endpoints, AND is Grafana showing real cluster data? Both must hold.
 
@@ -367,6 +382,10 @@ If Path B: watch the recording. Score what you see.
 
 ### Score Phase 5
 
+```
+/score-component phase-5
+```
+
 **Usability score for Backstage will be low.** That's not a failing — it's honest. The workshop image has a small static catalog and no working software templates. Production Backstage requires a custom-built image with org-specific catalog providers, plugins, and templates. That gap — *installed-but-not-shippable* — is the talk's closing line.
 
 Known trap (from the skill file): the Backstage chart has no default image; `backstage.image.repository` and `tag` must be set. The workshop image is `ghcr.io/backstage/backstage:1.30.2` (the upstream image's last tagged release). The required `backstage.appConfig.kubernetes.clusterLocatorMethods: []` override prevents a startup crash.
@@ -375,27 +394,22 @@ Known trap (from the skill file): the Backstage chart has no default image; `bac
 
 ## Wrap-up (5 min)
 
-Total your scorecard:
+```
+/score-component wrap-up
+```
 
-| Row | Install | Integration | Usability | Cycles | AI time |
-|---|---:|---:|---:|---:|---:|
-| ArgoCD bootstrap | | | | | |
-| Kyverno install | | | | | |
-| Kyverno policies | | | | | |
-| kube-prometheus-stack | | | | | |
-| Backstage | | | | | |
-| **Average** | | | | | |
+Claude opens your `SCORECARD-TEMPLATE.md`, computes the averages row across whatever phases you scored, then asks you the six wrap-up reflection questions in order — one at a time — and writes your answers into the file:
 
-For the wrap-up reflection (one question, once):
+1. **Manual time estimate** — if you'd built the same stack by hand (no AI), your honest guess in hours or days.
+2. **Did AI shift the toil?** — No / Partial / Yes. One sentence on which phase felt most/least like babysitting.
+3. **Usability rating (1–10)** — could you actually deploy a service through this platform tomorrow morning? What's the single biggest barrier?
+4. **Where AI helped most.** One specific moment.
+5. **Where AI struggled.** One specific failure pattern.
+6. **One thing you'll take back to your team.** Optional; blank is fine.
 
-- **Manual time estimate:** if you'd built the same stack by hand (no AI), your honest guess for how long it would have taken — hours? days?
-- **Did AI shift the toil?** No / Partial / Yes. One sentence on which phase felt most/least like babysitting.
-- **Usability rating (1–10):** could you actually deploy a service through this platform tomorrow morning? What's the single biggest barrier?
-- **Where AI helped most.** One specific moment.
-- **Where AI struggled.** One specific failure pattern.
-- **One thing you'll take back to your team.**
+You answer out loud or in chat; Claude writes the markdown. You never open the file.
 
-For comparison, the kubeauto reference build (single experienced engineer, overnight, no time pressure, 7 phases, 27 components) took **3 hours 10 minutes of AI time** with a **73.8% net toil reduction** and a **41% zero-correction rate**. The workshop run-of-the-day is a 4-component subset under live pressure with audience watching — your numbers will be different. **The variance is the data.** The closing slide compares yours to the reference and asks: what does the gap tell you about where AI actually helps?
+For comparison, the kubeauto reference build (single experienced engineer, overnight, no time pressure, 7 phases, 27 components) took **3 hours 10 minutes of AI time** with a **73.8% net toil reduction** and a **41% zero-correction rate**. The workshop run-of-the-day is whatever subset we landed under live pressure with audience watching — your numbers will be different. **The variance is the data.** The closing slide compares yours to the reference and asks: what does the gap tell you about where AI actually helps?
 
 ### What you take home
 
@@ -410,7 +424,7 @@ For comparison, the kubeauto reference build (single experienced engineer, overn
 
 **This repository stays public and bookmarkable.** Everything you saw today — the playbook, the spec, the GitOps source, the scorecard template, the framework reference — lives at [github.com/peopleforrester/KCD_Texas_2026_Workshop](https://github.com/peopleforrester/KCD_Texas_2026_Workshop). Fork it; extend it; reference it freely.
 
-**Your scorecard is yours.** If you're willing to share it for the post-workshop aggregation (anonymized — no names, no cluster IDs in the published version), drop the filled file as `scorecard.md` in a fork or send it via the channel on the closing slide. Or keep it private. The personal-reflection value is the point either way.
+**Your scorecard is yours.** If you're willing to share it for the post-workshop aggregation (anonymized — no names, no cluster IDs in the published version), commit the file Claude built up for you as `scorecard.md` in your fork, or send it via the channel on the closing slide. Or keep it private. The personal-reflection value is the point either way.
 
 **Where to ask follow-on questions:** open an Issue on this repository.
 

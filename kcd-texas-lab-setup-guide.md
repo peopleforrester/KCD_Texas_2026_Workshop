@@ -38,7 +38,7 @@ AWS-side, students are restricted to only the services needed to operate their E
 | **By May 1** | Test: provision 1 cluster, create 1 IAM user, verify student can connect with full admin |
 | **By May 8** | Test: batch provision 3 clusters, validate student access end-to-end, destroy |
 | **May 14 evening or May 15 morning** | Provision all 64 clusters + create IAM users |
-| **May 15, 10:00 AM** | Validate all clusters, distribute connection cards |
+| **May 15, 10:00 AM** | Validate all clusters, confirm Railway landing page is up and `pool.csv` is current |
 | **May 15, 12:30 PM (or when Michael says go)** | Destroy everything |
 
 ---
@@ -285,9 +285,9 @@ aws eks associate-access-policy \
 
 The API-based path is idempotent (DescribeAccessEntry → CreateAccessEntry), works without kubectl access from the provisioner laptop, and doesn't depend on patching a YAML-as-string field in a ConfigMap. `scripts/create-attendee-users.sh` runs these calls automatically for each student.
 
-### Connection Card
+### Credential Delivery
 
-Each student receives (printed or digital):
+EKS-path attendees claim a credential row by scanning the QR code on slide 1, which opens the Railway-hosted landing page ([bubbly-harmony-production-574d.up.railway.app](https://bubbly-harmony-production-574d.up.railway.app/)). They submit their email and the app atomically pulls a row from `pool.csv`, returning a success page that shows:
 
 ```
 KCD Texas 2026 — Your Lab Cluster
@@ -302,6 +302,8 @@ Commands:
   aws eks update-kubeconfig --name kcd-tx-attendee-NN --region us-east-2
   kubectl get nodes      (should show 3 Ready nodes)
 ```
+
+No paper, no clipboard, no manual handoff. The success page is digital-only and the workshop's `CLAUDE.md` is explicit: **if the landing page is down, the workshop's EKS path is down — there is no paper fallback** (redirect those attendees to the KodeKloud path).
 
 ---
 
@@ -398,9 +400,9 @@ bash post-provision-setup.sh kcd-texas-presenter us-east-2
 ./scripts/create-attendee-users.sh 60 us-east-2
 ```
 
-For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, creates an EKS Access Entry + associates `AmazonEKSClusterAdminPolicy` at cluster scope, writes connection card to `attendee-configs/`.
+For each student: creates IAM user with permissions boundary, attaches cluster-scoped inline policy, creates access key, creates an EKS Access Entry + associates `AmazonEKSClusterAdminPolicy` at cluster scope, writes a per-attendee credential file to `attendee-configs/`. Those per-attendee files feed `../kcd-website/pool.csv`, which the Railway web app reads to hand credentials out one-per-claim.
 
-The spares do not need student IAM users at creation time — Michael hands them out from his pocket during the setup window if a student's cluster doesn't work. The receiving student configures `aws` with whatever credentials are on the spare card and proceeds normally. (Workshop is solo-presenter: no TAs to distribute these in parallel.)
+Spares are part of the same `pool.csv`. If a student's first claim is broken, they re-submit at the web app and the next available row is handed back to them atomically — no presenter handoff needed.
 
 ---
 

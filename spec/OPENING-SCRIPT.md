@@ -14,7 +14,7 @@ Read this approximately verbatim. ~165 words, ~70 seconds at conversational pace
 >
 > What we *are* doing is teaching the methodology I used to build it. **Spec-driven development with Claude Code.** I write a spec. I hand it to Claude. Claude generates the platform. I verify with test gates. I score what Claude did. I move on.
 >
-> Today I drive Claude live on this projector, building a piece of the same IDP — real CNCF projects, ArgoCD, Kyverno, Prometheus, Backstage. You build alongside me on your own EKS cluster, with your own Claude Code, with the credentials you got from the landing page when you walked in.
+> Today I drive Claude live on this projector, building a piece of the same IDP — real CNCF projects, ArgoCD, Kyverno, Prometheus, Backstage. You build alongside me on your own cluster, with your own Claude Code — either the KodeKloud browser lab you launched from the course page, or the EKS cluster you claimed at the landing page. Same spec, same scorecard.
 >
 > How far we get is how far we get. The live scorecard tells you where AI saved toil and where it just shifted it.
 >
@@ -46,7 +46,7 @@ After the opener, before any prompts get pasted. Three quick slides.
 >
 > Plus correction cycles (count) and AI wall-clock time (minutes). Scoring honestly is the entire point. Inflated scores undermine the data; the variance between phases is the talk.
 >
-> The scorecard fills in real-time on the right half of the projector while my terminal runs on the left. You score your own on the card we gave you with your connection info.
+> The scorecard fills in real-time on the right half of the projector while my terminal runs on the left. You score your own by typing `/score-component phase-N` into your own Claude after each phase — Claude asks you the five values and writes the row into your scorecard file for you. No paper, no typing into markdown, no manual totaling. The whole scoring loop happens inside Claude.
 
 ### Slide 4 — "Today's scope, honestly"
 
@@ -68,9 +68,9 @@ After the opener, before any prompts get pasted. Three quick slides.
 
 Switch to terminal. The first thing on screen is `cat spec/BUILD-SPEC.md` so the audience sees the artifact they just heard about. Then:
 
-> "I'm going to paste this spec into Claude in a second. Before I do that — open your laptops. The three setup commands from your landing-page card: `aws configure`, `aws eks update-kubeconfig`, `kubectl get nodes`. If `kubectl get nodes` doesn't show three Ready nodes, raise your hand now — there are no TAs today, just me, so the setup window is the only time I can help individuals. I'd rather start two minutes late with everyone connected than on time with a third of the room behind."
+> "I'm going to paste this spec into Claude in a second. Before I do that — KodeKloud attendees, your browser shell should already be sitting at the cloned workshop repo with `claude` running. EKS attendees, the three setup commands from your landing page success screen: `aws configure`, `aws eks update-kubeconfig`, `kubectl get nodes`. Either way, `kubectl get nodes` should show three Ready nodes. If it doesn't, raise your hand now — there are no TAs today, just me, so the setup window is the only time I can help individuals. I'd rather start two minutes late with everyone connected than on time with a third of the room behind."
 
-Pause 3–5 minutes for stragglers. Walk between the rows. Hand spare-cluster credentials to anyone whose setup doesn't land. Then begin Phase 1.
+Pause 3–5 minutes for stragglers. Walk between the rows. If an EKS attendee's cluster is broken, send them back to the landing page to claim a fresh row from the pool — the web app handles handoff atomically. If they can't get an EKS slot working in a minute, redirect them to the KodeKloud path on the slide. Then begin Phase 1.
 
 ---
 

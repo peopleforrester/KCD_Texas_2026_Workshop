@@ -55,7 +55,7 @@ The methodology is replicable for whatever your team is building. Three artifact
 | **The spec** | [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md) | Plain Markdown, ~120 lines. Tells Claude what to build, in what order, with what stack pins. Single-paste autonomous execution. |
 | **The skills** | [`.claude/skills/`](.claude/skills/) | Current-version patterns Claude reads before generating each component. One per CNCF project. Auto-loaded when `claude` runs from the repo root. |
 | **The test gates** | [`tests/`](tests/) | Pytest assertions that a phase actually worked. Real `kubectl` calls, no mocks. No promise without a green gate. |
-| **The scorecard** | [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Three dimensions × 7 phases. You fill it in real time. |
+| **The scorecard** | [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) | Three dimensions × 7 phases. After each phase, you run `/score-component phase-N` and Claude fills the row from your spoken answers — no hand-editing. |
 
 The variance between Install / Integration / Usability across phases is the data the closing slide hangs on.
 
@@ -63,7 +63,7 @@ The variance between Install / Integration / Usability across phases is the data
 
 1. **Get to a working `claude` session** in the workshop repo (per the path you picked above).
 2. **Mirror the presenter's prompts** as they're run on the projector. Same prompt, your cluster.
-3. **Watch your scorecard fill in** as each phase lands or fails. Use [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md) — printed card optional.
+3. **Score each phase via `/score-component phase-N`** in your Claude. Claude walks you through Install / Integration / Usability / Cycles / AI time and writes the row in [`scorecard/SCORECARD-TEMPLATE.md`](scorecard/SCORECARD-TEMPLATE.md). At the end, run `/score-component wrap-up` for the six reflection questions. You never type into the markdown.
 4. **Score honestly.** Empty rows and failures are data. A 4/10 Install with a frank reason beats a faked 9/10.
 5. **Compare with the room at the end.** Variance between paths and within phases is what the talk hangs on.
 
