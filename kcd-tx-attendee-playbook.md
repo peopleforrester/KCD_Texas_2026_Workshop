@@ -4,33 +4,54 @@
 
 ## Pick your path
 
-The workshop runs on **two environments**. Pick the one that fits how you want to work today. The spec is identical; what changes is where the cluster lives and how you log in.
+Two paths to get to a working `claude` session. Same workshop, same methodology, same scorecard.
 
-### Path A — AWS EKS (your laptop terminal)
+### Path A — Browser (KodeKloud) — recommended for most attendees
 
-**For:** attendees comfortable in a local terminal with `aws`, `kubectl`, and a shell.
+Zero local installs. Open **https://learn.kodekloud.com/user/courses/the-90-minutes-idp** in your browser. You get a 3-node kubeadm cluster (k8s 1.36) and a terminal that's already authenticated. ~50+ slots.
 
-- ~10 clusters available. Claimed first-come-first-served from the registration web app.
-- Real EKS 1.32 on AWS, real Pod Identity, real cloud integrations.
-- Phase 3 (ESO) and Phase 7 (cert-manager) demonstrate the **production-shape** integrations — but the IRSA + Route53 wiring isn't pre-provisioned, so those phases score lower on Integration. That's the workshop's central scorecard data point.
-- Setup: scan the QR → Railway app at https://bubbly-harmony-production-574d.up.railway.app/ → email → AWS keys → six setup commands → `claude` running locally.
+In the browser shell:
 
-### Path B — KodeKloud browser lab
+```bash
+kubectl get nodes        # expect 3 Ready
+git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+cd KCD_Texas_2026_Workshop
+claude
+```
 
-**For:** attendees who'd rather not touch their laptop's AWS config, or who don't have a local `kubectl` set up.
+When Claude starts, paste the prompt from the top of [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md).
 
-- Per-attendee browser shell, pre-authenticated. No AWS, no installation, no setup window. Browser is enough.
-- Vanilla kubeadm Kubernetes 1.36, Calico CNI, 3 Ubuntu nodes.
-- Phase 3 (ESO) and Phase 7 (cert-manager) use **local, no-cloud-backend** alternatives — Kubernetes Secrets backend for ESO, self-signed ClusterIssuer for cert-manager. These actually complete end-to-end (Integration scores higher than EKS), but Usability tops out at "production-trusted in-cluster TLS" (no public DNS).
-- Setup: open the course at https://learn.kodekloud.com/user/courses/the-90-minutes-idp → launch the lab → in the browser shell `git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git && cd KCD_Texas_2026_Workshop && claude`.
+### Path B — Terminal (Accenture EKS) — higher-fidelity, requires local setup
 
-Both paths run the same `spec/BUILD-SPEC.md`. Claude Code detects which cluster type you're on at Phase 1 and writes a marker file (`.cluster-type`) that the rest of the build reads to branch behavior where it matters. The scorecard divergence between the two paths on Phase 3 and Phase 7 is **the point**, not a defect.
+Requires **Claude Code** (authenticated), **AWS CLI v2**, **kubectl**, and **git** installed on your laptop. Scan the QR on slide 1 → enter your email at **https://bubbly-harmony-production-574d.up.railway.app/** → get cluster credentials. 10 slots.
+
+In your terminal:
+
+```bash
+aws configure                                                       # paste keys from the success page
+aws eks update-kubeconfig --name kcd-tx-attendee-NN --region us-east-2
+kubectl get nodes                                                   # expect 3 Ready
+git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git
+cd KCD_Texas_2026_Workshop
+claude
+```
+
+When Claude starts, paste the prompt from the top of [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.md).
+
+### Note on environment differences
+
+The workshop runs identically across both paths for **Phases 2, 4, 5, and 6**. Phases 1, 3, and 7 detect cluster type and adapt:
+
+- **Phase 3 (ESO):** KodeKloud uses the **Kubernetes Secrets backend**. EKS uses the **AWS Secrets Manager backend via Pod Identity**.
+- **Phase 7 (cert-manager):** KodeKloud uses a **self-signed ClusterIssuer**. EKS uses **ACME via Route53 DNS-01**.
+
+The divergence is intentional. It's part of the scorecard data — you'll see different Integration scores between the two environments at the end. Both paths run the same `spec/BUILD-SPEC.md`; Claude Code detects which cluster type you're on at Phase 1 and writes a marker file (`.cluster-type`) that the rest of the build reads to branch behavior where it matters.
 
 ---
 
 ## Orientation (for readers reviewing this before the workshop)
 
-This is the attendee-facing companion to a **presenter-led, audience follow-along** workshop at KCD Texas 2026. Michael drives Claude Code live on stage with a build spec; ~60 attendees mirror the same prompts against their own pre-provisioned EKS clusters using Claude Code on their laptops. Real CNCF projects (ArgoCD, Kyverno, Prometheus + Grafana, Backstage), real `kubectl` test gates, real scorecard scored on three dimensions (Install / Integration / Usability) in real time on the projector.
+This is the attendee-facing companion to a **presenter-led, audience follow-along** workshop at KCD Texas 2026. Michael drives Claude Code live on stage with a build spec; ~60 attendees mirror the same prompts against their own per-attendee cluster — most via the KodeKloud browser lab, ~10 via a pre-provisioned EKS cluster on a laptop. Real CNCF projects (ArgoCD, Kyverno, Prometheus + Grafana, Backstage), real `kubectl` test gates, real scorecard scored on three dimensions (Install / Integration / Usability) in real time on the projector.
 
 The point is **not** to finish the IDP in 90 minutes. The point is to demonstrate spec-driven development with Claude Code on a real platform-engineering build, score what AI does honestly across three dimensions, and walk out with a methodology you can apply Monday morning.
 
@@ -44,18 +65,20 @@ The full spec Michael hands Claude is at [`spec/BUILD-SPEC.md`](spec/BUILD-SPEC.
 
 You should arrive with:
 
-- A laptop with terminal access, **kubectl**, the **AWS CLI**, and **git** installed
-- **Claude Code** installed and authenticated on the laptop (every attendee runs Claude Code against their own cluster — this is hands-on, not observe-the-presenter)
-- Comfortable with kubectl basics (pods, deployments, services, namespaces) and a CLI
+- Comfort with `kubectl` basics (pods, deployments, services, namespaces) and a command-line shell
 - Helm and ArgoCD experience helpful but not required — you'll see both in action
 
-If Claude Code isn't installed before you walk in, you'll lose 10 minutes to install + auth and the workshop will already be past Phase 2 (the GitOps bootstrap). Install ahead of time.
+**Path A (KodeKloud) attendees:** that's it. No laptop installs required — the browser shell ships with `kubectl`, `git`, and `claude` already in place.
+
+**Path B (EKS) attendees:** you'll also need a laptop with terminal access, **kubectl**, the **AWS CLI** (v2), and **git** installed, plus **Claude Code** installed and authenticated. If Claude Code isn't installed before you walk in, you'll lose 10 minutes to install + auth and the workshop will already be past Phase 2 (the GitOps bootstrap). Install ahead of time.
 
 ---
 
 ## Before You Start (5 min)
 
-**Claim your cluster from the registration web app:**
+> Path A (KodeKloud) attendees: your launch sequence is the four-command block under "Path A — Browser" above. Once `claude` is running in the cloned repo, jump to "How this works (the follow-along model)" below. The rest of this section is **Path B (EKS) attendees only**.
+
+### Path B — Claim your cluster from the registration web app
 
 > **https://bubbly-harmony-production-574d.up.railway.app/**
 
@@ -120,15 +143,18 @@ Then jump to step 4 (clone the workshop repo) and continue normally.
 
 Fix yourself first; flag Michael only if it's not a 30-second fix.
 
-| Symptom | First-pass fix |
-|---|---|
-| Web app `/` page doesn't load | Try the QR again on your phone. If still down, flag Michael — the registration backend went sideways. |
-| Submitting your email returns "pool exhausted" | More attendees showed up than clusters provisioned. Flag Michael — he has spare rows. |
-| `aws configure` rejects the keys | Re-enter carefully — secrets often paste with leading/trailing whitespace. Use the success page's copy button. Confirm region matches the page. |
-| `aws sts get-caller-identity` fails | Your keys aren't reaching AWS. Check `~/.aws/credentials` actually got written. |
-| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — flag Michael, ask for a reassign. |
-| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — flag Michael, ask for a reassign. |
-| `kubectl get nodes` shows fewer than 3 nodes | Node still scheduling — wait 30 seconds. If still short, flag Michael. |
+| Symptom | First-pass fix | Applies to |
+|---|---|---|
+| KodeKloud lab page won't load or the browser shell never appears | Refresh once. If still down, flag Michael — the course backend went sideways. | Path A |
+| KodeKloud shell shows fewer than 3 nodes | Wait 30 seconds for the lab to finish provisioning. If still short, restart the lab from the course page. | Path A |
+| `claude` not on PATH in the KodeKloud shell | Reload the lab — the pre-installed image should ship with it. If reload doesn't help, flag Michael. | Path A |
+| Registration web app `/` page doesn't load | Try the QR again on your phone. If still down, flag Michael — the registration backend went sideways. | Path B |
+| Submitting your email returns "pool exhausted" | More attendees showed up than clusters provisioned. Flag Michael — he has spare rows. | Path B |
+| `aws configure` rejects the keys | Re-enter carefully — secrets often paste with leading/trailing whitespace. Use the success page's copy button. Confirm region matches the page. | Path B |
+| `aws sts get-caller-identity` fails | Your keys aren't reaching AWS. Check `~/.aws/credentials` actually got written. | Path B |
+| `aws eks update-kubeconfig` returns "AccessDenied" | Your IAM user may not have access to the cluster yet — flag Michael, ask for a reassign. | Path B |
+| `kubectl get nodes` returns "Unauthorized" | The cluster's Access Entries don't have your user mapped — flag Michael, ask for a reassign. | Path B |
+| `kubectl get nodes` shows fewer than 3 nodes (EKS) | Node still scheduling — wait 30 seconds. If still short, flag Michael. | Path B |
 
 ---
 
