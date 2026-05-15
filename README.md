@@ -88,7 +88,7 @@ The Kyverno policies + admission controls students see today are server-side enf
 ├── .claude/                               # Claude Code instrumentation
 │   ├── skills/                            # argocd, kyverno, kube-prometheus-stack, backstage
 │   ├── commands/                          # /build-phase, /score-component, /validate-phase
-│   ├── hooks/cc-stop-deterministic.sh     # Holds Claude on-phase until PHASE_N_DONE
+│   ├── hooks/cc-stop-deterministic.sh     # Per-phase promise enforcer for /build-phase (currently inactive; primary flow is single-paste autonomous)
 │   └── settings.json
 ├── gitops/                                # Pre-committed ground truth (ArgoCD source)
 │   ├── bootstrap/app-of-apps.yaml         # Root Application
