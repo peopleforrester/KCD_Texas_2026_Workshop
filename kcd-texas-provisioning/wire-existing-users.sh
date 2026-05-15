@@ -3,9 +3,10 @@
 # ABOUTME: Creates a 2nd access key per user, EKS Access Entry, writes pool.csv directly to ../kcd-website/.
 #
 # State this script assumes (verified via discovery on 2026-05-15):
-#   - 60 EKS clusters ACTIVE: kcd-tx-attendee-01 .. kcd-tx-attendee-60 in us-east-2
-#   - 60 matching IAM users exist with 1 active access key each
-#   - 0 of those users have an EKS Access Entry on their matching cluster
+#   - 62 EKS clusters ACTIVE: kcd-tx-attendee-01 .. kcd-tx-attendee-62 in us-east-2
+#     (Accenture provisioned 60 in the first wave + 2 late-adds with Access
+#     Entries pre-attached; the EKS step is idempotent on both shapes)
+#   - 62 matching IAM users exist with 1 active access key each
 #   - AWS keys' secrets are cryptographically lost from the AWS side (only the
 #     access-key-id is visible; secret was emitted at creation time only)
 #
@@ -33,7 +34,15 @@
 #
 # Usage:
 #   AWS_PROFILE=kcd-instructor bash kcd-texas-provisioning/wire-existing-users.sh
-#   AWS_PROFILE=kcd-instructor bash kcd-texas-provisioning/wire-existing-users.sh 10  # only first 10
+#   AWS_PROFILE=kcd-instructor bash kcd-texas-provisioning/wire-existing-users.sh 10
+#       # first 10 only (01..10)
+#   AWS_PROFILE=kcd-instructor START_FROM=61 \
+#       bash kcd-texas-provisioning/wire-existing-users.sh 62
+#       # range — only users 61..62 (e.g., picking up late-adds after a partial run)
+#
+# Note on START_FROM > 1: the script *appends* to pool.csv rather than rewriting
+# the header, so previously-wired users stay in the file. Make sure pool.csv
+# already has a header before partial runs.
 #
 # Re-run safety: the IAM create-access-key step is NOT idempotent — running
 # twice will fail when AWS rejects the 3rd key (cap is 2 per user). If you
@@ -42,7 +51,8 @@
 
 set -euo pipefail
 
-NUM_USERS="${1:-60}"
+NUM_USERS="${1:-62}"
+START_FROM="${START_FROM:-1}"
 REGION="${REGION:-us-east-2}"
 ACCOUNT_ID="${ACCOUNT_ID:-771128797125}"
 POOL_CSV="${POOL_CSV:-../kcd-website/pool.csv}"
@@ -58,7 +68,7 @@ mkdir -p "${LOG_DIR}"
 # ─── Pre-flight ────────────────────────────────────────────────────────────
 echo "──────────────────────────────────────────────────────────────────────────"
 echo "  Wire existing IAM users → EKS clusters → pool.csv"
-echo "  users:        kcd-tx-attendee-01 .. kcd-tx-attendee-$(printf '%02d' "${NUM_USERS}")"
+echo "  users:        kcd-tx-attendee-$(printf '%02d' "${START_FROM}") .. kcd-tx-attendee-$(printf '%02d' "${NUM_USERS}")"
 echo "  region:       ${REGION}"
 echo "  expected acct: ${ACCOUNT_ID}"
 echo "  pool.csv →    ${POOL_CSV_PATH}"
@@ -85,15 +95,24 @@ if [[ ! -d "$(dirname "${POOL_CSV_PATH}")" ]]; then
     printf "ERROR: directory '%s' does not exist\n" "$(dirname "${POOL_CSV_PATH}")" >&2
     exit 1
 fi
-echo "name,access_key,secret_key,region" > "${POOL_CSV_PATH}"
-echo "  ✓ wrote pool.csv header"
+# Write the header only on a full run (START_FROM=1); partial runs append.
+if [[ "${START_FROM}" -eq 1 ]]; then
+    echo "name,access_key,secret_key,region" > "${POOL_CSV_PATH}"
+    echo "  ✓ wrote pool.csv header (full-run mode)"
+else
+    if [[ ! -s "${POOL_CSV_PATH}" ]]; then
+        echo "ERROR: START_FROM=${START_FROM} but pool.csv is empty/missing — refuse to silently lose the header" >&2
+        exit 1
+    fi
+    echo "  ✓ appending to existing pool.csv (partial-run mode, START_FROM=${START_FROM})"
+fi
 echo
 
 # ─── Loop ──────────────────────────────────────────────────────────────────
 SUCCESSES=0
 FAILURES=()
 
-for i in $(seq -w 1 "${NUM_USERS}"); do
+for i in $(seq -w "${START_FROM}" "${NUM_USERS}"); do
     USER_NAME="kcd-tx-attendee-${i}"
     CLUSTER_NAME="kcd-tx-attendee-${i}"
     USER_ARN="arn:aws:iam::${ACCOUNT_ID}:user/${USER_NAME}"
