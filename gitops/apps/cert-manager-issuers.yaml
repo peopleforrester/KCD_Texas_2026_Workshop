@@ -6,9 +6,14 @@ metadata:
   name: cert-manager-issuers
   namespace: argocd
   annotations:
-    # Wave 2: Depends on cert-manager (wave 1) for CRDs and admission webhook.
-    # Retry config handles the case where CRDs are not yet registered.
-    argocd.argoproj.io/sync-wave: "2"
+    # Wave 3 (was 2): one wave of slack after cert-manager (wave 1) so the
+    # cert-manager-webhook Service has time to populate endpoints before this
+    # Application's manifests trigger the validating webhook. Without this
+    # slack the first sync attempt hits "no endpoints available for service
+    # cert-manager-webhook" and burns retry budget while the webhook is
+    # still warming up. Dress-rehearsal on attendee-62 (2026-05-15) caught
+    # this -- retry exhausted before the webhook stabilized.
+    argocd.argoproj.io/sync-wave: "3"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -26,8 +31,12 @@ spec:
       prune: true
       selfHeal: true
     retry:
-      limit: 5
+      # Bumped from limit=5 / maxDuration=3m. The cert-manager-webhook can
+      # take longer than 3min to reach Ready on slow image-pull clusters,
+      # which previously starved this Application's retry budget. A 10/10m
+      # window absorbs that without changing steady-state behavior.
+      limit: 10
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 3m
+        maxDuration: 10m

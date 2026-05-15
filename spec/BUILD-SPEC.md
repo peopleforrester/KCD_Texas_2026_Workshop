@@ -98,12 +98,12 @@ Phase 2 applies `gitops/bootstrap/app-of-apps.yaml` which references `gitops/app
 | -3  | falco, eso-resources | 3 |
 | -2  | falcosidekick | 3 |
 | 1   | cert-manager, kube-prometheus-stack | 4, 7 |
-| 2   | argocd-servicemonitors, otel-collector, cert-manager-issuers | 4, 7 |
-| 3   | grafana-dashboards, loki, tempo, resource-quotas | 4, 7 |
+| 2   | argocd-servicemonitors, otel-collector | 4 |
+| 3   | grafana-dashboards, loki, tempo, resource-quotas, cert-manager-issuers | 4, 7 |
 | 4   | promtail, **falco-talon** | 4, 3 |
 | 5   | backstage, backstage-resources | 5 |
 
-> **Note:** sync waves track Kubernetes dependency ordering, not the workshop's phase narrative. cert-manager (Phase 7) is in Wave 1 because its CRDs must exist before cert-manager-issuers (Wave 2) can apply. resource-quotas (Phase 7) is in Wave 3 so it's enforcing admission limits before workloads (Wave 5+) get created. The two numbering schemes are orthogonal by design — waves are deployment plumbing, phases are scorecard narrative.
+> **Note:** sync waves track Kubernetes dependency ordering, not the workshop's phase narrative. cert-manager (Phase 7) is in Wave 1 because its CRDs must exist before cert-manager-issuers can apply; the issuers themselves are deferred to Wave 3 (rather than Wave 2) to give the cert-manager-webhook Service one extra wave of slack to populate endpoints — without it the first sync attempt routinely hits `no endpoints available for service "cert-manager-webhook"`. resource-quotas (Phase 7) is in Wave 3 so it's enforcing admission limits before workloads (Wave 5+) get created. The two numbering schemes are orthogonal by design — waves are deployment plumbing, phases are scorecard narrative.
 
 Each Application points at either an upstream Helm chart (Kyverno, Falco, cert-manager, Prometheus, OTel, etc.) or at a manifest path in this repo or in `github.com/peopleforrester/kubeauto-ai-day` (the source of truth for shared pre-built config).
 
