@@ -41,7 +41,7 @@ The workshop runs against **two different Kubernetes environments** in the same 
 
 | Phase | Branches on cluster type? |
 |---|---|
-| 1 (Foundation) | **Yes** — metrics-server gets `--kubelet-insecure-tls` on kubeadm |
+| 1 (Foundation) | **Yes** — EKS pre-installs metrics-server (verify only, do not re-apply); kubeadm installs upstream + `--kubelet-insecure-tls` patch |
 | 2 (GitOps Bootstrap) | No |
 | 3 (Security Stack) | **Yes** — ESO uses AWS Secrets Manager on EKS, Kubernetes Secrets backend on kubeadm |
 | 4 (Observability) | No |

@@ -16,7 +16,7 @@ The workshop's central question: as AI ate the implementation layer, what's left
 
 You'll go through these in order. Each ends with a `<promise>PHASE_N_DONE</promise>` only when its pytest gate actually passes.
 
-1. **Foundation** — cluster preflight. The only thing manually installed at this step is metrics-server (neither environment ships it).
+1. **Foundation** — cluster preflight + apply the 9 workshop namespaces. metrics-server install is cluster-type-branched (EKS pre-installs it as a managed addon, kubeadm needs an upstream install plus the `--kubelet-insecure-tls` patch).
 2. **GitOps Bootstrap** — install ArgoCD, apply the app-of-apps; ArgoCD then fans out **32 child Applications** in sync-wave order in parallel. The rest of the workshop is mostly watching Healthy land and scoring.
 3. **Security Stack** — Kyverno + 3 ClusterPolicies, Falco + custom rules + Falcosidekick + FalcoTalon (auto-remediation), External Secrets Operator, RBAC, NetworkPolicies.
 4. **Observability** — kube-prometheus-stack (Prometheus + Grafana + operator + kube-state-metrics + node-exporter) + OpenTelemetry Collector + Loki + Promtail + Tempo + ArgoCD ServiceMonitors.

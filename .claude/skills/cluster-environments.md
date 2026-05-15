@@ -19,7 +19,7 @@ The KCD Texas 2026 workshop runs against **two different Kubernetes environments
 | Identity / IRSA / Pod Identity | Available (AWS) | None |
 | Cloud LoadBalancer Services | Yes (AWS NLB/ALB) | No |
 | Public DNS for ACME | Possible via Route53 | No |
-| metrics-server pre-installed | No | No |
+| metrics-server pre-installed | **Yes** (EKS managed addon) | No |
 | Default `kubectl` context | `arn:aws:eks:us-east-2:...:cluster/kcd-tx-attendee-N` | `kubernetes-admin@kubernetes` |
 | Attendee's terminal | Local laptop, after `aws eks update-kubeconfig` | Browser shell, pre-authenticated |
 
@@ -51,22 +51,31 @@ After this runs, **`.cluster-type` at the repo root is the canonical signal** fo
 
 ### `metrics-server` (Phase 1)
 
-Neither environment pre-installs it. Both need it for `kubectl top`.
+Different *install state* on the two paths — they look like the same problem but they need opposite handling.
+
+- **EKS:** metrics-server is **pre-installed as a managed addon**. Do not touch it. The Service+APIService have an EKS-specific selector (two labels: `app.kubernetes.io/instance` + `app.kubernetes.io/name`) and live behind a Cluster Security Group rule the addon installs at provisioning time. Re-applying the upstream `components.yaml` against an EKS cluster looks like an upgrade but actually collides on immutable Deployment selector fields, then silently rewrites the Service to a three-label selector that no longer matches the addon pods — endpoints empty, APIService fails. **Just verify the existing deployment is Available; never apply the upstream manifest.**
+- **kubeadm (KodeKloud):** metrics-server is **not present**. Install it from upstream and patch in `--kubelet-insecure-tls` because the kubeadm self-signed kubelet certs reject metrics-server's default TLS verification.
 
 ```bash
-# Same manifest URL, different args:
-if [[ "${CLUSTER_TYPE}" == "kubeadm" ]]; then
+if [[ "${CLUSTER_TYPE}" == "eks" ]]; then
+    # EKS managed-addon path — verify only, do NOT apply.
+    kubectl -n kube-system get deploy metrics-server
+    kubectl wait -n kube-system --for=condition=Available \
+        deploy/metrics-server --timeout=60s
+else
+    # kubeadm path — fresh install + the standard self-signed-kubelet patch.
     kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-    # kubeadm clusters typically use self-signed kubelet certs that
-    # metrics-server's default TLS verification rejects. Patch the deploy
-    # to accept them — this is the standard kubeadm workaround.
     kubectl patch -n kube-system deploy metrics-server --type=json \
         -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
-else
-    # EKS kubelet certs are signed by the cluster CA, no flag needed.
-    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+    kubectl wait -n kube-system --for=condition=Available \
+        deploy/metrics-server --timeout=120s
 fi
+
+# Both paths verify the metrics API end-to-end:
+kubectl top nodes
 ```
+
+Test gate (`tests/test_phase_01_foundation.py::test_metrics_server_installed`) only checks `Deployment.status.availableReplicas >= 1` and so passes even if `kubectl apply` collided and broke the Service routing. That's a real gap: the gate looks green but `kubectl top` fails. Skip the apply on EKS and you sidestep the trap entirely.
 
 ### External Secrets Operator (Phase 3)
 

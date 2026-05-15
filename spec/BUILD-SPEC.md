@@ -22,7 +22,7 @@ Write the result to `.cluster-type` at the repo root (one word: `eks` or `kubead
 
 | Phase | Branches on cluster type? |
 |---|---|
-| 1 (Foundation) | **Yes** — `metrics-server` install gets a `--kubelet-insecure-tls` patch on kubeadm |
+| 1 (Foundation) | **Yes** — EKS pre-installs `metrics-server` as a managed addon (verify only, do not re-apply); kubeadm requires a fresh install plus the `--kubelet-insecure-tls` patch |
 | 2 (GitOps Bootstrap) | No — identical on both |
 | 3 (Security Stack) | **Yes** — ESO backend (AWS Secrets Manager on EKS / Kubernetes Secrets on kubeadm) |
 | 4 (Observability) | No — identical on both |

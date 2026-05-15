@@ -31,7 +31,9 @@ After this, every other phase reads `.cluster-type` to know which branch to foll
 ## The prompt I paste to Claude
 
 ```
-Phase 1 — Foundation. The cluster is pre-provisioned; no manifests to generate.
+Phase 1 — Foundation. The cluster is pre-provisioned; this phase asserts
+its health and brings up the two prerequisites the rest of the build
+relies on (the 9 workshop namespaces, and metrics-server).
 
 STEP 0 — CLUSTER TYPE DETECTION (do this before anything else):
   Read .claude/skills/cluster-environments.md.
@@ -50,35 +52,61 @@ STEP 1 — walk me through what's in place:
 
   1. kubectl config current-context           (announce the cluster type detected above)
   2. kubectl get nodes -o wide                (expect 3 Ready nodes)
-  3. kubectl get ns                            (workshop namespaces are created by
-                                                gitops/apps/namespaces during Phase 2 —
-                                                only kube-system + default exist here)
-  4. kubectl -n kube-system get deploy metrics-server  (NEITHER environment pre-installs
-                                                        metrics-server — we install it
-                                                        in step 2 below)
+  3. kubectl get ns                            (only kube-system + default + kube-public +
+                                                kube-node-lease — workshop namespaces get
+                                                created in STEP 2 below)
+  4. kubectl -n kube-system get deploy metrics-server
+       IF CLUSTER_TYPE=eks: expect this to ALREADY EXIST — EKS provisions
+         metrics-server as a managed addon. We will not re-install it.
+       IF CLUSTER_TYPE=kubeadm: expect "deployments.apps metrics-server not
+         found" — kubeadm clusters do not pre-install it. STEP 3 fixes that.
 
-STEP 2 — install metrics-server (both environments need it):
+STEP 2 — apply the 9 workshop namespaces:
 
-  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+  kubectl apply -f gitops/manifests/namespaces/
 
-  IF CLUSTER_TYPE=kubeadm, also apply the kubelet-insecure-tls patch
-  (kubeadm self-signed kubelet certs require this):
-    kubectl patch -n kube-system deploy metrics-server --type=json \
-      -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+  These 9 namespaces (argocd, apps, kyverno, monitoring, backstage, security,
+  platform, cert-manager, falco) are foundational — the rest of the build
+  deploys workloads INTO them. Phase 2's `namespaces` ArgoCD Application
+  points at the same path on `main` and will adopt these existing namespaces
+  idempotently. We apply them here so Phase 1's gate has something to grade
+  AND so anything Phase 2 creates lands in a namespace that already exists.
 
-  Then: kubectl wait -n kube-system --for=condition=Available deploy/metrics-server --timeout=120s
-  Then: kubectl top nodes   (verifies the install worked)
+STEP 3 — ensure metrics-server is installed (cluster-type branched):
 
-STEP 3 — run the gate:
+  IF CLUSTER_TYPE=eks:
+    The EKS-managed metrics-server addon is already installed (it ships with
+    the cluster). DO NOT apply the upstream components.yaml — it collides
+    with the addon on immutable Deployment selector fields and silently
+    clobbers the Service+APIService wiring. Just verify the existing
+    deployment reports Available:
+
+      kubectl -n kube-system get deploy metrics-server
+      kubectl wait -n kube-system --for=condition=Available deploy/metrics-server --timeout=60s
+
+  IF CLUSTER_TYPE=kubeadm:
+    KodeKloud's kubeadm clusters do NOT pre-install metrics-server. Install
+    it from upstream and apply the kubelet-insecure-tls patch (kubeadm's
+    self-signed kubelet certs reject metrics-server's default TLS verify):
+
+      kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+      kubectl patch -n kube-system deploy metrics-server --type=json \
+        -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+      kubectl wait -n kube-system --for=condition=Available deploy/metrics-server --timeout=120s
+
+  Then on both:
+      kubectl top nodes   (verifies the metrics API is reachable end-to-end)
+
+STEP 4 — run the gate:
   pytest tests/test_phase_01_foundation.py -v
 
 When all tests pass, emit:
 <promise>PHASE_1_DONE</promise>
 ```
 
-## Namespace structure (9 namespaces created by `namespaces` Application in Phase 2)
+## Namespace structure (9 namespaces created in Phase 1 STEP 2)
 
-These don't exist at Phase 1 yet on either cluster type. They're created at sync-wave -10 by `gitops/apps/namespaces` when Phase 2's app-of-apps bootstraps.
+Phase 1 applies these from `gitops/manifests/namespaces/`. Phase 2's `namespaces` ArgoCD Application points at the same path on `main` and adopts the existing namespaces (Application reports `Synced + Healthy` without recreating anything).
 
 | Namespace | Purpose |
 |---|---|
@@ -97,9 +125,11 @@ These don't exist at Phase 1 yet on either cluster type. They're created at sync
 - **`kubectl get nodes` returns 401 (EKS only).** EKS Access Entry missing for the current AWS user. Pre-workshop preflight should have caught this; if surfaced here, swap to a spare cluster.
 - **`kubectl get nodes` returns connection refused (kubeadm only).** Browser-shell session expired or the lab reset. Re-launch the KodeKloud lab.
 - **`metrics-server` not Ready after 2 minutes (kubeadm).** Verify the `--kubelet-insecure-tls` patch was applied. Without it, metrics-server can't reach the kubelet metrics endpoint on self-signed certs.
+- **`kubectl top nodes` returns `Metrics API not available` (EKS).** Almost always caused by applying the upstream `metrics-server/components.yaml` against an EKS cluster that already has the managed addon installed. The upstream Deployment's selector labels differ from the addon's, the apply silently rejects the Deployment update (selector is immutable), and the same apply rewrites the `metrics-server` Service spec with a selector that no longer matches the addon pods — endpoints empty, APIService fails. Fix: STEP 3 in the prompt is explicit about NOT applying components.yaml on EKS. If the collision has already happened, recovery requires either `aws eks update-addon --resolve-conflicts OVERWRITE` (requires addon-manage IAM) or manually recreating the Service with the addon's two-label selector (`app.kubernetes.io/instance=metrics-server, app.kubernetes.io/name=metrics-server`).
 - **Node count < 3.** Possible node scaling issue. Less than 3 nodes will tight-pack the workshop stack but the test gate accepts ≥ 2.
 - **Cluster type detection failed (`Unknown context`).** Run `kubectl config current-context` manually; if it returns something unexpected (e.g., a personal cluster), the attendee is on the wrong context. Switch back to the workshop-provisioned one.
 - **`falco` namespace shown as empty when you `kubectl get pods -n falco`.** This is correct — it's a leader-election Lease holder, not a workload home. See namespace table above.
+- **Phase 2's `namespaces` Application shows `OutOfSync` after Phase 1 STEP 2.** Shouldn't happen — ArgoCD does adopt existing namespaces created via `kubectl apply` at the same path it reads from `main`. If it does happen, check that the namespaces are labeled identically to what `gitops/manifests/namespaces/namespaces.yaml` declares on `main`. Drift here usually means staging has labels main doesn't.
 
 ## What students see on their cluster
 
@@ -110,7 +140,7 @@ Same end state — 3 Ready nodes, `kubectl top` works, `.cluster-type` written, 
 **Components covered:** VPC + Networking, EKS Cluster (or kubeadm equivalent), IAM/Pod Identity (EKS) / no-cloud-auth (kubeadm), Namespace Structure deferred to Phase 2 (4 of 27)
 
 For these four:
-- **Install: 10/10** — infrastructure existed Healthy. No AI involvement on this phase except the metrics-server install + cluster-type detection.
+- **Install: 10/10** — infrastructure existed Healthy. No AI involvement on this phase except the cluster-type detection, namespace bootstrap, and (on kubeadm) the metrics-server install.
 - **Integration: not applicable** — assessed in later phases as components actually use IRSA, the namespace structure, etc.
 - **Usability: not applicable** — assessed in later phases when students/operators interact with the underlying infrastructure.
 
