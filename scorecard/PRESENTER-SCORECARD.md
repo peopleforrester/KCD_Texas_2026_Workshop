@@ -28,22 +28,22 @@ Plus operational metrics:
 
 ---
 
-## Live Scorecard
+## Live Scorecard — KCD Texas 2026 (filled post-workshop, 2026-05-15)
 
-After each phase's promise emits, run `/score-component phase-N` from the projector Claude. The room watches you walk through the five values out loud; Claude writes the row. Don't backfill at the end — the live capture is the point.
+> **Note on capture method.** This scorecard was filled *after* the workshop from objective cluster-state evidence (a sweep across all 62 EKS pool clusters), the spec's documented variance points, and the room's qualitative signal as reported by the presenter. On-stage `/score-component` did not write to this file during the live build, so values are reconstructed rather than live-captured. Cycles + AI time are estimates from the autonomous-execution timing baseline; the presenter is the only source for exact numbers and may amend.
 
 | Phase / Component | Install (1–10) | Integration (1–10) | Usability (1–10) | Cycles | AI time | Notes |
 |---|---:|---:|---:|---:|---:|---|
-| **Phase 1 — Foundation** (cluster Ready, 9 namespaces, metrics-server) |   |   |   |   |   |   |
-| **Phase 2 — GitOps Bootstrap** (ArgoCD + app-of-apps → 32 children) |   |   |   |   |   |   |
-| **Phase 3 — Security Stack** (Kyverno + 3 policies, Falco + rules, Falcosidekick, FalcoTalon, ESO, RBAC, NetPol) |   |   |   |   |   |   |
-| **Phase 4 — Observability** (Prom + Grafana + OTel + Loki/Tempo/Promtail) |   |   |   |   |   |   |
-| **Phase 5 — Developer Portal** (Backstage, catalog, templates, demo apps in catalog) |   |   |   |   |   |   |
-| **Phase 6 — Integration** (drift selfHeal + admission events + Falco→Talon end-to-end) |   |   |   |   |   |   |
-| **Phase 7 — Hardening** (cert-manager, ClusterIssuers, Quotas + PDBs) |   |   |   |   |   |   |
-| **Totals / Average** |   |   |   |   |   | — |
+| **Phase 1 — Foundation** (cluster Ready, 9 namespaces, metrics-server) | 10 | 8 | 9 | 0 | 1 min | Corrected spec (commit `3bcff63`) landed clean across all 7 active clusters. Integration −2 because `kubectl top` is broken at the Accenture EKS provisioning level (SG gap); not workshop-spec-fixable, no gate depends on it. |
+| **Phase 2 — GitOps Bootstrap** (ArgoCD + app-of-apps → 32 children) | 10 | 10 | 9 | 0 | 3 min | helm install argocd@9.5.x + app-of-apps fanned out cleanly in 6 of 7 active clusters. 1 cluster reached 24 of 33 children (attendee-09 — partial reconcile at workshop end). |
+| **Phase 3 — Security Stack** (Kyverno + 3 policies, Falco + rules, Falcosidekick, FalcoTalon, ESO, RBAC, NetPol) | 10 | 8 | 7 | 0 | 3 min | Kyverno admission firing, Falco DS + Falcosidekick + FalcoTalon all Healthy. ESO `ClusterSecretStore` Degraded-by-design (no IRSA) — the workshop's central A/B variance point landed exactly as designed. |
+| **Phase 4 — Observability** (Prom + Grafana + OTel + Loki/Tempo/Promtail) | 9 | 9 | 9 | 0 | 4 min | Full Prometheus stack + OTel + Loki + Tempo + Promtail Healthy. Install −1 for the timing flake observed in cluster-62 rehearsal (node-exporter + Grafana readiness) — self-resolves but visible. |
+| **Phase 5 — Developer Portal** (Backstage, catalog, templates, demo apps in catalog) | 10 | 7 | 3 | 0 | 8 min | Backstage Pod Running on the pinned image (`ghcr.io/backstage/backstage:1.30.2`); the appConfig override prevented the Kubernetes-plugin startup crash. Usability 3/10 stays — catalog is seed-only, no Software Templates. **The "installed-but-not-shippable" closing line stands.** |
+| **Phase 6 — Integration** (drift selfHeal + admission events + Falco→Talon end-to-end) | 10 | 10 | 8 | 0 | 1 min | All cross-component flows observed Healthy. Drift selfHeal under 60s is the moment that visibly lands for the audience. |
+| **Phase 7 — Hardening** (cert-manager, ClusterIssuers, Quotas + PDBs) | 9 | 5 | 5 | 0 | 1 min | cert-manager + CRDs installed clean; the wave-3 fix (commit `6437047`) held — no sync-retry exhaustion on the live run. ClusterIssuers Degraded-by-design (ACME without Route53), Certificate-Ready test skipped on EKS path as documented. |
+| **Totals / Average** | **9.7** | **8.1** | **7.1** | **0** | **21 min** | — |
 
-Seven rows, seven phases. Phase 5 (Backstage) is the most likely component to faceplant — score what you got, narrate the failure honestly, and move on. A 4/10 Install with a frank explanation of why is more interesting data than a missing row.
+**Install ≫ Integration ≫ Usability** — the workshop's central thesis lands cleanly: **9.7 → 8.1 → 7.1**. AI installed almost everything; integration is where the EKS-specific variance points (IRSA, Route53) show; usability tops out at "platform installed, developer-experience layer still where the engineering work lives" — Phase 5 (Backstage at 3/10 Usability) is the talk's closing punctuation.
 
 ---
 
