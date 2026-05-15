@@ -46,6 +46,36 @@ When the gate passes:
 <promise>PHASE_3_DONE</promise>
 ```
 
+## Cluster-aware ESO configuration
+
+Read `.cluster-type` (written by Phase 1). The ExternalSecrets Operator itself installs identically on both environments. The **backend store** differs:
+
+### IF `CLUSTER_TYPE=eks`
+- The shipped `gitops/apps/eso-resources` applies as-is:
+  - `ClusterSecretStore` of `provider.aws.service: SecretsManager`, region `us-east-2`
+  - Auth via Pod Identity (the operator's ServiceAccount maps to an IAM role through the `eks.amazonaws.com/role-arn` annotation)
+  - Secret material lives in AWS Secrets Manager outside the cluster
+- Expected on workshop clusters where IRSA isn't pre-wired: `ClusterSecretStore` reports `Ready=False` with `InvalidIdentityToken: No OpenIDConnect provider found in your account`. **This is honest scorecard data, not a workshop bug.** Install passes (Pod Running), Integration scores ~2/10.
+
+### IF `CLUSTER_TYPE=kubeadm`
+- Generate a Kubernetes-backend variant locally to `~/my-eso-resources.yaml` and apply it (do NOT push to gitops/):
+  - `ClusterSecretStore` (or namespaced `SecretStore`) of `provider.kubernetes`
+  - No cloud auth required — ESO reads from a regular Kubernetes Secret in the `platform` namespace
+  - Pre-create the source Secret manually as part of the demo (`kubectl create secret generic workshop-source -n platform --from-literal=...`)
+- Expected: `SecretStore Ready=True`, `ExternalSecret SecretSynced=True`, target Secret materializes in the consuming namespace. **Full end-to-end ESO flow works** — kubeadm path scores higher on Integration than EKS does, because the local-Kubernetes backend has no missing IRSA prereq.
+
+### Why both are valid workshop runs
+
+ESO's value proposition is "decouple where secrets live from who consumes them." That's demonstrated on both paths — just with a different backend store. The kubeadm path proves the *pattern* end-to-end; the EKS path proves the *production-shape* up to the IRSA gap. The scorecard divergence is the talk's central A/B.
+
+Read `.claude/skills/cluster-environments.md` for the full side-by-side.
+
+## Cluster-aware cert-manager configuration
+
+cert-manager itself is Phase 7's concern. See `spec/phases/phase-07-hardening.md` for the EKS-vs-kubeadm ClusterIssuer branching (ACME/Route53 on EKS, self-signed on kubeadm).
+
+## Known failure modes
+
 ## Known failure modes
 
 - **Kyverno controllers `CrashLoopBackOff`.** Usually the webhook fails to register because the chart's `webhooks.namespaceSelector` was generated as a list-of-lists instead of a map. Skill file lists the correct shape.

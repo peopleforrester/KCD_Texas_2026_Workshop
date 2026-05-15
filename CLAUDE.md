@@ -30,6 +30,31 @@ In particular:
 
 ---
 
+## Cluster environment awareness (read this BEFORE Phase 1)
+
+The workshop runs against **two different Kubernetes environments** in the same room:
+
+- **Accenture EKS** (10 clusters) — primary for terminal-comfortable attendees. Cluster creds via the Railway web app.
+- **KodeKloud kubeadm** (browser lab, ~40 attendees) — primary for browser-preferring attendees. Pre-authenticated `kubernetes-admin@kubernetes` shell.
+
+**Detect cluster type at Phase 1's first action.** Save `CLUSTER_TYPE=eks` or `CLUSTER_TYPE=kubeadm` to a marker file at the repo root: `.cluster-type` (one word, nothing else). Every subsequent phase reads this marker to branch behavior where it matters:
+
+| Phase | Branches on cluster type? |
+|---|---|
+| 1 (Foundation) | **Yes** — metrics-server gets `--kubelet-insecure-tls` on kubeadm |
+| 2 (GitOps Bootstrap) | No |
+| 3 (Security Stack) | **Yes** — ESO uses AWS Secrets Manager on EKS, Kubernetes Secrets backend on kubeadm |
+| 4 (Observability) | No |
+| 5 (Developer Portal) | No |
+| 6 (Integration) | No |
+| 7 (Hardening) | **Yes** — cert-manager ClusterIssuer is ACME/Route53 on EKS, self-signed on kubeadm |
+
+The detection logic + full per-component branching is in **`.claude/skills/cluster-environments.md`** — read it before Phase 1.
+
+The scorecard divergence between the two paths on Phase 3 and Phase 7 is **data, not a defect**. Don't normalize the two paths to look identical — the variance *is* the talk.
+
+---
+
 ## Layout
 
 ### Presenter-facing spec

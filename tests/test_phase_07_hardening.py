@@ -27,12 +27,50 @@ def test_cert_manager_crds_installed():
 
 
 def test_cluster_issuers_present():
-    """At least one ClusterIssuer registered (Ready or not — Ready depends on DNS wiring)."""
+    """At least one ClusterIssuer registered. The CRD must be queryable on both
+    cluster types; the *specific issuer type* (ACME on EKS, self-signed on
+    kubeadm) is documented in spec/phases/phase-07-hardening.md and is
+    intentionally not asserted here — both are valid."""
     data = kubectl_json("get", "clusterissuers")
     items = data.get("items", [])
     # Path-based Application: may not yet have any if Wave 2 still reconciling
     # Test that the CRD is queryable and we get some response
     assert isinstance(items, list), "ClusterIssuers query failed"
+
+
+def test_any_certificate_is_ready_if_present():
+    """If any Certificate resources exist, they should be Ready. Does not REQUIRE
+    a Certificate to exist (none are shipped in the workshop's gitops/ tree
+    today). On kubeadm with a self-signed issuer, a demo Certificate would
+    reach Ready=True end-to-end. On EKS with an ACME issuer that lacks the
+    Route53/IAM wiring, a Certificate would stay Ready=False with a pending
+    Order — so we exempt EKS from the Ready assertion specifically.
+
+    Net effect: this test is permissive by design — it asserts the cluster's
+    cert-manager pipeline isn't broken in a way that's worse than the known
+    issuer-side limitations."""
+    from conftest import cluster_type
+    data = kubectl_json("get", "certificates", "--all-namespaces")
+    items = data.get("items", [])
+    if not items:
+        pytest.skip("No Certificate resources to check — workshop doesn't ship any")
+
+    ct = cluster_type()
+    bad = []
+    for c in items:
+        conditions = c.get("status", {}).get("conditions", [])
+        ready = next((x for x in conditions if x.get("type") == "Ready"), None)
+        name = f"{c['metadata']['namespace']}/{c['metadata']['name']}"
+        if not ready:
+            bad.append((name, "no Ready condition"))
+        elif ready.get("status") != "True":
+            bad.append((name, f"Ready={ready.get('status')} ({ready.get('reason','')})"))
+
+    if ct == "eks" and bad:
+        # ACME issuer without DNS-01/IAM wiring → Certificate stuck pending.
+        # Honest scorecard data, not a test failure on EKS.
+        pytest.skip(f"EKS cert-manager honest gap (ACME without Route53 wiring): {bad}")
+    assert not bad, f"Certificate(s) not Ready: {bad}"
 
 
 def test_resource_quotas_applied():

@@ -2,6 +2,32 @@
 
 **Workshop:** "The 90-Minute IDP" • **Date:** May 15, 2026 • **Tool:** Claude Code
 
+## Pick your path
+
+The workshop runs on **two environments**. Pick the one that fits how you want to work today. The spec is identical; what changes is where the cluster lives and how you log in.
+
+### Path A — AWS EKS (your laptop terminal)
+
+**For:** attendees comfortable in a local terminal with `aws`, `kubectl`, and a shell.
+
+- ~10 clusters available. Claimed first-come-first-served from the registration web app.
+- Real EKS 1.32 on AWS, real Pod Identity, real cloud integrations.
+- Phase 3 (ESO) and Phase 7 (cert-manager) demonstrate the **production-shape** integrations — but the IRSA + Route53 wiring isn't pre-provisioned, so those phases score lower on Integration. That's the workshop's central scorecard data point.
+- Setup: scan the QR → Railway app at https://bubbly-harmony-production-574d.up.railway.app/ → email → AWS keys → six setup commands → `claude` running locally.
+
+### Path B — KodeKloud browser lab
+
+**For:** attendees who'd rather not touch their laptop's AWS config, or who don't have a local `kubectl` set up.
+
+- Per-attendee browser shell, pre-authenticated. No AWS, no installation, no setup window. Browser is enough.
+- Vanilla kubeadm Kubernetes 1.36, Calico CNI, 3 Ubuntu nodes.
+- Phase 3 (ESO) and Phase 7 (cert-manager) use **local, no-cloud-backend** alternatives — Kubernetes Secrets backend for ESO, self-signed ClusterIssuer for cert-manager. These actually complete end-to-end (Integration scores higher than EKS), but Usability tops out at "production-trusted in-cluster TLS" (no public DNS).
+- Setup: open the course at https://learn.kodekloud.com/user/courses/the-90-minutes-idp → launch the lab → in the browser shell `git clone https://github.com/peopleforrester/KCD_Texas_2026_Workshop.git && cd KCD_Texas_2026_Workshop && claude`.
+
+Both paths run the same `spec/BUILD-SPEC.md`. Claude Code detects which cluster type you're on at Phase 1 and writes a marker file (`.cluster-type`) that the rest of the build reads to branch behavior where it matters. The scorecard divergence between the two paths on Phase 3 and Phase 7 is **the point**, not a defect.
+
+---
+
 ## Orientation (for readers reviewing this before the workshop)
 
 This is the attendee-facing companion to a **presenter-led, audience follow-along** workshop at KCD Texas 2026. Michael drives Claude Code live on stage with a build spec; ~60 attendees mirror the same prompts against their own pre-provisioned EKS clusters using Claude Code on their laptops. Real CNCF projects (ArgoCD, Kyverno, Prometheus + Grafana, Backstage), real `kubectl` test gates, real scorecard scored on three dimensions (Install / Integration / Usability) in real time on the projector.

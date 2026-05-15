@@ -63,3 +63,31 @@ def all_pods_running(namespace: str, label_selector: str = None) -> tuple[bool, 
         if phase not in ("Running", "Succeeded"):
             bad.append((item["metadata"]["name"], phase))
     return (len(bad) == 0, bad)
+
+
+def cluster_type() -> str:
+    """Read the cluster-type marker file written by Phase 1's detection step.
+    Returns one of: 'eks', 'kubeadm', or 'unknown' (if the marker file is missing
+    or the value isn't recognized). Tests that need to branch behavior call this
+    helper rather than re-running kubectl context inspection — the marker file
+    is the canonical signal per spec/phases/phase-01-foundation.md."""
+    import os
+    from pathlib import Path
+    repo_root = Path(os.environ.get("CLAUDE_PROJECT_DIR", "")).resolve() \
+        if os.environ.get("CLAUDE_PROJECT_DIR") \
+        else Path(__file__).resolve().parent.parent
+    marker = repo_root / ".cluster-type"
+    if not marker.exists():
+        return "unknown"
+    val = marker.read_text().strip().lower()
+    if val in ("eks", "kubeadm"):
+        return val
+    return "unknown"
+
+
+def is_eks() -> bool:
+    return cluster_type() == "eks"
+
+
+def is_kubeadm() -> bool:
+    return cluster_type() == "kubeadm"

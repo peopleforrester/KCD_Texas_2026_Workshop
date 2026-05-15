@@ -34,6 +34,7 @@ for f in spec/BUILD-SPEC.md \
          .claude/skills/argocd-patterns.md .claude/skills/kyverno-policies.md \
          .claude/skills/kube-prometheus-stack.md .claude/skills/backstage-templates.md \
          .claude/skills/falco-rules.md .claude/skills/otel-wiring.md \
+         .claude/skills/cluster-environments.md \
          .claude/commands/build-phase.md .claude/commands/score-component.md .claude/commands/validate-phase.md \
          tests/conftest.py \
          tests/test_phase_01_foundation.py tests/test_phase_02_gitops.py \

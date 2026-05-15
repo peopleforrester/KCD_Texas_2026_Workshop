@@ -2,9 +2,37 @@
 
 This is the spec I (Michael) hand Claude Code on stage at KCD Texas. **Single paste, autonomous execution, deliberate pauses for scoring.**
 
-The build follows the same 7-phase / 27-component shape as the [kubeauto-ai-day reference build](https://github.com/peopleforrester/kubeauto-ai-day) — same battle-tested methodology, executed against a pre-provisioned EKS cluster instead of a from-zero terraform-apply.
+The build follows the same 7-phase / 27-component shape as the [kubeauto-ai-day reference build](https://github.com/peopleforrester/kubeauto-ai-day) — same battle-tested methodology, executed against a pre-provisioned cluster instead of a from-zero terraform-apply.
 
 **No artificial scope ceiling.** The workshop is 90 minutes; Claude executes the spec autonomously and gets as far as it gets. If we land Phase 4 in 90 min, that's data. If we land Phase 7, even better. Whatever doesn't finish in the room, the audience finishes on the plane home using this same spec.
+
+## Two cluster environments
+
+The workshop runs against **two environments** in the same room at the same time:
+
+- **Path A — Accenture EKS** (10 clusters, primary for terminal-comfortable attendees). Cluster creds distributed via https://bubbly-harmony-production-574d.up.railway.app/. EKS 1.32, AWS Pod Identity available.
+- **Path B — KodeKloud browser lab** (per-attendee, primary for browser-preferring attendees and the majority by headcount). Vanilla kubeadm v1.36, Calico/Canal CNI, no AWS, no IRSA. Course at https://learn.kodekloud.com/user/courses/the-90-minutes-idp.
+
+Claude **MUST** detect cluster type at the start of Phase 1 by inspecting `kubectl config current-context`:
+
+- `kubernetes-admin@kubernetes` → `CLUSTER_TYPE=kubeadm`
+- ARN or anything containing `eks` → `CLUSTER_TYPE=eks`
+
+Write the result to `.cluster-type` at the repo root (one word: `eks` or `kubeadm`). Every subsequent phase reads this marker to branch behavior where it matters:
+
+| Phase | Branches on cluster type? |
+|---|---|
+| 1 (Foundation) | **Yes** — `metrics-server` install gets a `--kubelet-insecure-tls` patch on kubeadm |
+| 2 (GitOps Bootstrap) | No — identical on both |
+| 3 (Security Stack) | **Yes** — ESO backend (AWS Secrets Manager on EKS / Kubernetes Secrets on kubeadm) |
+| 4 (Observability) | No — identical on both |
+| 5 (Developer Portal) | No — identical on both |
+| 6 (Integration) | No — identical on both |
+| 7 (Hardening) | **Yes** — cert-manager ClusterIssuer (ACME/Route53 on EKS / self-signed on kubeadm) |
+
+The scorecard rows will diverge between the two paths on Phase 3 (ESO) and Phase 7 (cert-manager) **by design** — that's the talk's central A/B running live in the same room. **Don't try to make KodeKloud look like EKS, or vice versa.** Either path is a valid workshop run; the divergence is the data.
+
+Full per-component branching guide: `.claude/skills/cluster-environments.md`.
 
 ## How Claude executes this spec
 
@@ -74,6 +102,8 @@ Phase 2 applies `gitops/bootstrap/app-of-apps.yaml` which references `gitops/app
 | 3   | grafana-dashboards, loki, tempo, resource-quotas | 4, 7 |
 | 4   | promtail, **falco-talon** | 4, 3 |
 | 5   | backstage, backstage-resources | 5 |
+
+> **Note:** sync waves track Kubernetes dependency ordering, not the workshop's phase narrative. cert-manager (Phase 7) is in Wave 1 because its CRDs must exist before cert-manager-issuers (Wave 2) can apply. resource-quotas (Phase 7) is in Wave 3 so it's enforcing admission limits before workloads (Wave 5+) get created. The two numbering schemes are orthogonal by design — waves are deployment plumbing, phases are scorecard narrative.
 
 Each Application points at either an upstream Helm chart (Kyverno, Falco, cert-manager, Prometheus, OTel, etc.) or at a manifest path in this repo or in `github.com/peopleforrester/kubeauto-ai-day` (the source of truth for shared pre-built config).
 

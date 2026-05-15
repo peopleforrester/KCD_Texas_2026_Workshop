@@ -41,6 +41,32 @@ And after that (or after I say "stop"):
 <promise>ALL_PHASES_COMPLETE</promise>
 ```
 
+## Cluster-aware cert-manager configuration
+
+Read `.cluster-type` (written by Phase 1). cert-manager itself installs identically on both environments via `gitops/apps/cert-manager`. The **ClusterIssuer** differs:
+
+### IF `CLUSTER_TYPE=eks`
+- The shipped `gitops/apps/cert-manager-issuers` applies as-is:
+  - `ClusterIssuer` of `spec.acme.solvers[].dns01.route53` referencing a Route53 hosted zone
+  - Needs IAM permissions for Route53 (workshop does not pre-wire these)
+- Expected: ClusterIssuer registers but `Ready=False` with no Order resources — the issuer exists but won't mint certificates because the DNS-01 challenge can't complete without proper IAM + a real domain.
+- Honest scorecard: Install 9, Integration 3-5, Usability 5 (the issuer concept is shown; just doesn't end-to-end-mint).
+
+### IF `CLUSTER_TYPE=kubeadm`
+- Generate a self-signed variant locally to `~/my-cluster-issuers.yaml` and apply it (do NOT push to gitops/):
+  - `ClusterIssuer` of `spec.selfSigned: {}` (or a CA-based issuer with a self-signed CA generated at install time)
+  - No DNS, no IAM, no external dependency
+- Optionally create a sample `Certificate` resource targeting that issuer. It WILL reach `Ready=True` on kubeadm because the self-signed authority is reachable within the cluster.
+- Honest scorecard: Install 9, Integration 8+, Usability 5 (Integration is genuinely higher than EKS because the chain completes; Usability still capped because self-signed isn't production-trusted externally — but that's the same ceiling self-signed has anywhere).
+
+### Why both are valid workshop runs
+
+The cert-manager pattern is the value — pluggable issuers, automatic cert rotation, native K8s `Certificate` resources. Both paths demonstrate the pattern. EKS shows the production-shape (ACME) without the IAM glue; kubeadm shows the end-to-end flow with a locally-trusted CA. Same lesson, different scorecard variance.
+
+Read `.claude/skills/cluster-environments.md` for the full side-by-side.
+
+## Known failure modes
+
 ## Known failure modes
 
 - **cert-manager webhook not ready when ClusterIssuers apply (Wave 2).** Race condition: cert-manager's webhook needs ~30s after Pod Running. ClusterIssuers fail with "no endpoints available for service cert-manager-webhook". ArgoCD's retry policy with exponential backoff handles this — eventually syncs. Score Install based on first-attempt success; honest if it took 1-2 retries.
