@@ -189,16 +189,19 @@ Falco rules have three building blocks: **macros**, **lists**, and **rules**.
   desc: >
     Detect outbound network connections from the apps namespace to ports
     not in the allowed list. May indicate data exfiltration or C2 callback.
+  # Filter on fd.dport (destination port). fd.sport is the SOURCE port,
+  # which on outbound connections is ephemeral (49152-65535) — an attacker
+  # using any ephemeral source port would slip past a sport-based filter.
   condition: >
     outbound and
     container and
     in_apps_namespace and
-    not fd.sport in (allowed_outbound_ports)
+    not fd.dport in (allowed_outbound_ports)
   output: >
     Unexpected outbound connection from apps namespace
     (pod=%k8s.pod.name ns=%k8s.ns.name container=%container.name
      image=%container.image.repository connection=%fd.name
-     dest_port=%fd.sport cmdline=%proc.cmdline)
+     dest_port=%fd.dport cmdline=%proc.cmdline)
   priority: WARNING
   tags: [container, network, mitre_exfiltration]
   source: syscall

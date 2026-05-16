@@ -54,7 +54,12 @@ set -euo pipefail
 NUM_USERS="${1:-62}"
 START_FROM="${START_FROM:-1}"
 REGION="${REGION:-us-east-2}"
-ACCOUNT_ID="${ACCOUNT_ID:-771128797125}"
+# ACCOUNT_ID has no default -- it must be exported by the operator. Previous
+# revisions hardcoded the Accenture account ID as a default, which leaked into
+# this public repo without adding any value (the script's pre-flight `aws sts
+# get-caller-identity` check already enforces the right account). Require it
+# explicitly so the value lives only in the operator's shell, not in git.
+ACCOUNT_ID="${ACCOUNT_ID:?required: export ACCOUNT_ID=<12-digit AWS account id>}"
 POOL_CSV="${POOL_CSV:-../kcd-website/pool.csv}"
 ADMIN_POLICY_ARN="arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 

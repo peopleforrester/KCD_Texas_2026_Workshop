@@ -1,18 +1,32 @@
-# ABOUTME: Kyverno ClusterPolicy denying privileged containers in the apps namespace.
+# ABOUTME: Kyverno ClusterPolicy denying privileged-execution flags in the apps namespace.
 # ABOUTME: Demonstrates security-posture admission control for workshop workloads.
+#
+# Rule 1 (deny-privileged-flags) rejects pods that set any of:
+#   - spec.hostNetwork=true / hostPID=true / hostIPC=true
+#   - container/initContainer securityContext.privileged=true
+#   - container/initContainer securityContext.allowPrivilegeEscalation=true
+#
+# Rule 2 (deny-dangerous-capabilities) rejects pods whose containers request
+# capabilities that are the most common privilege-escalation vectors:
+# ALL, SYS_ADMIN, NET_ADMIN, SYS_PTRACE, SYS_MODULE, NET_RAW.
+#
+# Known follow-up: explicit runAsUser=0 blocking is intentionally not enforced here
+# because the pod- vs container-level securityContext interaction is awkward to
+# express in pattern syntax. The two rules below close the most common escapes;
+# add a third rule using foreach + deny if runAsUser=0 needs to be enforced too.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   name: disallow-privileged
   annotations:
-    policies.kyverno.io/title: Disallow privileged containers
+    policies.kyverno.io/title: Disallow privileged execution + privilege-escalation flags
     policies.kyverno.io/category: Workshop / Pod Security
     policies.kyverno.io/severity: high
 spec:
   validationFailureAction: Enforce
   background: false
   rules:
-    - name: deny-privileged
+    - name: deny-privileged-flags
       match:
         any:
           - resources:
@@ -21,12 +35,46 @@ spec:
               namespaces:
                 - apps
       validate:
-        message: "Privileged containers are not allowed in 'apps'."
+        message: >-
+          Pods in 'apps' must not enable privileged execution. Reject if any of:
+          spec.{hostNetwork,hostPID,hostIPC}=true, or any container/initContainer with
+          securityContext.{privileged,allowPrivilegeEscalation}=true.
         pattern:
           spec:
+            =(hostNetwork): "false"
+            =(hostPID): "false"
+            =(hostIPC): "false"
             =(initContainers):
               - =(securityContext):
                   =(privileged): "false"
+                  =(allowPrivilegeEscalation): "false"
             containers:
               - =(securityContext):
                   =(privileged): "false"
+                  =(allowPrivilegeEscalation): "false"
+    - name: deny-dangerous-capabilities
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - apps
+      validate:
+        message: >-
+          Pods in 'apps' must not request capabilities ALL, SYS_ADMIN, NET_ADMIN,
+          SYS_PTRACE, SYS_MODULE, or NET_RAW.
+        foreach:
+          - list: "request.object.spec.containers"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.securityContext.capabilities.add[] || `[]` }}"
+                    operator: AnyIn
+                    value:
+                      - ALL
+                      - SYS_ADMIN
+                      - NET_ADMIN
+                      - SYS_PTRACE
+                      - SYS_MODULE
+                      - NET_RAW

@@ -1,8 +1,8 @@
-# Overflow plan — provision 40-60 additional clusters in `accen-dev` (account 515966504359)
+# Overflow plan — provision 40-60 additional clusters in `accen-dev` (account &lt;ACCT_PRESENTER&gt;)
 
 **Status:** held — not executing unless triggered.
 **Audience:** future Michael, future Claude, future operator.
-**Authored:** 2026-05-15 during workshop day, on top of the 60-cluster baseline already live in the Accenture account (771128797125).
+**Authored:** 2026-05-15 during workshop day, on top of the 60-cluster baseline already live in the Accenture account (&lt;ACCT_ACCENTURE&gt;).
 
 ---
 
@@ -12,7 +12,7 @@ Use this plan when:
 
 - Registration outpaces the 60-cluster Accenture baseline (>60 attendees register, or a follow-on event needs a fresh batch), **and**
 - You want the additional capacity in an account *you control directly* (rather than asking Accenture to provision more in their account), **and**
-- You're authenticated as `nwuser` via the `accen-dev` AWS CLI profile (account `515966504359`).
+- You're authenticated as `nwuser` via the `accen-dev` AWS CLI profile (account `&lt;ACCT_PRESENTER&gt;`).
 
 ## Account state (probed 2026-05-15, read-only)
 
@@ -20,7 +20,7 @@ The account is a near-greenfield. Nothing workshop-related lives there yet.
 
 | Resource | State |
 |---|---|
-| **Identity** | `arn:aws:iam::515966504359:user/nwuser` — admin |
+| **Identity** | `arn:aws:iam::&lt;ACCT_PRESENTER&gt;:user/nwuser` — admin |
 | **Existing EKS clusters** | 0 across all probed regions (us-east-1, us-east-2, us-west-1, us-west-2, eu-west-1, eu-central-1, ap-southeast-1, ap-northeast-1) |
 | **Existing IAM users** | 2 only: `aws-nuke` (cleanup tooling) and `nwuser`. **Zero conflicts with `kcd-tx-attendee-*` naming.** |
 | **Existing IAM customer-managed policies** | 0 — `kcd-tx-attendee-boundary` does NOT exist. Has to be created by `scripts/create-permissions-boundary.sh` before any user creation. |
@@ -72,7 +72,7 @@ The refactor is **non-destructive** to the current `kcd-texas-provisioning/terra
 ## Pre-flight checklist (before any provisioning)
 
 ```
-□ AWS_PROFILE=accen-dev aws sts get-caller-identity returns 515966504359/nwuser
+□ AWS_PROFILE=accen-dev aws sts get-caller-identity returns &lt;ACCT_PRESENTER&gt;/nwuser
 □ Re-verify EKS Clusters quota: still 100, still adjustable
 □ Re-verify vCPU quota:
     - if going for 40 clusters: must be ≥ 512  (default — likely OK)
@@ -138,7 +138,7 @@ For 60 clusters × 3-hour workshop window: **~$108**.
 
 4. **AWS-nuke is already installed in this account.** The IAM user `aws-nuke` exists. If anyone fires aws-nuke against this account post-workshop, it cleans **everything**, including the shared VPC if not protected by tag filters. **Mitigation:** add `Project=kcd-texas-2026-workshop` tags on all resources (already in the existing Terraform's default tags) and verify aws-nuke's config excludes that tag.
 
-5. **Cross-account pool.csv with one kcd-website.** If using Option A (single CSV, both accounts) and an attendee gets credentials for an accen-dev cluster, their `aws eks update-kubeconfig` works the same way — but the AWS keys point at account 515966504359, not 771128797125. From the attendee's perspective this is invisible. From the operator's perspective the cluster they're looking at is in a different console. **Mitigation:** none needed for the attendee; just be aware as an operator.
+5. **Cross-account pool.csv with one kcd-website.** If using Option A (single CSV, both accounts) and an attendee gets credentials for an accen-dev cluster, their `aws eks update-kubeconfig` works the same way — but the AWS keys point at account &lt;ACCT_PRESENTER&gt;, not &lt;ACCT_ACCENTURE&gt;. From the attendee's perspective this is invisible. From the operator's perspective the cluster they're looking at is in a different console. **Mitigation:** none needed for the attendee; just be aware as an operator.
 
 6. **Cluster `kcd-tx-attendee-61` and `-62` already have IAM users in the Accenture account.** Those users have no clusters there. If you provision `kcd-tx-attendee-61` in accen-dev, the user `kcd-tx-attendee-61` exists in *both* accounts — same name, different ARNs. The Access Entry on the new cluster points to the accen-dev user (different ARN), so no collision in practice. **Mitigation:** flag in the runbook so the operator doesn't get confused by `aws iam get-user --user-name kcd-tx-attendee-61` returning different results depending on which profile.
 
