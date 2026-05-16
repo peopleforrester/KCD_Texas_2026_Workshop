@@ -189,3 +189,7 @@ What goes home:
 2. **The methodology.** Spec + skills + pytest gates + three-dimension scorecard. Apply it to anything you build with AI on Monday.
 3. **The full 27-component spec.** This file. Battle-tested. Run it yourself on a fresh EKS cluster overnight and you'll land all 27 in ~3 hours. We're trying to do it in 90 minutes live.
 4. **A reference build.** [`github.com/peopleforrester/kubeauto-ai-day`](https://github.com/peopleforrester/kubeauto-ai-day) — same methodology, same 27 components, ~10 hours overnight (the original AI-assisted run). The variance between today's "live under pressure" scorecard and that "alone overnight" scorecard is the closing slide.
+
+## Beyond KCD Texas — next-generation roadmap
+
+This file is the canonical spec for the 7-phase / 27-component build shipped at KCD Texas 2026. The next-generation expansion — phases 8 through 16, covering AI/Agent Gateway, SPIFFE/SPIRE workload identity, Dex human SSO, OpenBao secrets, supply-chain hardening, and service mesh — lives in [`spec/ROADMAP-NEXT-GEN-PHASES.md`](ROADMAP-NEXT-GEN-PHASES.md). That document is forward-looking and not yet implemented; treat it as planning, not as the as-presented workshop.
