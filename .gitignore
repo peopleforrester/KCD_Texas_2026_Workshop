@@ -37,3 +37,8 @@ tmp/
 tests/__pycache__/
 **/__pycache__/
 *.pyc
+
+.claude-history/
+
+# Routed call transcripts: private material, never publish from this public repo
+transcripts/

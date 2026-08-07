@@ -1,0 +1,31 @@
+# Dependabot configuration for KCD Texas 2026 workshop repo.
+# Workshop is post-event; cadence is weekly to keep the reference repo
+# current without generating PR noise. Adjust if/when active development
+# resumes on the next-generation phases (spec/ROADMAP-NEXT-GEN-PHASES.md).
+version: 2
+updates:
+  # Sample-app's Python dependencies (Flask + OTel + dependencies).
+  - package-ecosystem: "pip"
+    directory: "/apps/sample-app/src"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "sample-app"
+    commit-message:
+      prefix: "sample-app/pip"
+
+  # GitHub Actions versions used by .github/workflows/.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"

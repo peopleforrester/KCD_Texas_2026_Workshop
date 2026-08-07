@@ -140,12 +140,17 @@ for name, want in expected.items():
 sys.exit(0 if errs == 0 else 1)
 PY
 
-step "9. ArgoCD chart 9.x is available (workshop uses 'current stable GA')"
+step "9. ArgoCD chart 9.x is still installable (the line the workshop pinned)"
+# The workshop shipped against the 9.x line (ArgoCD v3.4.x) and is frozen as delivered.
+# Assert the pin is still reproducible upstream, not that it is still the newest release:
+# the latter goes permanently red the moment Argo cuts a new major.
 latest=$(helm search repo argo/argo-cd 2>/dev/null | awk 'NR==2 {print $2}')
-case "$latest" in
-  9.*) ok "argo-cd current latest is $latest (chart 9.x → ArgoCD 3.x)" ;;
-  *)   bad "argo-cd current latest is $latest (expected 9.x line)" ;;
-esac
+pinned=$(helm search repo argo/argo-cd --versions 2>/dev/null | awk '$2 ~ /^9\./ {print $2; exit}')
+if [[ -n "$pinned" ]]; then
+  ok "argo-cd 9.x still available (newest 9.x is $pinned; upstream latest is now $latest)"
+else
+  bad "argo-cd 9.x line no longer published upstream (latest is $latest) — spec pin is unreproducible"
+fi
 
 step "10. Pytest tests collect cleanly (syntactic + import check, no cluster needed)"
 if command -v python3 >/dev/null 2>&1 && python3 -c "import pytest" >/dev/null 2>&1; then

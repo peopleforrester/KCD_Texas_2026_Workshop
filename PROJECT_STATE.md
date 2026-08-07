@@ -1,87 +1,68 @@
-# PROJECT_STATE.md — KCD Texas 2026 Workshop
+# Project State: KCD-Texas-2026
 
-**Last updated:** 2026-05-14 (full 7-phase + 10 demo workloads, all self-contained)
-**Branch:** `staging` (in sync with `main`)
-**Workshop date:** 2026-05-15, 10:30 AM CDT
+Phase: 3.1 Stage
+Approved: pending
 
----
+## Lifecycle
+- [x] 1.1 Research
+- [x] 1.2 Plan
+- [ ] 1.3 Approve
+- [ ] 2.1 Test
+- [x] 2.2 Implement
+- [x] 2.3 Verify
+- [x] 3.1 Stage  ← you are here
+- [ ] 3.2 Confirm CI
+- [ ] 3.3 Promote
 
-## Current state
+## Contracts
 
-The workshop is now the **full 7-phase / 27-component build PLUS 10 demo workloads** matching the kubeauto-ai-day reference. Everything is vendored into this repo — no cross-repo dependencies. Workshop demo runs as far as Claude gets in 90 minutes; whatever doesn't land in the room, attendees finish from the plane home using this same spec.
+None sealed. Post-event documentation work, taken under the trivial-work escape hatch rather than a PRD.
 
-**Live validation result on kcd-clust-1:** 47/47 pytest gates passing. **32/33 ArgoCD Applications Healthy** (1 Degraded by design — ESO without IRSA, the central scorecard variance point). **11/11 demo Pods Running in apps namespace** (sample-app × 2 + 5 party apps + ecom-api/frontend/worker + load-generator).
+## Current Plan
 
-**Wall-time on a fresh-ish ArgoCD:**
-- Bootstrap to all 21 Applications discovered: ~48 seconds
-- Bootstrap to 19 Apps Healthy: ~5 minutes
-- Pytest gate sweep: ~4 minutes
+**The workshop shipped.** Delivered at KCD Texas 2026 on 2026-05-15, Room 3, 10:30 CDT. Infrastructure is fully torn down. The repository is now a public portfolio artifact, not a live workshop staging area.
 
-Detailed report: `/tmp/workshop-full-build-report.md`.
+Current work is presentation of the finished thing, not changes to the build:
 
-## Verification method
+- README rewritten results-forward, past tense, leading with the Install 9.7 / Integration 8.1 / Usability 7.1 curve and disclosing that the scores were reconstructed post-hoc.
+- Deck converted to PDF at `slides/` so it renders in a browser. The `.pptx` stays at the root as the source.
+- Hero image generated for the README and LinkedIn (`assets/hero.png`, plus `assets/hero-alt-stack.png` as an alternate). Three variants also copied to Megumi at `C:\Users\itama\Downloads\LinkedIn Images for Resume`.
+- `docs/LINKEDIN-SUMMARY.md` carries the featured-item blurb and post variants.
+- `transcripts/` gitignored. It held a routed private call transcript sitting untracked inside a public repo.
+- Roadmap and retrospective converted to GitHub issues so another repo can pick them up.
 
-- **Live cluster:** kcd-clust-1 (us-east-2, EKS 1.32.13)
-- **Kubeconfig:** `/tmp/accenture-workshop.kubeconfig` (attendee1 user, cluster-admin via Access Entry)
-- **Instructor kubeconfigs:** `/tmp/instructor-kubeconfigs/kcd-clust-{1,2,3}.kubeconfig` (Instructor IAM user; lacks Access Entry on the clusters so only AWS API calls work, not kubectl)
-- **Pytest venv:** `/tmp/workshop-venv/` (Python 3.14, pytest 9.0.3)
-- **Verified by:** real kubectl + 45 pytest gates + curl probes. Real cluster, no mocks.
+## Delivered outcome (2026-05-15)
 
-## Spec structure
+| | Install | Integration | Usability |
+|---|---:|---:|---:|
+| Average across 7 phases | 9.7 | 8.1 | 7.1 |
 
-- `spec/BUILD-SPEC.md` — single-paste autonomous prompt for all 7 phases (rewritten for full 27-component scope)
-- `spec/phases/phase-0{1..7}-*.md` — per-phase scripts (foundation, gitops, security, observability, portal, integration, hardening)
-- `spec/phases/.archive/` — the old 4-phase docs preserved for reference
-- `gitops/apps/` — 21 ArgoCD Applications (1 root + 20 children, with `app-of-apps.yaml` in `gitops/bootstrap/`)
-- `.claude/skills/` — 6 skill files (added falco-rules, otel-wiring)
-- `tests/test_phase_0{1..7}_*.py` — 45 pytest gates across 7 phase files
+- ~21 minutes of AI time against a ~10 hour unpressured overnight baseline for the same spec.
+- EKS path: 12 pool slots dispensed, 7 clusters with workshop activity, 6 at full 32-Application fan-out.
+- KodeKloud path unmeasurable from server-side telemetry. Recorded as a known gap, not smoothed over.
+- Zero attendee scorecards returned. The fork-edit-PR loop was too much friction inside 90 minutes on ephemeral clusters.
 
-## Commits ahead of pre-extension main (all on `main` now)
+Canonical record: `scorecard/results/presenter-2026-05-15.md`.
 
-```
-88b79e8  Fix Phase 6 integration tests: pick ArgoCD-managed Deployment + accept auth
-f75306c  Adjust Phase 2 and Phase 6 test gates for live cluster realities
-255f19c  Broaden kyverno CRD ignoreDifferences to cover schema + printer columns
-46a2600  Add emptyDir for /var/loki when Loki persistence disabled
-33e2fa1  Disable PVC persistence on Loki and Tempo for the workshop cluster
-f03852f  Extend workshop spec from 4 phases to 7 (full 27-component build)
-0dd5185  Fix three test-bug failures caught during live validation
-65498d9  Fix perpetual OutOfSync on kyverno and kyverno-policies Applications
-```
+## Open issues (filed 2026-08-07)
 
-## Cluster utilization with full stack deployed
+On [KCD_Texas_2026_Workshop](https://github.com/peopleforrester/KCD_Texas_2026_Workshop/issues), indexed by epic #14:
 
-Peak: 19% CPU, 13% memory on the most-loaded node. Workshop stack uses ~5.1 GiB across all namespaces; cluster has ~48 GiB capacity. **t3.xlarge × 3 is wildly over-provisioned. No resource pressure.**
+- #1 to #4: retrospective followups (capture-at-source scorecards, live `/score-component` write failure, KodeKloud telemetry, EKS metrics-server SG gap).
+- #5 to #13: roadmap phases 8 through 16 (agent gateway, SPIFFE, Dex, OpenBao, LLM inference, self-service, supply chain, service mesh, progressive delivery).
 
-## Next steps (priority order)
+On [llm-coding-workflow](https://github.com/peopleforrester/llm-coding-workflow/issues): #27, #28, #29 to codify a `portfolio-repo` skill, its rubric, and a deterministic readiness checker, using this repo as the reference output.
 
-| # | Action | Status |
-|---|---|---|
-| 1 | Review commits on main since the extension | Pending Michael |
-| 2 | Install metrics-server on kcd-clust-2 and kcd-clust-3 | **Open**. `kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml` per cluster. Needs attendee2/3 cred OR Instructor Access Entry added on those clusters. |
-| 3 | (Optional) re-validate on kcd-clust-2 to confirm fixes work clean | Optional |
-| 4 | (Optional) wire up real IRSA for ESO if you want a 27/27 instead of 26/27 | Out of scope for workshop |
-| 5 | Workshop dry-run (the live drive) | Per `spec/PRESENTER-RUNBOOK.md` rehearsal checklist |
+## Branch & Tests
 
-## Bugs caught during this extension cycle
+- Branch: `staging`
+- Working tree: see `git status`
+- Gates: 49 pytest functions across 7 phase files. Cluster-dependent, so unrunnable now that the fleet is torn down. `scripts/dry-run-validate.sh` is the cluster-free check and is what CI runs.
+- Note: repo docs previously claimed 47 gates. The tree has 49. Badge and README now cite the measured number.
 
-All 4 are workshop-day-blocking bugs that the static `dry-run-validate.sh` (63/63) could not catch — only a live-cluster run surfaced them. All 4 fixed on `main`.
+## Phase History
 
-1. **Loki PVC stuck Pending** (Accenture cluster has no aws-ebs-csi-driver). `persistence.enabled: false`. (commit `33e2fa1`)
-2. **Loki `mkdir /var/loki: read-only file system`** (chart doesn't emptyDir when persistence off). Explicit `extraVolumes`/`extraVolumeMounts`. (commit `46a2600`)
-3. **Kyverno CRD chronic drift** (API server reformats descriptions). Broader `ignoreDifferences`; still cosmetically OutOfSync but functionally Healthy. (commit `255f19c`)
-4. **Phase 6 drift test on wrong resource** (`argocd-redis` is Helm-owned, not Application-managed). Switched to `kyverno-admission-controller`. (commit `88b79e8`)
-
-## Honest scorecard variance points (what the audience sees)
-
-- **ESO**: Install 8, Integration **2**. Pod runs; ClusterSecretStore Degraded with explicit `InvalidIdentityToken: No OpenIDConnect provider found in your account`. This is the workshop's central "AI installed; AWS prereqs unwired" data point.
-- **Backstage**: Install 9, Integration 7, Usability **3**. Pod up; catalog is seed-only; templates aren't wired to a real Git remote. The "platform installed but not shippable" gap = closing slide.
-- **cert-manager**: Install 9, Integration 5. ClusterIssuers register but can't actually mint certs without real DNS-01 wiring.
-- **Kyverno**: Install 9, Integration 7. Policies enforce; the OutOfSync display is chronic Kyverno + ArgoCD drift on CRD description text. Cosmetic only.
-
-## How to resume
-
-1. Read this file
-2. Read `/tmp/workshop-full-build-report.md` for the detailed findings
-3. Run `git log staging --not origin/main 2>&1` — both branches should be at `88b79e8` (in sync)
-4. Decide whether to install metrics-server on the other two clusters before workshop day
+- 2026-05-14 pre-event live validation on kcd-clust-1, all gates green, 32/33 Applications Healthy
+- 2026-05-15 workshop delivered; canonical scorecard captured post-close
+- 2026-05-16 next-gen roadmap (phases 8-16) committed
+- 2026-08-07 3.1 repository converted to a portfolio artifact; roadmap and retrospective filed as issues
