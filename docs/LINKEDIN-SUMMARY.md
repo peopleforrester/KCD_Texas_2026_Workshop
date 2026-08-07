@@ -5,7 +5,13 @@
 
 Every number below comes from [`scorecard/results/presenter-2026-05-15.md`](../scorecard/results/presenter-2026-05-15.md). Do not round them upward.
 
-Suggested image: `assets/hero.png` (also copied to the LinkedIn images folder as `kcd-texas-2026-90-minute-idp-hero-c.png`).
+Suggested image: `assets/linkedin-hero.png`. It is the hero illustration with the results and a real
+headshot composited on, sized 1200x627 for a LinkedIn link card. `assets/linkedin-hero-clown.png` is
+the same layout over the Clown Native Computing banner if the post wants the lighter tone.
+
+Both are in the LinkedIn images folder as `kcd-texas-linkedin-hero.png` and
+`kcd-texas-linkedin-hero-clown-native.png`. Rebuild either with
+`python3 scripts/build-linkedin-hero.py` after dropping a newer headshot in beside it.
 
 ---
 

@@ -154,6 +154,14 @@ The seven-phase build is finished and frozen as delivered. Phases 8 through 16 e
 
 Written up in [`spec/ROADMAP-NEXT-GEN-PHASES.md`](spec/ROADMAP-NEXT-GEN-PHASES.md) and broken into pickup-ready [GitHub issues](https://github.com/peopleforrester/KCD_Texas_2026_Workshop/issues), indexed by [the epic](https://github.com/peopleforrester/KCD_Texas_2026_Workshop/issues/14). The recommended order ships one phase per iteration, because bundling them dilutes what each one teaches.
 
+## Clown Native Computing
+
+![Clown Native Computing](assets/clown-native-banner.png)
+
+The workshop's unofficial emblem, and the honest version of the pitch. Somebody juggles the containers, keeps the plates spinning, and rides the cloud like it is a bucking bronco, and the audience is invited to notice how much of that is showmanship. The joke and the scorecard make the same point from opposite ends.
+
+Original artwork. It borrows the visual vocabulary of the cloud-native world without reproducing any CNCF or KCD mark. A [crest variant](assets/clown-native-crest.png) is in `assets/` for stickers.
+
 ## Related
 
 - **[agentic-covenants](https://github.com/peopleforrester/agentic-covenants)** is the prevention-first governance framework this workshop is a worked example of. The Kyverno policies here are the Authorization and Blast-radius rows of that matrix, enforced server-side.
