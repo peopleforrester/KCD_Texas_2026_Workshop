@@ -1,6 +1,6 @@
 # Project State: KCD-Texas-2026
 
-Phase: 3.1 Stage
+Phase: 3.3 Promote
 Approved: pending
 
 ## Lifecycle
@@ -10,9 +10,9 @@ Approved: pending
 - [ ] 2.1 Test
 - [x] 2.2 Implement
 - [x] 2.3 Verify
-- [x] 3.1 Stage  ← you are here
-- [ ] 3.2 Confirm CI
-- [ ] 3.3 Promote
+- [x] 3.1 Stage
+- [x] 3.2 Confirm CI
+- [x] 3.3 Promote  ← you are here
 
 ## Contracts
 
@@ -28,6 +28,8 @@ Current work is presentation of the finished thing, not changes to the build:
 - Deck converted to PDF at `slides/` so it renders in a browser. The `.pptx` stays at the root as the source.
 - Hero image generated for the README and LinkedIn (`assets/hero.png`, plus `assets/hero-alt-stack.png` as an alternate). Three variants also copied to Megumi at `C:\Users\itama\Downloads\LinkedIn Images for Resume`.
 - `docs/LINKEDIN-SUMMARY.md` carries the featured-item blurb and post variants.
+- Clown Native Computing parody artwork added at `assets/clown-native-banner.png` and `assets/clown-native-crest.png`, also copied to the LinkedIn images folder. Not referenced from the README; placement is an open taste call.
+- CI (`.github/workflows/validate.yml`) had never run before this work, since `.github/` was untracked. Fixing it surfaced three real defects: an unparseable `.pre-commit-config.yaml` that disabled every hook, a validator check that asserted the pinned ArgoCD line was still upstream latest, and a SIGPIPE in that same check. All fixed; the workflow is now green.
 - `transcripts/` gitignored. It held a routed private call transcript sitting untracked inside a public repo.
 - Roadmap and retrospective converted to GitHub issues so another repo can pick them up.
 
@@ -65,4 +67,4 @@ On [llm-coding-workflow](https://github.com/peopleforrester/llm-coding-workflow/
 - 2026-05-14 pre-event live validation on kcd-clust-1, all gates green, 32/33 Applications Healthy
 - 2026-05-15 workshop delivered; canonical scorecard captured post-close
 - 2026-05-16 next-gen roadmap (phases 8-16) committed
-- 2026-08-07 3.1 repository converted to a portfolio artifact; roadmap and retrospective filed as issues
+- 2026-08-07 3.3 repository converted to a portfolio artifact; roadmap and retrospective filed as issues; CI green and promoted to main
