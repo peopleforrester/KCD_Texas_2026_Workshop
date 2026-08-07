@@ -144,8 +144,12 @@ step "9. ArgoCD chart 9.x is still installable (the line the workshop pinned)"
 # The workshop shipped against the 9.x line (ArgoCD v3.4.x) and is frozen as delivered.
 # Assert the pin is still reproducible upstream, not that it is still the newest release:
 # the latter goes permanently red the moment Argo cuts a new major.
-latest=$(helm search repo argo/argo-cd 2>/dev/null | awk 'NR==2 {print $2}')
-pinned=$(helm search repo argo/argo-cd --versions 2>/dev/null | awk '$2 ~ /^9\./ {print $2; exit}')
+# Capture helm's output first and match without an early awk "exit". Exiting awk
+# mid-stream closes the pipe under helm, which takes SIGPIPE; combined with
+# `set -o pipefail` that surfaces as a 141 and kills the whole run.
+argo_versions=$(helm search repo argo/argo-cd --versions 2>/dev/null || true)
+latest=$(printf '%s\n' "$argo_versions" | awk 'NR==2 {print $2}')
+pinned=$(printf '%s\n' "$argo_versions" | awk '$2 ~ /^9\./ && !seen {print $2; seen=1}')
 if [[ -n "$pinned" ]]; then
   ok "argo-cd 9.x still available (newest 9.x is $pinned; upstream latest is now $latest)"
 else
