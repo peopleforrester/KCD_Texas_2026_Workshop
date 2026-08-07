@@ -43,11 +43,34 @@ def cover_crop(im: Image.Image, w: int, h: int) -> Image.Image:
     return im.crop((left, top, left + w, top + h))
 
 
+def portrait_crop(im: Image.Image, zoom: float = 0.62, eye_line: float = 0.42) -> Image.Image:
+    """Crop a square around the subject's head.
+
+    A plain centre-crop of a typical headshot keeps ceiling and shoulders, which
+    leaves the face tiny once it is scaled into a small circle. Take a square a
+    fraction of the short edge, centred horizontally and biased up the frame.
+
+    Args:
+        im: Source photo.
+        zoom: Side of the crop square as a fraction of the shorter edge.
+        eye_line: Vertical centre of the crop as a fraction of image height.
+
+    Returns:
+        The cropped square, clamped to stay inside the source.
+    """
+    side = round(min(im.width, im.height) * zoom)
+    cx = im.width // 2
+    cy = round(im.height * eye_line)
+    left = max(0, min(cx - side // 2, im.width - side))
+    top = max(0, min(cy - side // 2, im.height - side))
+    return im.crop((left, top, left + side, top + side))
+
+
 def circular(im: Image.Image, size: int, ring: int = 6, ring_color=TEAL) -> Image.Image:
     """Circle-crop a photo and draw a ring around it, at 4x for clean edges."""
     ss = 4
     inner = size - ring * 2
-    photo = cover_crop(im, inner * ss, inner * ss)
+    photo = cover_crop(portrait_crop(im), inner * ss, inner * ss)
 
     mask = Image.new("L", (inner * ss, inner * ss), 0)
     ImageDraw.Draw(mask).ellipse((0, 0, inner * ss - 1, inner * ss - 1), fill=255)
