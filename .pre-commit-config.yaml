@@ -14,7 +14,13 @@ repos:
       # YAML syntax + style
       - id: yaml-lint
         name: YAML Lint
-        entry: yamllint -d '{extends: default, rules: {line-length: disable, document-start: disable, comments: disable, comments-indentation: disable, truthy: {allowed-values: [''true'', ''false'', ''yes'', ''no'']}, indentation: {spaces: 2, indent-sequences: consistent}}}'
+        # Block scalar: the inline yamllint config is full of ": ", which a plain
+        # scalar parses as a nested mapping. Block style needs no escaping at all.
+        entry: >-
+          yamllint -d '{extends: default, rules: {line-length: disable,
+          document-start: disable, comments: disable, comments-indentation: disable,
+          truthy: {allowed-values: ["true", "false", "yes", "no"]},
+          indentation: {spaces: 2, indent-sequences: consistent}}}'
         language: system
         files: '\.ya?ml$'
         exclude: '.git/|.venv/|.terraform/|node_modules/'
@@ -55,7 +61,11 @@ repos:
       # Conventional commit format (Layer 5: Immutable Audit Trail)
       - id: commit-msg-validate
         name: Conventional Commit Format
-        entry: bash -c 'head -1 "$1" | grep -qE "^(feat|fix|docs|chore|refactor|test|workshop)(\(.+\))?: .+" || (echo "Commit must start with feat:/fix:/docs:/chore:/refactor:/test:/workshop:"; exit 1)'
+        # Block scalar for the same reason as yaml-lint above: the regex and the
+        # error message both contain ": ", which breaks a plain scalar.
+        entry: >-
+          bash -c 'head -1 "$1" | grep -qE "^(feat|fix|docs|chore|refactor|test|workshop)(\(.+\))?: .+"
+          || (echo "Commit must start with feat:/fix:/docs:/chore:/refactor:/test:/workshop:"; exit 1)'
         language: system
         stages: [commit-msg]
         always_run: true
