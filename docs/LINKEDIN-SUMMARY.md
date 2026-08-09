@@ -9,8 +9,9 @@ Suggested image: `assets/linkedin-hero.png`. It is the hero illustration with th
 headshot composited on, sized 1200x627 for a LinkedIn link card. `assets/linkedin-hero-clown.png` is
 the same layout over the Clown Native Computing banner if the post wants the lighter tone.
 
-Both are in the LinkedIn images folder as `kcd-texas-linkedin-hero.png` and
-`kcd-texas-linkedin-hero-clown-native.png`. Rebuild either with
+In the LinkedIn images folder the current files for this project are
+`KCD-Texas-hero.png` (the post image) and `KCD-Texas-social-card.jpg` (1280x640,
+for the GitHub social preview card). Rebuild either with
 `python3 scripts/build-linkedin-hero.py` after dropping a newer headshot in beside it.
 
 ---
