@@ -8,10 +8,10 @@ Delivered at **[KCD Texas 2026](https://kcd-texas-2026.sessionize.com/session/11
 
 [![Event](https://img.shields.io/badge/KCD_Texas-15_May_2026-0b7285)](https://kcd-texas-2026.sessionize.com/session/1149914)
 [![Phases](https://img.shields.io/badge/phases-7-informational)](spec/BUILD-SPEC.md)
-[![Components](https://img.shields.io/badge/CNCF_components-27-informational)](#what-got-built)
+[![Components](https://img.shields.io/badge/CNCF_components-27-informational)](spec/BUILD-SPEC.md#how-the-27-components-are-deployed)
 [![Applications](https://img.shields.io/badge/ArgoCD_Applications-32-informational)](gitops/apps)
 [![Gates](https://img.shields.io/badge/pytest_gates-49-success)](tests)
-[![Clusters](https://img.shields.io/badge/EKS_clusters_provisioned-62-orange)](kcd-texas-provisioning-README.md)
+[![Clusters](https://img.shields.io/badge/EKS_clusters_provisioned-62-orange)](#the-infrastructure-behind-it)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 📊 **[Results](#results)** · 🎤 **[Slides (PDF)](slides/kcd-texas-2026-the-90-minute-idp-as-presented.pdf)** · 🧪 **[The spec](spec/BUILD-SPEC.md)** · 📋 **[Scorecard](scorecard/results/presenter-2026-05-15.md)** · 🗺️ **[What's next](spec/ROADMAP-NEXT-GEN-PHASES.md)**
