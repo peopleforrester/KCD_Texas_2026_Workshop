@@ -12,23 +12,30 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # gitleaks needs full history to scan all blobs, not just HEAD.
           fetch-depth: 0
+          # This job only reads and validates; it never pushes.
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Install helm (needed by helm-lint pre-commit hook + dry-run-validate's helm template step)
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
           version: "v3.16.0"
 
@@ -44,7 +51,7 @@ jobs:
         run: python -m pip install --upgrade pip pytest
 
       - name: Run pre-commit hooks (gitleaks, yamllint, kubeconform, helm-lint, shellcheck, dry-run validator on push)
-        uses: pre-commit/action@v3.0.1
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
 
       - name: Run dry-run validator explicitly (defense-in-depth even if pre-commit skips it on PR-not-push)
         run: bash scripts/dry-run-validate.sh .
