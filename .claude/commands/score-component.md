@@ -15,9 +15,17 @@ When run on the presenter's Claude, this updates the on-stage `PRESENTER-SCORECA
 
 ### Your job
 
-1. Open the appropriate scorecard:
-   - `scorecard/PRESENTER-SCORECARD.md` if Michael runs this command
-   - `scorecard/SCORECARD-TEMPLATE.md` if a student runs this command
+1. **Resolve the repo root first, and use an absolute path.** Run
+   `git rev-parse --show-toplevel`. Every path below is relative to that,
+   never to the current working directory. Then open the appropriate
+   scorecard:
+   - `<repo-root>/scorecard/PRESENTER-SCORECARD.md` if Michael runs this command
+   - `<repo-root>/scorecard/SCORECARD-TEMPLATE.md` if a student runs this command
+
+   If `git rev-parse` fails, or the scorecard file is not there, **stop and say
+   so in one loud line** before asking any scoring questions. Do not continue
+   and do not collect scores you have nowhere to put. See "Never fail quietly"
+   in Rules.
 2. Find the row matching **"$ARGUMENTS"** (fuzzy-match the phase number or component name against the row labels — students may pass `phase-3`, `security`, or `kyverno` for the same row).
 3. Recall what happened during the just-completed phase (Install gates passed? On first try or after N corrections? What did the diff against ground truth show? Did integration work end-to-end? Was the UI / catalog / dashboard actually usable?)
 4. Ask the user for the five values, one prompt:
@@ -28,7 +36,12 @@ When run on the presenter's Claude, this updates the on-stage `PRESENTER-SCORECA
    - AI time (minutes from paste to gate-passing)
    - Optional 1-line note
 5. Write the row into the scorecard file using the Edit tool. Preserve the table's column alignment.
-6. Summarize: `Phase N scored: Install=X, Integration=Y, Usability=Z, Cycles=N, AI time=M min.`
+6. **Confirm the write landed.** Re-read the row you just edited and check it
+   carries the numbers you were given. If the Edit errored, or the row still
+   reads as it did before, say so loudly and print the finished row as a
+   fenced block so it can be pasted by hand. A score that exists only in the
+   transcript is the failure this step exists to prevent.
+7. Summarize: `Phase N scored: Install=X, Integration=Y, Usability=Z, Cycles=N, AI time=M min.` and name the file you wrote to, so the projector shows the path.
 
 ### The three dimensions (presenter or student — same model)
 
@@ -46,7 +59,10 @@ Run this once, at the end of the workshop. Walks the student through the six wra
 
 ### Your job
 
-1. Open `scorecard/SCORECARD-TEMPLATE.md`.
+1. Resolve the repo root as above and open
+   `<repo-root>/scorecard/SCORECARD-TEMPLATE.md`. Same rule: if it is not
+   there, say so loudly rather than collecting six answers with nowhere to
+   put them.
 2. Ask each of the six questions in order, one at a time. Wait for each answer before asking the next:
    1. **Manual time estimate** — if they'd built this by hand, no AI, fresh cluster, honest guess in hours or days.
    2. **Did AI shift the toil?** — No / Partial / Yes, plus one sentence on which phase felt most/least like babysitting.
@@ -56,7 +72,28 @@ Run this once, at the end of the workshop. Walks the student through the six wra
    6. **One thing you'll take back to your team** — optional, blank is fine.
 3. Write the answers into the corresponding sections of `scorecard/SCORECARD-TEMPLATE.md`.
 4. Also compute and write the averages row (`Totals / Average`) across all filled phase rows.
-5. Summarize: total filled phases, averages, and a one-line "submission optional — see the bottom of the file" reminder.
+5. **Capture at source, before the cluster dies.** The scorecard lives on an
+   ephemeral lab box. Forking the repo, editing markdown and opening a PR is
+   too much friction inside 90 minutes, and at KCD Texas it returned zero
+   scorecards from the room. So do not ask for a fork. Instead:
+
+   a. Print the completed scorecard as one fenced markdown block, so it can be
+      copied out in a single selection even from a browser shell.
+   b. Build a pre-filled issue link and print it as a bare URL on its own line:
+
+      ```
+      https://github.com/peopleforrester/KCD_Texas_2026_Workshop/issues/new?labels=attendee-scorecard&title=<urlencoded title>&body=<urlencoded scorecard>
+      ```
+
+      Title as `Scorecard: <cluster-type> <attendee id or handle>`. Body is the
+      block from (a). URL-encode both. One click, no fork, no PR, no git.
+   c. Say plainly that submitting is optional and that the numbers are more
+      useful honest than flattering.
+
+   This path is the only telemetry the browser-lab attendees can produce at
+   all, since that environment never touches the provisioning pool and resets
+   at teardown. Treat it as required, not as a nicety.
+6. Summarize: total filled phases, averages, and the submission link again as the last line.
 
 ---
 
@@ -66,6 +103,15 @@ Run this once, at the end of the workshop. Walks the student through the six wra
 - **Don't soften.** If the chart installed cleanly but Grafana showed "No data" for 60 seconds, that's a high Install + low Integration. The variance is the talk's payoff.
 - **If a phase failed entirely** (e.g., Backstage Pod didn't reach Running), score what happened. A 3/10 Install with one line of "Pod stuck in CrashLoopBackOff with `createServiceBuilder is not a function` because Claude defaulted to an older image" is more valuable than a missing row.
 - **Edit the file with the Edit tool**, not by asking the user to paste their entries somewhere. The whole point of this command is the user never touches the markdown.
+- **Never fail quietly.** This command runs on a projector in front of a room.
+  If the repo root cannot be resolved, the scorecard file is missing, or an
+  Edit returns an error, announce it in one line and print the row or block so
+  it survives outside the file. The failure mode this rule exists for is real:
+  at KCD Texas the presenter session had a working directory other than the
+  repo root, every Edit targeted a path that did not exist, nothing surfaced in
+  the transcript, and the canonical scorecard had to be reconstructed
+  afterwards from a 62-cluster sweep and recall. Silence looked identical to
+  success. It must not again.
 
 ## What this command does NOT do
 

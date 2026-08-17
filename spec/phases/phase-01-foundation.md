@@ -126,10 +126,37 @@ Phase 1 applies these from `gitops/manifests/namespaces/`. Phase 2's `namespaces
 - **`kubectl get nodes` returns connection refused (kubeadm only).** Browser-shell session expired or the lab reset. Re-launch the KodeKloud lab.
 - **`metrics-server` not Ready after 2 minutes (kubeadm).** Verify the `--kubelet-insecure-tls` patch was applied. Without it, metrics-server can't reach the kubelet metrics endpoint on self-signed certs.
 - **`kubectl top nodes` returns `Metrics API not available` (EKS).** Almost always caused by applying the upstream `metrics-server/components.yaml` against an EKS cluster that already has the managed addon installed. The upstream Deployment's selector labels differ from the addon's, the apply silently rejects the Deployment update (selector is immutable), and the same apply rewrites the `metrics-server` Service spec with a selector that no longer matches the addon pods — endpoints empty, APIService fails. Fix: STEP 3 in the prompt is explicit about NOT applying components.yaml on EKS. If the collision has already happened, recovery requires either `aws eks update-addon --resolve-conflicts OVERWRITE` (requires addon-manage IAM) or manually recreating the Service with the addon's two-label selector (`app.kubernetes.io/instance=metrics-server, app.kubernetes.io/name=metrics-server`).
+- **`kubectl top nodes` fails on a pre-provisioned EKS cluster with the managed addon installed and untouched.** Distinct from the collision above, and it does not respond to the same fix. The addon Deployment is Available, its pods are Running, and the metrics APIService is still unavailable because the control plane cannot reach the metrics-server pod on port 4443. On a managed cluster that is a Security Group gap on the node group: the cluster SG has no inbound rule allowing the control plane to reach the kubelet/metrics port on the nodes. It is provisioning-side, not spec-side. **Do not burn stage time debugging it.** No pytest gate depends on `kubectl top`, so Phase 1 still passes. Use the scripted talking point below instead.
 - **Node count < 3.** Possible node scaling issue. Less than 3 nodes will tight-pack the workshop stack but the test gate accepts ≥ 2.
 - **Cluster type detection failed (`Unknown context`).** Run `kubectl config current-context` manually; if it returns something unexpected (e.g., a personal cluster), the attendee is on the wrong context. Switch back to the workshop-provisioned one.
 - **`falco` namespace shown as empty when you `kubectl get pods -n falco`.** This is correct — it's a leader-election Lease holder, not a workload home. See namespace table above.
 - **Phase 2's `namespaces` Application shows `OutOfSync` after Phase 1 STEP 2.** Shouldn't happen — ArgoCD does adopt existing namespaces created via `kubectl apply` at the same path it reads from `main`. If it does happen, check that the namespaces are labeled identically to what `gitops/manifests/namespaces/namespaces.yaml` declares on `main`. Drift here usually means staging has labels main doesn't.
+
+## Scripted talking point: `kubectl top` and the unwired prerequisite
+
+Every Accenture-provisioned EKS cluster at KCD Texas failed `kubectl top nodes`.
+Rather than working around it quietly, say it out loud. It is the workshop's own
+thesis happening live, in the first phase, before any AI has been blamed for
+anything.
+
+> "Watch this. `kubectl top nodes`. It fails, on every one of these clusters.
+> metrics-server is installed. The addon is Healthy. The pods are Running. And
+> the metrics API still is not there, because the control plane cannot reach
+> those pods on 4443. That is a Security Group rule nobody wrote.
+>
+> No AI installed that wrong. There was no AI in this phase at all. The
+> component is fine and the platform prerequisite around it was never wired,
+> and that is exactly the gap we are going to score for the next 80 minutes.
+> Install is not Integration."
+
+Then move on. It costs about twenty seconds and it sets up Phase 3's External
+Secrets Operator result, which is the same shape: the operator runs, IRSA was
+never wired, Integration scores 2 of 10.
+
+The underlying SG rule is owned by whoever provisions the clusters, tracked in
+[issue #4](https://github.com/peopleforrester/KCD_Texas_2026_Workshop/issues/4).
+If a future run has it fixed, drop this talking point and use the ESO example
+alone.
 
 ## What students see on their cluster
 
