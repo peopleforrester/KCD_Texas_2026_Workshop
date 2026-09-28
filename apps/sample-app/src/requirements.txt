@@ -6,6 +6,6 @@ gunicorn>=26.2.0,<27.0
 # meant to move together, so they are bumped as a set rather than one at a
 # time. The 0.65b0 instrumentation line pairs with the 1.44 API/SDK line.
 opentelemetry-distro>=0.65b0
-opentelemetry-exporter-otlp-proto-grpc>=1.44.0
+opentelemetry-exporter-otlp-proto-grpc>=1.45.0
 opentelemetry-instrumentation-flask>=0.65b0
 opentelemetry-instrumentation-requests>=0.65b0
